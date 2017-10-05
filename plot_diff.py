@@ -27,19 +27,21 @@
 #     A single visualization with nine plots
 #
 import numpy as np
+import datetime
 import os
 import Ngl, Nio
 import netCDF4
 
 class var_diff(object):
   def __init__(self, f_tim, f_osu, varname):
-    self.fnames = {'tim':f_tim, 'OSU':f_osu}
+    self.fnames = {'Tim':f_tim, 'OSU':f_osu}
     self.varname = varname
     self.longname = None
     self.units = None
+    self.time = None
     self.lat = None
     self.lon = None
-    self.data = {'tim':None, 'OSU':None}
+    self.data = {'Tim':None, 'OSU':None}
 
   def read_files(self):
     """read variable from Tim output, OSU output
@@ -66,9 +68,14 @@ class var_diff(object):
       # read units
       if self.units is None:
         self.units = nf[self.varname].units
-      else:
-        if nf[self.varname].units != self.units:
+      elif nf[self.varname].units != self.units:
           raise RuntimeError('OSU units differs from Tim units')
+      # read time
+      if self.time is None:
+        self.time = nf["XTIME"][...]
+      elif nf[self.varname].units != self.units:
+        raise RuntimeError('OSU timestamps differs from Tim timestamps')
+      # read variable long name
       self.longname = nf[self.varname].description
       nf.close()
 
@@ -83,9 +90,6 @@ def graphics(vd):
   #---Start the graphics section
   wks_type = "png"
   wks = Ngl.open_wks(wks_type,"{}_diff_maps".format(vd.varname))
-
-  # One color map per row of plots
-  colormaps = ["wgne15","StepSeq25","BlueDarkRed18"]
 
   # Create resource list for customizing contour over maps
   res                        = Ngl.Resources()
@@ -122,24 +126,39 @@ def graphics(vd):
   # of 3 plots has the same color map.
   #
   nplots = 3
+  t_idx = 1
+  # datetime.timedelta does not support type numpy.float32, so cast to
+  # type float
+  this_t = datetime.datetime(2009, 3, 1) + datetime.timedelta(
+    minutes=float(vd.time[t_idx]))
   plots  = []
 
-  all_data = np.stack( (vd.data['tim'], vd.data['OSU']) ).flatten()
+  all_data = np.stack( (vd.data['Tim'], vd.data['OSU']) ).flatten()
   dmin = min(all_data)
   dmax = max(all_data)
 
   for k in vd.data.keys():
     print("plot {} data".format(k))
 
-    #---This is a new resource added in PyNGL 1.5.0
-    res.cnFillPalette          = colormaps[0]
-
-    print("contour min: {}, max: {}".format(dmin, dmax))
+    res.cnFillPalette = "WhiteBlue"
+    res.cnLevelSelectionMode = "EqualSpacedLevels"
     res.cnMinLevelValF         = dmin
     res.cnMaxLevelValF         = dmax
     res.cnMaxLevelCount        = 10
+    res.tiMainString  = k
+    plots.append(Ngl.contour_map(wks, vd.data[k][t_idx, ...], res))
 
-    plots.append(Ngl.contour_map(wks,vd.data[k][1, ...],res))
+  # plot the difference
+  d = vd.data['Tim'] - vd.data['OSU']
+  abs_max = np.abs((d.min(), d.max())).max()
+  nlevs = 10
+  res.cnFillPalette = "BrownBlue12"
+  res.cnLevelSelectionMode = "ManualLevels"
+  res.cnLevelSpacingF      = (abs_max * 2) / nlevs
+  res.cnMinLevelValF         = abs_max * -1
+  res.cnMaxLevelValF         = abs_max
+  res.tiMainString  = "Tim - OSU ({units})".format(units=vd.units)
+  plots.append(Ngl.contour_map(wks, d[t_idx, ...], res))
 
   # Resources for panelling
   pres                  = Ngl.Resources()
@@ -152,7 +171,10 @@ def graphics(vd):
   top    = 1.0-(extra/2.)
 
   # Draw a title before we draw plots
-  title               = "Multiple panels on one page, 3 different colormaps"
+  title = "{vname}, {tstamp} ({units})".format(
+    vname=vd.longname,
+    tstamp=this_t.strftime('%d %b %Y %H:%M'),
+    units=vd.units)
   txres               = Ngl.Resources()
   txres.txJust        = "BottomCenter"
   txres.txFontHeightF = 0.02
@@ -168,10 +190,11 @@ def graphics(vd):
 
   Ngl.frame(wks)
   Ngl.end()
+  return(d)
 
 if __name__ == "__main__":
   vd = var_diff('tim_wrf3.8.1_sees_ccs3pb1_ls2_d01_2009-03-01_00_00_00',
                 './OSU_wrfsees_ccs2_d01_2009-03-01_00_00_00',
                 varname='LH')
   vd.read_files()
-  graphics(vd)
+  d = graphics(vd)
