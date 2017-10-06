@@ -110,8 +110,10 @@ def graphics(vd):
 
   res.mpPerimOn              = False
   res.mpGridAndLimbOn        = False
+  res.mpDataBaseVersion = "MediumRes"
   res.pmTickMarkDisplayMode  = "Never"
 
+  res.cnFillMode = "RasterFill"
   res.cnFillOn               = True
   res.cnLinesOn              = False
   res.cnLineLabelsOn         = False
@@ -126,14 +128,15 @@ def graphics(vd):
   # of 3 plots has the same color map.
   #
   nplots = 3
-  t_idx = 1
+  t_idx = 0
   # datetime.timedelta does not support type numpy.float32, so cast to
   # type float
   this_t = datetime.datetime(2009, 3, 1) + datetime.timedelta(
     minutes=float(vd.time[t_idx]))
   plots  = []
 
-  all_data = np.stack( (vd.data['Tim'], vd.data['OSU']) ).flatten()
+  all_data = np.concatenate((vd.data['Tim'].flatten(),
+                             vd.data['OSU'].flatten()))
   dmin = min(all_data)
   dmax = max(all_data)
 
@@ -149,7 +152,7 @@ def graphics(vd):
     plots.append(Ngl.contour_map(wks, vd.data[k][t_idx, ...], res))
 
   # plot the difference
-  d = vd.data['Tim'] - vd.data['OSU']
+  d = vd.data['Tim'][t_idx, ...] - vd.data['OSU'][t_idx, ...]
   abs_max = np.abs((d.min(), d.max())).max()
   nlevs = 10
   res.cnFillPalette = "BrownBlue12"
@@ -158,7 +161,7 @@ def graphics(vd):
   res.cnMinLevelValF         = abs_max * -1
   res.cnMaxLevelValF         = abs_max
   res.tiMainString  = "Tim - OSU ({units})".format(units=vd.units)
-  plots.append(Ngl.contour_map(wks, d[t_idx, ...], res))
+  plots.append(Ngl.contour_map(wks, d, res))
 
   # Resources for panelling
   pres                  = Ngl.Resources()
@@ -193,8 +196,14 @@ def graphics(vd):
   return(d)
 
 if __name__ == "__main__":
-  vd = var_diff('tim_wrf3.8.1_sees_ccs3pb1_ls2_d01_2009-03-01_00_00_00',
-                './OSU_wrfsees_ccs2_d01_2009-03-01_00_00_00',
-                varname='LH')
+  cscratch = os.path.join('/', 'global', 'cscratch1', 'sd', 'twhilton')
+  osu_dir =  os.path.join(cscratch, 'WRFv3.9_OSU_setup', 'OSU_output')
+  tim_dir = os.path.join(cscratch, 'WRFv3.8.1_OSU_setup', 'WRFV3',
+                         'run', 'summen_pb1_ls2')
+  vd = var_diff(os.path.join(
+    tim_dir, 'wrf3.8.1_sees_ccs3pb1_ls2_d02_2009-03-01_00:00:00'),
+                os.path.join(
+                  osu_dir, 'OSU_wrfsees_ccs2_d02_2009-03-01_00:00:00'),
+                varname='SST')
   vd.read_files()
   d = graphics(vd)
