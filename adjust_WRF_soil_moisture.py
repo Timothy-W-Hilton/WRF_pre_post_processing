@@ -47,6 +47,7 @@ def reduce_soil_moisture(fname, f, soil_moist_vars=None,
     # cells are 1.0.  Create a mask that is TRUE for water cells,
     # FALSE for land cells
     is_water = ma.masked_values(land_sea, 0.0).mask
+    is_water = np.tile(is_water[:, np.newaxis, :, :], (1, 4, 1, 1))
     for this_var in soil_moist_vars:
         sm_adjusted = nc.variables[this_var][...] * f
         # set water cells back to 1.0
@@ -59,22 +60,30 @@ def reduce_soil_moisture(fname, f, soil_moist_vars=None,
                   " module.".format(f=f))
     nc.close()
 
-def gather_met_em_files(dir):
-    """return a list of all met_em*.nc files in a directory
+def gather_files(dir, key):
+    """return a list of all files in a directory that match a wildcard
 
     ARGS
-    dir (character): full path of directory to search
+    dir (character string): full path of directory to search
+    key (character string): the search pattern
 
     RETURNS
     a list containing the full path of all files in dir whose names
-    match met_em*.nc
+    match key
     """
-    return(glob.glob(os.path.join(dir, "met_em*.nc")))
+    return(glob.glob(os.path.join(dir, key)))
 
 if __name__ == "__main__":
     wps_dir = os.path.join('/', 'global', 'cscratch1', 'sd', 'twhilton',
                            'WRFv3.9_Sensitivity',
                            'WRFv3.9_Sensitivity_DrySoil', 'WPS', '')
-    met_em_files = gather_met_em_files(wps_dir)
-    for this_file in met_em_files:
-        reduce_soil_moisture(os.path.join(wps_dir, this_file), 0.05)
+    wrf_run_dir = os.path.join('/', 'global', 'cscratch1', 'sd',
+                               'twhilton', 'WRFv3.9_Sensitivity',
+                               'WRFv3.9_Sensitivity_DrySoil',
+                               'WRFV3', 'run')
+    met_em_files = gather_files(wps_dir, "met_em*.nc")
+    wrf_restart_files = gather_files(wrf_run_dir, "wrfrst_d*.nc")
+    for this_file in ['wrfrst_d02_2009-06-01_12:00:00',
+                      'wrfrst_d01_2009-06-01_12:00:00']:
+        reduce_soil_moisture(os.path.join(wrf_run_dir, this_file), 0.05,
+                             soil_moist_vars=("SMOIS", ))
