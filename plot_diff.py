@@ -1,31 +1,12 @@
-#
-#  File:
-#    newcolor4.py
-#
-#  Synopsis:
-#    Illustrates new color capabilities in PyNGL 1.5.0
-#
-#  Categories:
-#    contour plots
-#
-#  Author:
-#    Mary Haley, based on NCL example
-#
-#  Date of initial publication:
-#    November 2012
-#
-#  Description:
-#    This example shows how to draw nine plots with three different colormaps
-#
-#  Effects illustrated:
-#    o  Using the new "cnFillPalette" resource.
-#    o  Panelling plots.
-#    o  Drawing an Aitoff map
-#    o  Generating dummy data
-#
-#  Output:
-#     A single visualization with nine plots
-#
+"""plot contours of WRF variable from two different runs and their difference
+
+Produces a three-panel figure showing contours overlaied on a map for
+a specified WRF variable.  The three panels show the values from WRF
+run A, run B, and (run A - run B).
+
+Timothy W. Hilton, UC Merced, thilton@ucmerced.edu
+"""
+
 import numpy as np
 import datetime
 import os
@@ -33,19 +14,22 @@ import Ngl, Nio
 import netCDF4
 
 class var_diff(object):
-  def __init__(self, f_tim, f_osu, varname):
-    self.fnames = {'Tim':f_tim, 'OSU':f_osu}
+  def __init__(self, fname_A, fname_B, label_A, label_B, varname):
+    self.fnames = {label_A:fname_A, label_B:fname_B}
+    self.label_A = label_A
+    self.label_B = label_B
     self.varname = varname
     self.longname = None
     self.units = None
     self.time = None
     self.lat = None
     self.lon = None
-    self.data = {'Tim':None, 'OSU':None}
+    self.data = {label_A:None, label_B:None}
 
   def read_files(self):
-    """read variable from Tim output, OSU output
+    """read variable from run A output, run B output
     """
+    error_str = '{labA} {var} differs from {labB} {var}'
     for k, v in self.data.iteritems():
       nf = netCDF4.Dataset(self.fnames[k])
       self.data[k] = nf[self.varname][...]
@@ -56,7 +40,9 @@ class var_diff(object):
         if np.allclose(nf['XLAT'][0, ...],
                        self.lat,
                        equal_nan=True) is False:
-          raise RuntimeError('OSU latitude differs from Tim latitude')
+          raise RuntimeError(error_str.format(labA=self.label_A,
+                                              labB=self.label_B,
+                                              var='latitude'))
       # read longitude
       if self.lon is None:
         self.lon = nf['XLONG'][0, ...]
@@ -64,17 +50,28 @@ class var_diff(object):
         if np.allclose(nf['XLONG'][0, ...],
                        self.lon,
                        equal_nan=True) is False:
-          raise RuntimeError('OSU longitude differs from Tim longitude')
+          raise RuntimeError(error_str.format(labA=self.label_A,
+                                              labB=self.label_B,
+                                              var='longitude'))
       # read units
       if self.units is None:
         self.units = nf[self.varname].units
       elif nf[self.varname].units != self.units:
-          raise RuntimeError('OSU units differs from Tim units')
+        raise RuntimeError(error_str.format(labA=self.label_A,
+                                            labB=self.label_B,
+                                            var='units'))
       # read time
       if self.time is None:
         self.time = nf["XTIME"][...]
-      elif nf[self.varname].units != self.units:
-        raise RuntimeError('OSU timestamps differs from Tim timestamps')
+      # this test failes if either file contains a shorter, but
+      # otherwise identical, time series.  TODO: Needs more complex
+      # logic to deal with that
+      # elif np.allclose(nf["XTIME"][...],
+      #                  self.time,
+      #                  equal_nan=True) is False:
+      # raise RuntimeError(error_str.format(labA=self.label_A,
+      #                                       labB=self.label_B,
+      #                                       var='timestamps'))
       # read variable long name
       self.longname = nf[self.varname].description
       nf.close()
@@ -135,8 +132,8 @@ def graphics(vd):
     minutes=float(vd.time[t_idx]))
   plots  = []
 
-  all_data = np.concatenate((vd.data['Tim'].flatten(),
-                             vd.data['OSU'].flatten()))
+  all_data = np.concatenate((vd.data[vd.label_A].flatten(),
+                             vd.data[vd.label_B].flatten()))
   dmin = min(all_data)
   dmax = max(all_data)
 
@@ -152,7 +149,7 @@ def graphics(vd):
     plots.append(Ngl.contour_map(wks, vd.data[k][t_idx, ...], res))
 
   # plot the difference
-  d = vd.data['Tim'][t_idx, ...] - vd.data['OSU'][t_idx, ...]
+  d = vd.data[vd.label_A][t_idx, ...] - vd.data[vd.label_B][t_idx, ...]
   abs_max = np.abs((d.min(), d.max())).max()
   nlevs = 10
   res.cnFillPalette = "BrownBlue12"
@@ -160,7 +157,9 @@ def graphics(vd):
   res.cnLevelSpacingF      = (abs_max * 2) / nlevs
   res.cnMinLevelValF         = abs_max * -1
   res.cnMaxLevelValF         = abs_max
-  res.tiMainString  = "Tim - OSU ({units})".format(units=vd.units)
+  res.tiMainString  = "{labA} - {labB} ({units})".format(labA=vd.label_A,
+                                                         labB=vd.label_B,
+                                                         units=vd.units)
   plots.append(Ngl.contour_map(wks, d, res))
 
   # Resources for panelling
@@ -197,13 +196,16 @@ def graphics(vd):
 
 if __name__ == "__main__":
   cscratch = os.path.join('/', 'global', 'cscratch1', 'sd', 'twhilton')
-  osu_dir =  os.path.join(cscratch, 'WRFv3.9_OSU_setup', 'OSU_output')
+  osu_dir =  os.path.join(cscratch, 'WRFv3.9_OSU_setup', 'WRFV3',
+                         'run', 'summen_pb1_ls2')
   tim_dir = os.path.join(cscratch, 'WRFv3.8.1_OSU_setup', 'WRFV3',
                          'run', 'summen_pb1_ls2')
-  vd = var_diff(os.path.join(
-    tim_dir, 'wrf3.8.1_sees_ccs3pb1_ls2_d02_2009-03-01_00:00:00'),
-                os.path.join(
-                  osu_dir, 'OSU_wrfsees_ccs2_d02_2009-03-01_00:00:00'),
+  vd = var_diff(os.path.join(tim_dir, ('wrf3.8.1_sees_ccs3pb1_ls2_'
+                                       'd02_2009-03-01_00:00:00')),
+                os.path.join(osu_dir, ('wrfsees_ccs3pb1_ls2_'
+                                       'd02_2009-03-01_00:00:00')),
+                label_A = 'Tim',
+                label_B = 'OSU',
                 varname='SST')
   vd.read_files()
   d = graphics(vd)
