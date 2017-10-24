@@ -180,7 +180,7 @@ def graphics(vd, t_idx=0, layer=None):
   top    = 1.0-(extra/2.)
 
   # Draw a title before we draw plots
-  title = "{vname}, {tstamp} ({units})".format(
+  title = "{vname}, {tstamp} UTC ({units})".format(
     vname=vd.longname,
     tstamp=this_t.strftime('%d %b %Y %H:%M'),
     units=vd.units)
