@@ -31,7 +31,7 @@ class var_diff(object):
     """
     error_str = '{labA} {var} differs from {labB} {var}'
     for k, v in self.data.iteritems():
-      nf = netCDF4.Dataset(self.fnames[k])
+      nf = netCDF4.MFDataset(self.fnames[k])
       self.data[k] = nf[self.varname][...]
       # read latitude
       if self.lat is None:
@@ -203,12 +203,14 @@ if __name__ == "__main__":
   dry_dir = os.path.join(cscratch, 'WRFv3.9_Sensitivity',
                          'WRFv3.9_Sensitivity_DrySoil', 'WRFV3',
                          'run', 'summen_sensitivity_drysoil')
-  vd = var_diff(os.path.join(ctl_dir, ('wrfsees_ccs3pb1_ls2_d02'
-                                       '_2009-06-01_00:00:00')),
-                os.path.join(dry_dir, ('wrfsees_ccs3pb1_ls2_d02'
-                                       '_2009-06-01_12:00:00')),
+  vd = var_diff(os.path.join(ctl_dir, 'wrfsees_ccs3pb1_ls2_d02*'),
+                os.path.join(dry_dir, 'wrfsees_ccs3pb1_ls2_d02*'),
                 label_A = 'control',
                 label_B = 'dry',
                 varname='SMOIS')
   vd.read_files()
-  d = graphics(vd)
+  # TODO: this is a crude sychonization of the two time series.
+  # Should generalize this.
+  vd.data['control'] = vd.data['control'][12:286, ...]
+  vd.time = vd.time[12:286]
+  #d = graphics(vd)
