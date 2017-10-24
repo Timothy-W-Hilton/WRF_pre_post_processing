@@ -77,11 +77,11 @@ class var_diff(object):
       nf.close()
 
 def graphics(vd):
-  """draw contour maps of two different model runs' values, along with
-  the difference
+  """plot contours of WRF variable from two different runs and their difference
 
   ARGS:
-  vd (var_diff object): values for one variable from two different model runs
+  vd (var_diff object): values for one variable from two different
+     model runs
 
   """
   #---Start the graphics section
@@ -194,18 +194,21 @@ def graphics(vd):
   Ngl.end()
   return(d)
 
+
 if __name__ == "__main__":
   cscratch = os.path.join('/', 'global', 'cscratch1', 'sd', 'twhilton')
-  osu_dir =  os.path.join(cscratch, 'WRFv3.9_OSU_setup', 'WRFV3',
-                         'run', 'summen_pb1_ls2')
-  tim_dir = os.path.join(cscratch, 'WRFv3.8.1_OSU_setup', 'WRFV3',
-                         'run', 'summen_pb1_ls2')
-  vd = var_diff(os.path.join(tim_dir, ('wrf3.8.1_sees_ccs3pb1_ls2_'
-                                       'd02_2009-03-01_00:00:00')),
-                os.path.join(osu_dir, ('wrfsees_ccs3pb1_ls2_'
-                                       'd02_2009-03-01_00:00:00')),
-                label_A = 'Tim',
-                label_B = 'OSU',
-                varname='SST')
+  ctl_dir =  os.path.join(cscratch, 'WRFv3.9_Sensitivity',
+                          'WRFv3.9_Sensitivity_Ctl', 'WRFV3',
+                          'run', 'summen_sensitivity_ctl')
+  dry_dir = os.path.join(cscratch, 'WRFv3.9_Sensitivity',
+                         'WRFv3.9_Sensitivity_DrySoil', 'WRFV3',
+                         'run', 'summen_sensitivity_drysoil')
+  vd = var_diff(os.path.join(ctl_dir, ('wrfsees_ccs3pb1_ls2_d02'
+                                       '_2009-06-01_00:00:00')),
+                os.path.join(dry_dir, ('wrfsees_ccs3pb1_ls2_d02'
+                                       '_2009-06-01_12:00:00')),
+                label_A = 'control',
+                label_B = 'dry',
+                varname='SMOIS')
   vd.read_files()
   d = graphics(vd)
