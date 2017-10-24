@@ -76,12 +76,14 @@ class var_diff(object):
       self.longname = nf[self.varname].description
       nf.close()
 
-def graphics(vd, layer=None):
+def graphics(vd, t_idx=0, layer=None):
   """plot contours of WRF variable from two different runs and their difference
 
   ARGS:
   vd (var_diff object): values for one variable from two different
      model runs
+  t_idx (int): time stamp index (in [0, number of time stamps])
+  layer (int): the vertical layer to be plotted.
 
   """
   #---Start the graphics section
@@ -125,20 +127,20 @@ def graphics(vd, layer=None):
   # of 3 plots has the same color map.
   #
   nplots = 3
-  t_idx = 0
   if layer is None:
     idx = np.s_[t_idx, ...]
   else:
     idx = np.s_[t_idx, layer, ...]
   # datetime.timedelta does not support type numpy.float32, so cast to
   # type float
-  this_t = datetime.datetime(2009, 3, 1) + datetime.timedelta(
+  # TODO: get the start date from the netcdf file instead of hard-coding
+  this_t = datetime.datetime(2009, 6, 1) + datetime.timedelta(
     minutes=float(vd.time[t_idx]))
   plots  = []
 
   all_data = np.concatenate((vd.data[vd.label_A].flatten(),
                              vd.data[vd.label_B].flatten()))
-  dmin = min(all_data)
+  dmin = 0.0  # min(all_data)
   dmax = max(all_data)
 
   for k in vd.data.keys():
@@ -150,6 +152,7 @@ def graphics(vd, layer=None):
     res.cnMaxLevelValF         = dmax
     res.cnMaxLevelCount        = 10
     res.tiMainString  = k
+    # TODO: mask oceans.  Probably should have an argument to control this; would probably want oceans for e.g. latent heat flux, but not for soil moisture
     plots.append(Ngl.contour_map(wks, vd.data[k][idx], res))
 
   # plot the difference
@@ -211,7 +214,7 @@ if __name__ == "__main__":
                 os.path.join(dry_dir, 'wrfsees_ccs3pb1_ls2_d02*'),
                 label_A = 'control',
                 label_B = 'dry',
-                varname='SMOIS')
+                varname='LH')
   read_data = True
   if read_data:
     vd.read_files()
@@ -219,4 +222,4 @@ if __name__ == "__main__":
     # Should generalize this.
     vd.data['control'] = vd.data['control'][12:286, ...]
     vd.time = vd.time[12:286]
-  d = graphics(vd, layer=0)
+  d = graphics(vd, t_idx=10, layer=None)
