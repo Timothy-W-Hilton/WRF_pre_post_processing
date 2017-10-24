@@ -76,7 +76,7 @@ class var_diff(object):
       self.longname = nf[self.varname].description
       nf.close()
 
-def graphics(vd):
+def graphics(vd, layer=None):
   """plot contours of WRF variable from two different runs and their difference
 
   ARGS:
@@ -126,6 +126,10 @@ def graphics(vd):
   #
   nplots = 3
   t_idx = 0
+  if layer is None:
+    idx = np.s_[t_idx, ...]
+  else:
+    idx = np.s_[t_idx, layer, ...]
   # datetime.timedelta does not support type numpy.float32, so cast to
   # type float
   this_t = datetime.datetime(2009, 3, 1) + datetime.timedelta(
@@ -146,10 +150,10 @@ def graphics(vd):
     res.cnMaxLevelValF         = dmax
     res.cnMaxLevelCount        = 10
     res.tiMainString  = k
-    plots.append(Ngl.contour_map(wks, vd.data[k][t_idx, ...], res))
+    plots.append(Ngl.contour_map(wks, vd.data[k][idx], res))
 
   # plot the difference
-  d = vd.data[vd.label_A][t_idx, ...] - vd.data[vd.label_B][t_idx, ...]
+  d = vd.data[vd.label_A][idx] - vd.data[vd.label_B][idx]
   abs_max = np.abs((d.min(), d.max())).max()
   nlevs = 10
   res.cnFillPalette = "BrownBlue12"
@@ -208,9 +212,11 @@ if __name__ == "__main__":
                 label_A = 'control',
                 label_B = 'dry',
                 varname='SMOIS')
-  vd.read_files()
-  # TODO: this is a crude sychonization of the two time series.
-  # Should generalize this.
-  vd.data['control'] = vd.data['control'][12:286, ...]
-  vd.time = vd.time[12:286]
-  #d = graphics(vd)
+  read_data = True
+  if read_data:
+    vd.read_files()
+    # TODO: this is a crude sychonization of the two time series.
+    # Should generalize this.
+    vd.data['control'] = vd.data['control'][12:286, ...]
+    vd.time = vd.time[12:286]
+  d = graphics(vd, layer=0)
