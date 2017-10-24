@@ -88,7 +88,7 @@ def graphics(vd, t_idx=0, layer=None):
   """
   #---Start the graphics section
   wks_type = "png"
-  wks = Ngl.open_wks(wks_type,"{}_diff_maps".format(vd.varname))
+  wks = Ngl.open_wks(wks_type,"{}_diff_maps_{:03d}".format(vd.varname, t_idx))
 
   # Create resource list for customizing contour over maps
   res                        = Ngl.Resources()
@@ -198,6 +198,7 @@ def graphics(vd, t_idx=0, layer=None):
     Ngl.panel(wks,plots[n*2:n*2+2],[1,2],pres)
 
   Ngl.frame(wks)
+  Ngl.destroy(wks)
   return(d)
 
 
@@ -209,8 +210,8 @@ if __name__ == "__main__":
   dry_dir = os.path.join(cscratch, 'WRFv3.9_Sensitivity',
                          'WRFv3.9_Sensitivity_DrySoil', 'WRFV3',
                          'run', 'summen_sensitivity_drysoil')
-  vd = var_diff(os.path.join(ctl_dir, 'wrfsees_ccs3pb1_ls2_d02*'),
-                os.path.join(dry_dir, 'wrfsees_ccs3pb1_ls2_d02*'),
+  vd = var_diff(os.path.join(ctl_dir, 'wrfsees_ccs3pb1_ls2_d02_2009-06*'),
+                os.path.join(dry_dir, 'wrfsees_ccs3pb1_ls2_d02_2009-06*'),
                 label_A = 'control',
                 label_B = 'dry',
                 varname='LH')
@@ -221,7 +222,7 @@ if __name__ == "__main__":
     # Should generalize this.
     vd.data['control'] = vd.data['control'][12:286, ...]
     vd.time = vd.time[12:286]
-    for this_t in range(10, 15):
+    for this_t in range(100):
       d = graphics(vd, t_idx=this_t, layer=None)
 
   Ngl.end()
