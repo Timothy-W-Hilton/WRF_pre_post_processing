@@ -198,7 +198,6 @@ def graphics(vd, t_idx=0, layer=None):
     Ngl.panel(wks,plots[n*2:n*2+2],[1,2],pres)
 
   Ngl.frame(wks)
-  Ngl.end()
   return(d)
 
 
@@ -222,4 +221,7 @@ if __name__ == "__main__":
     # Should generalize this.
     vd.data['control'] = vd.data['control'][12:286, ...]
     vd.time = vd.time[12:286]
-  d = graphics(vd, t_idx=10, layer=None)
+    for this_t in range(10, 15):
+      d = graphics(vd, t_idx=this_t, layer=None)
+
+  Ngl.end()
