@@ -147,18 +147,18 @@ def graphics(vd, t_idx=0, layer=None):
 
   all_data = np.concatenate((vd.data[vd.label_A].flatten(),
                              vd.data[vd.label_B].flatten()))
-  # TODO: unify color scale across all data
   dmin = 0.0  # min(all_data)
   dmax = max(all_data)
 
   for k in vd.data.keys():
-    print("plot {} data - {}".format(k, str(this_t)))
+    print("    plot {} data - {}".format(k, str(this_t)))
 
     res.cnFillPalette = "WhiteBlue"
-    res.cnLevelSelectionMode = "EqualSpacedLevels"
+    res.cnLevelSelectionMode = "ManualLevels"
     res.cnMinLevelValF         = dmin
     res.cnMaxLevelValF         = dmax
-    res.cnMaxLevelCount        = 10
+    nlevels = 10
+    res.cnLevelSpacingF        = (dmax - dmin) / nlevels
     res.tiMainString  = k
     # TODO: mask oceans.  Probably should have an argument to control this; would probably want oceans for e.g. latent heat flux, but not for soil moisture
     plots.append(Ngl.contour_map(wks, vd.data[k][idx], res))
@@ -166,7 +166,9 @@ def graphics(vd, t_idx=0, layer=None):
   # plot the difference
   # TODO: unified scale across all time steps
   d = vd.data[vd.label_A][idx] - vd.data[vd.label_B][idx]
-  abs_max = np.abs((d.min(), d.max())).max()
+  idx_max = vd.data[vd.label_A].shape[0]
+  d_all = vd.data[vd.label_A] - vd.data[vd.label_B][:idx_max, ...]
+  abs_max = np.abs((d_all.min(), d_all.max())).max()
   nlevs = 10
   res.cnFillPalette = "BrownBlue12"
   res.cnLevelSelectionMode = "ManualLevels"
