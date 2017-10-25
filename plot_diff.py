@@ -88,7 +88,11 @@ def graphics(vd, t_idx=0, layer=None):
   """
   #---Start the graphics section
   wks_type = "png"
-  wks = Ngl.open_wks(wks_type,"{}_diff_maps_{:03d}".format(vd.varname, t_idx))
+  wks = Ngl.open_wks(wks_type,
+                     os.path.join('/global/homes/t/twhilton',
+                                  'plots', 'Summen',
+                                  "{}_diff_maps_{:03d}".format(vd.varname,
+                                                               t_idx)))
 
   # Create resource list for customizing contour over maps
   res                        = Ngl.Resources()
@@ -145,7 +149,7 @@ def graphics(vd, t_idx=0, layer=None):
   dmax = max(all_data)
 
   for k in vd.data.keys():
-    print("plot {} data".format(k))
+    print("plot {} data - {}".format(k, str(this_t)))
 
     res.cnFillPalette = "WhiteBlue"
     res.cnLevelSelectionMode = "EqualSpacedLevels"
@@ -224,7 +228,6 @@ if __name__ == "__main__":
     # Should generalize this.
     vd.data['control'] = vd.data['control'][12:286, ...]
     vd.time = vd.time[12:286]
-    for this_t in range(100):
-      d = graphics(vd, t_idx=this_t, layer=None)
-
+  for this_t in range(100):
+    d = graphics(vd, t_idx=this_t, layer=None)
   Ngl.end()
