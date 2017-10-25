@@ -125,6 +125,15 @@ def graphics(vd, t_idx=0, layer=None):
 
   res.sfXArray               = vd.lon
   res.sfYArray               = vd.lat
+  # this runs without the warning:
+  #     warning:tmEqualizeXYSizes is not a valid resource in
+  #     contour.PlotManager at this time
+  # however the map produced is different (and not accurate) because
+  # it assumes the grid spacing is regular.
+  # res.sfXCStartV = float(min(vd.lon.flatten()))   # Define where contour plot
+  # res.sfXCEndV   = float(max(vd.lon.flatten()))   # should lie on the map plot.
+  # res.sfYCStartV = float(min(vd.lat.flatten()))
+  # res.sfYCEndV   = float(max(vd.lat.flatten()))
 
   #
   # Loop 9 times and create 9 dummy plots; each group
