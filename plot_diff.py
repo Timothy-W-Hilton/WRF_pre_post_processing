@@ -140,6 +140,7 @@ def graphics(vd, t_idx=0, layer=None):
 
   all_data = np.concatenate((vd.data[vd.label_A].flatten(),
                              vd.data[vd.label_B].flatten()))
+  # TODO: unify color scale across all data
   dmin = 0.0  # min(all_data)
   dmax = max(all_data)
 
@@ -156,6 +157,7 @@ def graphics(vd, t_idx=0, layer=None):
     plots.append(Ngl.contour_map(wks, vd.data[k][idx], res))
 
   # plot the difference
+  # TODO: unified scale across all time steps
   d = vd.data[vd.label_A][idx] - vd.data[vd.label_B][idx]
   abs_max = np.abs((d.min(), d.max())).max()
   nlevs = 10
