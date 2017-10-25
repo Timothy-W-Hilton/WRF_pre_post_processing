@@ -86,13 +86,21 @@ def graphics(vd, t_idx=0, layer=None):
   layer (int): the vertical layer to be plotted.
 
   """
+
+  # datetime.timedelta does not support type numpy.float32, so cast to
+  # type float
+  # TODO: get the start date from the netcdf file instead of hard-coding
+  this_t = (datetime.datetime(2009, 6, 1) +
+            datetime.timedelta(minutes=float(vd.time[t_idx])))
+
   #---Start the graphics section
-  wks_type = "png"
-  wks = Ngl.open_wks(wks_type,
-                     os.path.join('/global/homes/t/twhilton',
+  fname = os.path.join('/global/homes/t/twhilton',
                                   'plots', 'Summen',
-                                  "{}_diff_maps_{:03d}".format(vd.varname,
-                                                               t_idx)))
+                       "{}_diff_maps_Array_{}".format(
+                         vd.varname, this_t.strftime('%Y-%m-%d_%H%M')))
+  wks_type = "png"
+  wks = Ngl.open_wks(wks_type, fname)
+  print('plotting {}'.format(fname))
 
   # Create resource list for customizing contour over maps
   res                        = Ngl.Resources()
@@ -135,11 +143,6 @@ def graphics(vd, t_idx=0, layer=None):
     idx = np.s_[t_idx, ...]
   else:
     idx = np.s_[t_idx, layer, ...]
-  # datetime.timedelta does not support type numpy.float32, so cast to
-  # type float
-  # TODO: get the start date from the netcdf file instead of hard-coding
-  this_t = datetime.datetime(2009, 6, 1) + datetime.timedelta(
-    minutes=float(vd.time[t_idx]))
   plots  = []
 
   all_data = np.concatenate((vd.data[vd.label_A].flatten(),
