@@ -167,7 +167,13 @@ def graphics(vd, t_idx=0, layer=None):
   # TODO: unified scale across all time steps
   d = vd.data[vd.label_A][idx] - vd.data[vd.label_B][idx]
   idx_max = vd.data[vd.label_A].shape[0]
-  d_all = vd.data[vd.label_A] - vd.data[vd.label_B][:idx_max, ...]
+  if layer is None:
+    idxA = np.s_[...]
+    idxB = np.s_[:idx_max, ...]
+  else:
+    idxA = np.s_[:, layer, ...]
+    idxB = np.s_[:idx_max, layer, ...]
+  d_all = vd.data[vd.label_A][idxA] - vd.data[vd.label_B][idxB]
   abs_max = np.abs((d_all.min(), d_all.max())).max()
   nlevs = 10
   res.cnFillPalette = "BrownBlue12"
@@ -225,7 +231,7 @@ if __name__ == "__main__":
                 os.path.join(dry_dir, 'wrfsees_ccs3pb1_ls2_d02_2009-06*'),
                 label_A = 'control',
                 label_B = 'dry',
-                varname='LH')
+                varname='SMOIS')
   read_data = True
   if read_data:
     vd.read_files()
@@ -234,5 +240,5 @@ if __name__ == "__main__":
     vd.data['control'] = vd.data['control'][12:273, ...]
     vd.time = vd.time[12:273]
   for this_t in range(2, 255):
-    d = graphics(vd, t_idx=this_t, layer=None)
+    d = graphics(vd, t_idx=this_t, layer=1)
   Ngl.end()
