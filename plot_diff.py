@@ -96,7 +96,7 @@ def graphics(vd, t_idx=0, layer=None):
   #---Start the graphics section
   fname = os.path.join('/global/homes/t/twhilton',
                                   'plots', 'Summen',
-                       "{}_diff_maps_Array_{}".format(
+                       "{}_diff_maps_{}".format(
                          vd.varname, this_t.strftime('%Y-%m-%d_%H%M')))
   wks_type = "png"
   wks = Ngl.open_wks(wks_type, fname)
@@ -231,8 +231,8 @@ if __name__ == "__main__":
     vd.read_files()
     # TODO: this is a crude sychonization of the two time series.
     # Should generalize this.
-    vd.data['control'] = vd.data['control'][12:286, ...]
-    vd.time = vd.time[12:286]
-  for this_t in range(100):
+    vd.data['control'] = vd.data['control'][12:273, ...]
+    vd.time = vd.time[12:273]
+  for this_t in range(2, 255):
     d = graphics(vd, t_idx=this_t, layer=None)
   Ngl.end()
