@@ -108,10 +108,16 @@ def graphics(vd, t_idx=0, layer=None):
             datetime.timedelta(minutes=float(vd.time[t_idx])))
 
   #---Start the graphics section
+  if layer is None:
+    layer_id = ""
+  else:
+    layer_id = "lay{}_".format(layer)
   fname = os.path.join('/global/homes/t/twhilton',
                                   'plots', 'Summen',
-                       "{}_diff_maps_{}".format(
-                         vd.varname, this_t.strftime('%Y-%m-%d_%H%M')))
+                       "{varname}_{layer_id}diff_maps_{tstamp}".format(
+                         varname=vd.varname,
+                         layer_id=layer_id,
+                         tstamp=this_t.strftime('%Y-%m-%d_%H%M')))
   wks_type = "png"
   wks = Ngl.open_wks(wks_type, fname)
   print('plotting {}'.format(fname))
