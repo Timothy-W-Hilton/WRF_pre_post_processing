@@ -26,19 +26,41 @@ class var_diff(object):
     self.lon = None
     self.data = {label_A:None, label_B:None}
 
-  def read_soil_layers(self):
+  def read_soil_layers(self, silent=False):
     """read soil layers, print to stdout
     """
     nf = netCDF4.MFDataset(self.fnames['control'])
+    # ZS is soil layer midpoints
     zs = nf.variables['ZS'][0, ...]  # assume (for now) that soil
                                      # layers are time-invariant
+    # DZS is soil layer thickness
     dzs = nf.variables['DZS'][0, ...]
+    depth_top = np.zeros(len(zs))
+    depth_bot = np.zeros(len(zs))
     for this_lay in range(len(zs)):
+      depth_top[this_lay] = zs[this_lay] - (dzs[this_lay] / 2.0)
+      depth_bot[this_lay] = zs[this_lay] + (dzs[this_lay] / 2.0)
+      if silent is False:
       print("soil layer {}: {:0.1f} - {:0.1f} m".format(
-        this_lay,
-        zs[this_lay] - (dzs[this_lay] / 2.0),
-        zs[this_lay] + (dzs[this_lay] / 2.0)))
+          this_lay, depth_top[this_lay], depth_bot[this_lay]))
     nf.close()
+    return({'top': depth_top, 'bot': depth_bot})
+
+  def get_layer_str(self, layer):
+    """return a string describing soil layer depth
+
+    returns a string the format "T - B m", with T the depth of the top
+    of the layer and B the depth at the bottom.
+
+    ARGS:
+    layer (int): index of the soil layer in the WRF netCDF data
+    """
+    if layer is None:
+      return("")
+    else:
+      layer_depths = self.read_soil_layers(silent=True)
+      return("{:0.1f} - {:0.1f} m".format(layer_depths['top'][layer],
+                                          layer_depths['bot'][layer]))
 
   def read_files(self):
     """read variable from run A output, run B output
@@ -217,8 +239,9 @@ def graphics(vd, t_idx=0, layer=None):
   top    = 1.0-(extra/2.)
 
   # Draw a title before we draw plots
-  title = "{vname}, {tstamp} UTC ({units})".format(
+  title = "{vname}, {layerid}{tstamp} UTC ({units})".format(
     vname=vd.longname,
+    layerid="{}, ".format(vd.get_layer_str(layer)),
     tstamp=this_t.strftime('%d %b %Y %H:%M'),
     units=vd.units)
   txres               = Ngl.Resources()
