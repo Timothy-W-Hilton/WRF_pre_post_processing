@@ -26,6 +26,20 @@ class var_diff(object):
     self.lon = None
     self.data = {label_A:None, label_B:None}
 
+  def read_soil_layers(self):
+    """read soil layers, print to stdout
+    """
+    nf = netCDF4.MFDataset(self.fnames['control'])
+    zs = nf.variables['ZS'][0, ...]  # assume (for now) that soil
+                                     # layers are time-invariant
+    dzs = nf.variables['DZS'][0, ...]
+    for this_lay in range(len(zs)):
+      print("soil layer {}: {:0.1f} - {:0.1f} m".format(
+        this_lay,
+        zs[this_lay] - (dzs[this_lay] / 2.0),
+        zs[this_lay] + (dzs[this_lay] / 2.0)))
+    nf.close()
+
   def read_files(self):
     """read variable from run A output, run B output
     """
