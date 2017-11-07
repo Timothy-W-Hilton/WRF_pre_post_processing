@@ -198,12 +198,8 @@ def graphics(vd, t_idx=0, layer=None, fig_type='png'):
         ax[axidx].set_extent((vd.lon.min(), vd.lon.max(),
                               vd.lat.min(), vd.lat.max()))
 
-    # res.sfXArray               = vd.lon
-    # res.sfYArray               = vd.lat
-    all_data = np.concatenate((vd.data[vd.label_A].flatten(),
-                               vd.data[vd.label_B].flatten()))
     dmin = 0.0  # min(all_data)
-    dmax = max(all_data)
+    dmax = np.max(map(np.max, vd.data.values()))
     cmap, norm = setup_colormap(dmin, dmax, nlevs=10,
                                 cmap=get_cmap('YlGnBu'))
 
