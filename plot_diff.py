@@ -166,6 +166,7 @@ def graphics(vd, t_idx=0, layer=None, fig_type='png'):
     fig_type ({"png"}|"pdf"): type of image to create
     """
 
+    t0 = datetime.datetime.now()
     # datetime.timedelta does not support type numpy.float32, so cast to
     # type float
     # TODO: get the start date from the netcdf file instead of hard-coding
@@ -209,14 +210,17 @@ def graphics(vd, t_idx=0, layer=None, fig_type='png'):
         # TODO: mask oceans.  Probably should have an argument to
         # control this; would probably want oceans for e.g. latent
         # heat flux, but not for soil moisture
-        this_map.pcolormesh(vd.lon, vd.lat, vd.data[k][idx],
+
+        this_map.pcolormesh(vd.lon,
+                            vd.lat,
+                            vd.data[k][idx],
                             norm=norm, cmap=cmap)
         this_map.colorbar()
         this_map.ax.set_title(k)
 
     # plot the difference
-    # TODO: unified scale across all time steps
     d = vd.data[vd.label_A][idx] - vd.data[vd.label_B][idx]
+    d = ma.masked_where(np.isclose(d, 0.0), d)
     idx_max = vd.data[vd.label_A].shape[0]
     if layer is None:
         idxA = np.s_[...]
@@ -238,11 +242,11 @@ def graphics(vd, t_idx=0, layer=None, fig_type='png'):
         labB=vd.label_B,
         units=vd.units))
 
-    d_pct = d / vd.data[vd.label_A][idx]
-    d_pct_all = d_all / vd.data[vd.label_A][idxA]
+    d_pct = (d / vd.data[vd.label_A][idx]) * 100.0
+    d_pct_all = (d_all / vd.data[vd.label_A][idxA]) * 100.0
     abs_max = np.abs((d_pct_all.min(), d_pct_all.max())).max()
-    cmap, norm = get_discrete_midpt_cmap_norm(vmin=abs_max * -100,
-                                              vmax=abs_max * 100,
+    cmap, norm = get_discrete_midpt_cmap_norm(vmin=abs_max * -1.0,
+                                              vmax=abs_max,
                                               midpoint=0.0,
                                               this_cmap=get_cmap('BrBG'))
     pct_map = CoastalSEES_WRF_Mapper(ax=ax[3])
@@ -260,7 +264,8 @@ def graphics(vd, t_idx=0, layer=None, fig_type='png'):
         units=vd.units)
     fig.suptitle(title)
     fig.savefig(fname=fname)
-    return(fig)
+    print("done ({})".format(str(datetime.datetime.now() - t0)))
+    return(None)
 
 
 if __name__ == "__main__":
@@ -283,5 +288,6 @@ if __name__ == "__main__":
         # Should generalize # TODO: his.
         vd.data['control'] = vd.data['control'][12:273, ...]
         vd.time = vd.time[12:273]
-    for this_t in range(2, 5):  # 255
-        fig = graphics(vd, t_idx=this_t, layer=0)
+        vd.mask_oceans()
+    for this_t in range(2, 255):  # 255
+        _discard = graphics(vd, t_idx=this_t, layer=0)
