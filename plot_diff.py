@@ -8,6 +8,7 @@ Timothy W. Hilton, UC Merced, thilton@ucmerced.edu
 """
 
 import numpy as np
+import numpy.ma as ma
 import datetime
 import os
 import netCDF4
@@ -52,6 +53,7 @@ class var_diff(object):
         self.lat = None
         self.lon = None
         self.data = {label_A: None, label_B: None}
+        self.is_land = None
 
     def read_soil_layers(self, silent=False):
         """read soil layers, print to stdout
@@ -116,6 +118,10 @@ class var_diff(object):
                     raise RuntimeError(error_str.format(labA=self.label_A,
                                                         labB=self.label_B,
                                                         var='longitude'))
+            # read land/water mask
+            if self.is_land is None:
+                self.is_land = nf['XLAND'][0, ...] == 1
+
             # read units
             if self.units is None:
                 self.units = nf[self.varname].units
@@ -138,6 +144,15 @@ class var_diff(object):
             # read variable long name
             self.longname = nf[self.varname].description
             nf.close()
+
+    def mask_oceans(self):
+        """mask water pixels in data
+        """
+        if self.is_land is not None:
+            for k in self.data.keys():
+                ocean_mask = np.broadcast_to(np.logical_not(self.is_land),
+                                             self.data[k].shape)
+                self.data[k] = ma.masked_where(ocean_mask, self.data[k])
 
 
 def graphics(vd, t_idx=0, layer=None, fig_type='png'):
