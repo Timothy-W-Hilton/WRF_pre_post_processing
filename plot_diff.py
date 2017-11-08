@@ -179,6 +179,24 @@ class var_diff(object):
         self.t0 = self.time[t_rng[0]]
         self.t_end = self.time[t_rng[-1]]
 
+    def get_time_label_fname(self, t_idx):
+        """get a time label suitable for file name
+        """
+        if type(t_idx) is not list:
+            return(self.time[t_idx].strftime('%Y-%m-%d_%H%M'))
+        else:
+            return(self.t0.strftime('%Y-%m-%d_%H%M') + "to" +
+                   self.t_end.strftime('%Y-%m-%d_%H%M'))
+
+    def get_time_label_figure(self, t_idx):
+        """get a time label suitable for figure label
+        """
+        if type(t_idx) is not list:
+            return(self.time[t_idx].strftime('%d %b %Y %H:%M'))
+        else:
+            return(self.t0.strftime('%d %b %Y %H:%M') + "to" +
+                   self.t_end.strftime('%d %b %Y %H:%M'))
+
 
 def graphics(vd, t_idx=0, layer=None, fig_type='png'):
     """plot contours of WRF var vals, differences from two different runs
@@ -193,19 +211,22 @@ def graphics(vd, t_idx=0, layer=None, fig_type='png'):
 
     t0 = datetime.datetime.now()
     # construct index into data
+    t_idx_bak = t_idx
+    if type(t_idx) is list:
+        t_idx = 0
     if layer is None:
         idx = np.s_[t_idx, ...]
         layer_id = ""
     else:
         idx = np.s_[t_idx, layer, ...]
         layer_id = "lay{}_".format(layer)
-
+    t_idx = t_idx_bak
     fname = os.path.join('/global/homes/t/twhilton',
                          'plots', 'Summen',
                          "{varname}_{layer_id}diff_maps_{tstamp}.{ext}".format(
                              varname=vd.varname,
                              layer_id=layer_id,
-                             tstamp=vd.time[t_idx].strftime('%Y-%m-%d_%H%M'),
+                             tstamp=vd.get_time_label_fname(t_idx),
                              ext=fig_type))
     print('plotting {}'.format(fname))
 
@@ -224,9 +245,11 @@ def graphics(vd, t_idx=0, layer=None, fig_type='png'):
                                 cmap=get_cmap('YlGnBu'))
 
     for axidx, k in enumerate(vd.data.keys()):
-        print("    plot {} data - {}".format(k, str(vd.time[t_idx])))
+        print("    plot {} data - {}".format(
+            k, vd.get_time_label_figure(t_idx)))
         this_map = CoastalSEES_WRF_Mapper(ax=ax[axidx])
 
+        import pdb; pdb.set_trace()
         this_map.pcolormesh(vd.lon,
                             vd.lat,
                             vd.data[k][idx],
@@ -276,7 +299,7 @@ def graphics(vd, t_idx=0, layer=None, fig_type='png'):
     title = "{vname}, {layerid}{tstamp} UTC ({units})".format(
         vname=vd.longname,
         layerid="{}, ".format(vd.get_soil_layer_str(layer)),
-        tstamp=vd.time[t_idx].strftime('%d %b %Y %H:%M'),
+        tstamp=vd.get_time_label_figure(t_idx),
         units=vd.units)
     fig.suptitle(title)
     fig.savefig(fname=fname)
@@ -303,3 +326,6 @@ if __name__ == "__main__":
         vd.mask_land_or_water(mask_water=True)
     # for this_t in range(2, 10):  # 255
     #     fig = graphics(vd, t_idx=this_t, layer=0)
+    t_idx = range(125, 255)
+    vd.calc_time_avg(t_idx)
+    fig = graphics(vd, t_idx=t_idx, layer=0)
