@@ -151,14 +151,19 @@ class var_diff(object):
         self.data[self.label_B] = self.data[self.label_B][idx_B, ...]
         self.time = self.time[self.label_A][idx_A]
 
-    def mask_oceans(self):
-        """mask water pixels in data
+    def mask_land_or_water(self, mask_water=True):
+        """mask land or water pixels in data
+
+        mask_water ({True}|False): if true, mask water pixels.  If
+           false, mask land pixels.
         """
         if self.is_land is not None:
             for k in self.data.keys():
-                ocean_mask = np.broadcast_to(np.logical_not(self.is_land),
-                                             self.data[k].shape)
-                self.data[k] = ma.masked_where(ocean_mask, self.data[k])
+                mask = np.broadcast_to(self.is_land,
+                                       self.data[k].shape)
+                if mask_water:
+                    mask = np.logical_not(mask)
+                self.data[k] = ma.masked_where(mask, self.data[k])
 
 
 def graphics(vd, t_idx=0, layer=None, fig_type='png'):
@@ -207,9 +212,6 @@ def graphics(vd, t_idx=0, layer=None, fig_type='png'):
     for axidx, k in enumerate(vd.data.keys()):
         print("    plot {} data - {}".format(k, str(vd.time[t_idx])))
         this_map = CoastalSEES_WRF_Mapper(ax=ax[axidx])
-        # TODO: mask oceans.  Probably should have an argument to
-        # control this; would probably want oceans for e.g. latent
-        # heat flux, but not for soil moisture
 
         this_map.pcolormesh(vd.lon,
                             vd.lat,
@@ -252,7 +254,7 @@ def graphics(vd, t_idx=0, layer=None, fig_type='png'):
     pct_map = CoastalSEES_WRF_Mapper(ax=ax[3])
     pct_map.pcolormesh(vd.lon, vd.lat, d_pct, cmap=cmap, norm=norm)
     pct_map.colorbar()
-    pct_map.ax.set_title("{labA} to {labB} pct change".format(
+    pct_map.ax.set_title("{labA} to {labB} pct decrease".format(
         labA=vd.label_A,
         labB=vd.label_B))
 
@@ -284,6 +286,6 @@ if __name__ == "__main__":
     read_data = True
     if read_data:
         vd.read_files()
-        vd.mask_oceans()
-    for this_t in range(2, 100):  # 255
+        vd.mask_land_or_water(mask_water=True)
+    for this_t in range(2, 10):  # 255
         fig = graphics(vd, t_idx=this_t, layer=0)
