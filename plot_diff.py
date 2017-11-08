@@ -173,12 +173,6 @@ def graphics(vd, t_idx=0, layer=None, fig_type='png'):
     """
 
     t0 = datetime.datetime.now()
-    # datetime.timedelta does not support type numpy.float32, so cast to
-    # type float
-    # TODO: get the start date from the netcdf file instead of hard-coding
-    this_t = (datetime.datetime(2009, 6, 1) +
-              datetime.timedelta(minutes=float(vd.time[t_idx])))
-
     # construct index into data
     if layer is None:
         idx = np.s_[t_idx, ...]
@@ -192,7 +186,7 @@ def graphics(vd, t_idx=0, layer=None, fig_type='png'):
                          "{varname}_{layer_id}diff_maps_{tstamp}.{ext}".format(
                              varname=vd.varname,
                              layer_id=layer_id,
-                             tstamp=this_t.strftime('%Y-%m-%d_%H%M'),
+                             tstamp=vd.time[t_idx].strftime('%Y-%m-%d_%H%M'),
                              ext=fig_type))
     print('plotting {}'.format(fname))
 
@@ -211,7 +205,7 @@ def graphics(vd, t_idx=0, layer=None, fig_type='png'):
                                 cmap=get_cmap('YlGnBu'))
 
     for axidx, k in enumerate(vd.data.keys()):
-        print("    plot {} data - {}".format(k, str(this_t)))
+        print("    plot {} data - {}".format(k, str(vd.time[t_idx])))
         this_map = CoastalSEES_WRF_Mapper(ax=ax[axidx])
         # TODO: mask oceans.  Probably should have an argument to
         # control this; would probably want oceans for e.g. latent
@@ -266,7 +260,7 @@ def graphics(vd, t_idx=0, layer=None, fig_type='png'):
     title = "{vname}, {layerid}{tstamp} UTC ({units})".format(
         vname=vd.longname,
         layerid="{}, ".format(vd.get_layer_str(layer)),
-        tstamp=this_t.strftime('%d %b %Y %H:%M'),
+        tstamp=vd.time[t_idx].strftime('%d %b %Y %H:%M'),
         units=vd.units)
     fig.suptitle(title)
     fig.savefig(fname=fname)
@@ -290,10 +284,6 @@ if __name__ == "__main__":
     read_data = True
     if read_data:
         vd.read_files()
-        # TODO: this is a crude sychonization of the two time series.
-        # Should generalize # TODO: his.
-        vd.data['control'] = vd.data['control'][12:273, ...]
-        vd.time = vd.time[12:273]
         vd.mask_oceans()
-    for this_t in range(2, 255):  # 255
-        _discard = graphics(vd, t_idx=this_t, layer=0)
+    for this_t in range(2, 100):  # 255
+        fig = graphics(vd, t_idx=this_t, layer=0)
