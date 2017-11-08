@@ -173,6 +173,12 @@ class var_diff(object):
                     mask = np.logical_not(mask)
                 self.data[k] = ma.masked_where(mask, self.data[k])
 
+    def calc_time_avg(self, t_rng):
+        for k in self.data.keys():
+            self.data[k] = vd.data[k][t_rng, ...].mean(axis=0)[np.newaxis, ...]
+        self.t0 = self.time[t_rng[0]]
+        self.t_end = self.time[t_rng[-1]]
+
 
 def graphics(vd, t_idx=0, layer=None, fig_type='png'):
     """plot contours of WRF var vals, differences from two different runs
