@@ -13,6 +13,7 @@ import numpy.ma as ma
 import datetime
 import os
 import netCDF4
+from wrf import getvar
 
 from matplotlib.cm import get_cmap
 from matplotlib.figure import Figure
@@ -55,6 +56,7 @@ class var_diff(object):
         self.lon = None
         self.data = {label_A: None, label_B: None}
         self.is_land = None
+        self.z = None  # height above sea level (meters)
 
     def read_soil_layers(self, silent=False):
         """read soil layers, print to stdout
@@ -76,7 +78,12 @@ class var_diff(object):
         nf.close()
         return({'top': depth_top, 'bot': depth_bot})
 
-    def get_layer_str(self, layer):
+    def get_atm_layer_str(self, layer):
+        """return a string describing atmosphere height above sea level
+        """
+        return("{} m ASL".format(self.z[layer, ...].mean()))
+
+    def get_soil_layer_str(self, layer):
         """return a string describing soil layer depth
 
         returns a string the format "T - B m", with T the depth of the top
@@ -139,6 +146,7 @@ class var_diff(object):
                 pd.tseries.offsets.DateOffset(minutes=m) for m in xtime])
 
             self.longname = nf[self.varname].description
+            self.z = getvar(nf, 'z')
             nf.close()
         self._match_tstamps()
 
@@ -261,7 +269,7 @@ def graphics(vd, t_idx=0, layer=None, fig_type='png'):
     # Draw a title before we draw plots
     title = "{vname}, {layerid}{tstamp} UTC ({units})".format(
         vname=vd.longname,
-        layerid="{}, ".format(vd.get_layer_str(layer)),
+        layerid="{}, ".format(vd.get_soil_layer_str(layer)),
         tstamp=vd.time[t_idx].strftime('%d %b %Y %H:%M'),
         units=vd.units)
     fig.suptitle(title)
@@ -287,5 +295,5 @@ if __name__ == "__main__":
     if read_data:
         vd.read_files()
         vd.mask_land_or_water(mask_water=True)
-    for this_t in range(2, 10):  # 255
-        fig = graphics(vd, t_idx=this_t, layer=0)
+    # for this_t in range(2, 10):  # 255
+    #     fig = graphics(vd, t_idx=this_t, layer=0)
