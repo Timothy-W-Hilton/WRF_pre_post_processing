@@ -8,6 +8,7 @@ Timothy W. Hilton, UC Merced, thilton@ucmerced.edu
 """
 
 import numpy as np
+import pandas as pd
 import numpy.ma as ma
 import datetime
 import os
@@ -49,7 +50,7 @@ class var_diff(object):
         self.varname = varname
         self.longname = None
         self.units = None
-        self.time = None
+        self.time = {label_A: None, label_B: None}
         self.lat = None
         self.lon = None
         self.data = {label_A: None, label_B: None}
@@ -130,20 +131,25 @@ class var_diff(object):
                                                     labB=self.label_B,
                                                     var='units'))
             # read time
-            if self.time is None:
-                self.time = nf["XTIME"][...]
-                # this test failes if either file contains a shorter, but
-                # otherwise identical, time series.  TODO: Needs more complex
-                # logic to deal with that
-            # elif np.allclose(nf["XTIME"][...],
-            #                  self.time,
-            #                  equal_nan=True) is False:
-            # raise RuntimeError(error_str.format(labA=self.label_A,
-            #                                       labB=self.label_B,
-            #                                       var='timestamps'))
-            # read variable long name
+            xtime = nf["XTIME"][...].astype('float')
+            sim_start_time = nf.SIMULATION_START_DATE
+            self.time[k] = pd.DatetimeIndex([
+                datetime.datetime.strptime(sim_start_time,
+                                           "%Y-%m-%d_%H:%M:%S") +
+                pd.tseries.offsets.DateOffset(minutes=m) for m in xtime])
+
             self.longname = nf[self.varname].description
             nf.close()
+        self._match_tstamps()
+
+    def _match_tstamps(self):
+        """find time corresponding time indices
+        """
+        idx_A = self.time[self.label_A].isin(self.time[self.label_B])
+        idx_B = self.time[self.label_B].isin(self.time[self.label_A])
+        self.data[self.label_A] = self.data[self.label_A][idx_A, ...]
+        self.data[self.label_B] = self.data[self.label_B][idx_B, ...]
+        self.time = self.time[self.label_A][idx_A]
 
     def mask_oceans(self):
         """mask water pixels in data
