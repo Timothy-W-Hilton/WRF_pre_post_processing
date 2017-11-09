@@ -253,8 +253,8 @@ def graphics(vd, t_idx=0, layer=None, fig_type='png'):
         units=vd.units))
 
     d_pct = (d / vd.data[vd.label_A][idx]) * 100.0
-    d_pct_all = (d_all / vd.data[vd.label_A][idxA]) * 100.0
-    abs_max = np.abs((d_pct_all.min(), d_pct_all.max())).max()
+    # d_pct_all = (d_all / vd.data[vd.label_A][idxA]) * 100.0
+    abs_max = 500  # np.abs((d_pct_all.min(), d_pct_all.max())).max()
     cmap, norm = get_discrete_midpt_cmap_norm(vmin=abs_max * -1.0,
                                               vmax=abs_max,
                                               midpoint=0.0,
