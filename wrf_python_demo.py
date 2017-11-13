@@ -1,0 +1,18 @@
+import os
+from glob import glob
+import netCDF4
+from wrf import getvar, ALL_TIMES
+
+if __name__ == "__main__":
+
+    datadir = os.path.join('/', 'global', 'cscratch1',
+                           'sd', 'twhilton', 'WRFv3.9_Sensitivity',
+                           'WRFv3.9_Sensitivity_Ctl', 'WRFV3', 'run',
+                           'summen_sensitivity_ctl')
+    files = glob(os.path.join(datadir, "wrfsees_ccs3pb1_ls2_d02_*"))
+    nclist = [netCDF4.Dataset(f, mode="r") for f in files]
+    smois = getvar(nclist, 'SMOIS', timeidx=ALL_TIMES, method='cat')
+    zs = getvar(nclist, 'ZS', timeidx=ALL_TIMES, method='cat', meta=False)
+    dzs = getvar(nclist, 'DZS', timeidx=ALL_TIMES, method='cat', meta=False)
+    for this_nc in nclist:
+        this_nc.close()
