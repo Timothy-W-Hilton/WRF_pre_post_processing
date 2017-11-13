@@ -11,8 +11,9 @@ if __name__ == "__main__":
                            'summen_sensitivity_ctl')
     files = glob(os.path.join(datadir, "wrfsees_ccs3pb1_ls2_d02_*"))
     nclist = [netCDF4.Dataset(f, mode="r") for f in files]
-    smois = getvar(nclist, 'SMOIS', timeidx=ALL_TIMES, method='cat')
-    zs = getvar(nclist, 'ZS', timeidx=ALL_TIMES, method='cat', meta=False)
-    dzs = getvar(nclist, 'DZS', timeidx=ALL_TIMES, method='cat', meta=False)
+    smois = getvar(nclist, 'SMOIS', timeidx=ALL_TIMES)
+    zs = getvar(nclist, 'ZS', timeidx=ALL_TIMES, meta=False)[0, ...]
+    dzs = getvar(nclist, 'DZS', timeidx=ALL_TIMES, meta=False)[0, ...]
+    island = getvar(nclist, 'XLAND', timeidx=ALL_TIMES, meta=False)[0, ...]
     for this_nc in nclist:
         this_nc.close()
