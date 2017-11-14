@@ -61,7 +61,7 @@ class var_diff(object):
     def read_soil_layers(self, silent=False):
         """read soil layers, print to stdout
         """
-        nf = netCDF4.MFDataset(self.fnames['control'])
+        nf = netCDF4.MFDataset(self.fnames[self.label_A])
         # ZS is soil layer midpoints
         zs = nf.variables['ZS'][0, ...]  # assume (for now) that soil
                                          # layers are time-invariant
@@ -146,7 +146,10 @@ class var_diff(object):
                 pd.tseries.offsets.DateOffset(minutes=m) for m in xtime])
 
             self.longname = nf[self.varname].description
+            try:
             self.z = getvar(nf, 'z')
+            except ValueError as e:
+                print('unable to read Z from input file: ' + str(e))
             nf.close()
         self._match_tstamps()
 
