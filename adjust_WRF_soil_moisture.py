@@ -18,6 +18,7 @@ import numpy.ma as ma
 import glob
 import os
 
+
 def reduce_soil_moisture(fname, f, soil_moist_vars=None,
                          land_sea_var='LANDMASK'):
     """multiply WPS soil moisture values in a netcdf file by a constant factor
@@ -60,6 +61,7 @@ def reduce_soil_moisture(fname, f, soil_moist_vars=None,
                   " module.".format(f=f))
     nc.close()
 
+
 def gather_files(dir, key):
     """return a list of all files in a directory that match a wildcard
 
@@ -72,6 +74,7 @@ def gather_files(dir, key):
     match key
     """
     return(glob.glob(os.path.join(dir, key)))
+
 
 if __name__ == "__main__":
     wps_dir = os.path.join('/', 'global', 'cscratch1', 'sd', 'twhilton',
