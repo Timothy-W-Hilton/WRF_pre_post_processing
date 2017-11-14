@@ -197,9 +197,10 @@ def graphics(vd, t_idx=0, layer=None, fig_type='png'):
         idx = np.s_[t_idx, layer, ...]
         layer_id = "lay{}_".format(layer)
 
+    # TODO: add a label to identify the sensitivity test run
     fname = os.path.join('/global/homes/t/twhilton',
                          'plots', 'Summen',
-                         "{varname}_{layer_id}diff_maps_{tstamp}.{ext}".format(
+                         "newrst_{varname}_{layer_id}diff_maps_{tstamp}.{ext}".format(
                              varname=vd.varname,
                              layer_id=layer_id,
                              tstamp=vd.time[t_idx].strftime('%Y-%m-%d_%H%M'),
@@ -284,19 +285,19 @@ def graphics(vd, t_idx=0, layer=None, fig_type='png'):
 if __name__ == "__main__":
     cscratch = os.path.join('/', 'global', 'cscratch1', 'sd', 'twhilton')
     ctl_dir = os.path.join(cscratch, 'WRFv3.9_Sensitivity',
-                           'WRFv3.9_Sensitivity_Ctl', 'WRFV3',
-                           'run', 'summen_sensitivity_ctl')
+                           'WRFv3.9_Sensitivity_Ctl_short', 'WRFV3',
+                           'run')
     dry_dir = os.path.join(cscratch, 'WRFv3.9_Sensitivity',
-                           'WRFv3.9_Sensitivity_DrySoil', 'WRFV3',
-                           'run', 'summen_sensitivity_drysoil')
-    vd = var_diff(os.path.join(ctl_dir, 'wrfsees_ccs3pb1_ls2_d02_2009-06*'),
-                  os.path.join(dry_dir, 'wrfsees_ccs3pb1_ls2_d02_2009-06*'),
-                  label_A='control',
-                  label_B='dry',
-                  varname='SMOIS')
+                           'WRFv3.9_Sensitivity_DrySoil_newrst', 'WRFV3',
+                           'run')
+    vd = var_diff(os.path.join(ctl_dir, 'wrfrst_d01_2009-06-02*'),
+                  os.path.join(dry_dir, 'wrfrst_d01_2009-06-02*'),
+                  label_A='short_ctl',
+                  label_B='short_dry',
+                  varname='QCLOUD')
     read_data = True
     if read_data:
         vd.read_files()
-        vd.mask_land_or_water(mask_water=True)
-    # for this_t in range(2, 10):  # 255
-    #     fig = graphics(vd, t_idx=this_t, layer=0)
+        # vd.mask_land_or_water(mask_water=True)
+    for this_t in range(0, 1):  # 255
+        fig = graphics(vd, t_idx=this_t, layer=0)
