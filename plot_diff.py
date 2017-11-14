@@ -200,9 +200,11 @@ def graphics(vd, t_idx=0, layer=None, fig_type='png', domain=2):
     # TODO: add a label to identify the sensitivity test run
     fname = os.path.join('/global/homes/t/twhilton',
                          'plots', 'Summen',
-                         "newrst_{varname}_{layer_id}diff_maps_{tstamp}.{ext}".format(
+                         ("newrst_{varname}_{layer_id}"
+                          "d{domain:02d}_diff_maps_{tstamp}.{ext}").format(
                              varname=vd.varname,
                              layer_id=layer_id,
+                             domain=domain,
                              tstamp=vd.time[t_idx].strftime('%Y-%m-%d_%H%M'),
                              ext=fig_type))
     print('plotting {}'.format(fname))
@@ -273,7 +275,7 @@ def graphics(vd, t_idx=0, layer=None, fig_type='png', domain=2):
     # Draw a title before we draw plots
     title = "{vname}, {layerid}{tstamp} UTC ({units})".format(
         vname=vd.longname,
-        layerid="{}, ".format(vd.get_soil_layer_str(layer)),
+        layerid="{}, ".format(layer_id),
         tstamp=vd.time[t_idx].strftime('%d %b %Y %H:%M'),
         units=vd.units)
     fig.suptitle(title)
