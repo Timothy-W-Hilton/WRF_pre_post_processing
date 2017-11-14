@@ -147,7 +147,7 @@ class var_diff(object):
 
             self.longname = nf[self.varname].description
             try:
-            self.z = getvar(nf, 'z')
+                self.z = getvar(nf, 'z')
             except ValueError as e:
                 print('unable to read Z from input file: ' + str(e))
             nf.close()
@@ -177,7 +177,7 @@ class var_diff(object):
                 self.data[k] = ma.masked_where(mask, self.data[k])
 
 
-def graphics(vd, t_idx=0, layer=None, fig_type='png'):
+def graphics(vd, t_idx=0, layer=None, fig_type='png', domain=2):
     """plot contours of WRF var vals, differences from two different runs
 
     ARGS:
@@ -223,7 +223,7 @@ def graphics(vd, t_idx=0, layer=None, fig_type='png'):
 
     for axidx, k in enumerate(vd.data.keys()):
         print("    plot {} data - {}".format(k, str(vd.time[t_idx])))
-        this_map = CoastalSEES_WRF_Mapper(ax=ax[axidx])
+        this_map = CoastalSEES_WRF_Mapper(ax=ax[axidx], domain=domain)
 
         this_map.pcolormesh(vd.lon,
                             vd.lat,
@@ -247,8 +247,8 @@ def graphics(vd, t_idx=0, layer=None, fig_type='png'):
     cmap, norm = get_discrete_midpt_cmap_norm(vmin=abs_max * -1.0,
                                               vmax=abs_max,
                                               midpoint=0.0,
-                                              this_cmap=get_cmap('BrBG'))
-    d_map = CoastalSEES_WRF_Mapper(ax=ax[2])
+                                              this_cmap=get_cmap('cool'))
+    d_map = CoastalSEES_WRF_Mapper(ax=ax[2], domain=domain)
     d_map.pcolormesh(vd.lon, vd.lat, d, cmap=cmap, norm=norm)
     d_map.colorbar()
     d_map.ax.set_title("{labA} - {labB} ({units})".format(
@@ -262,8 +262,8 @@ def graphics(vd, t_idx=0, layer=None, fig_type='png'):
     cmap, norm = get_discrete_midpt_cmap_norm(vmin=abs_max * -1.0,
                                               vmax=abs_max,
                                               midpoint=0.0,
-                                              this_cmap=get_cmap('BrBG'))
-    pct_map = CoastalSEES_WRF_Mapper(ax=ax[3])
+                                              this_cmap=get_cmap('cool'))
+    pct_map = CoastalSEES_WRF_Mapper(ax=ax[3], domain=domain)
     pct_map.pcolormesh(vd.lon, vd.lat, d_pct, cmap=cmap, norm=norm)
     pct_map.colorbar()
     pct_map.ax.set_title("{labA} to {labB} pct decrease".format(
@@ -300,4 +300,4 @@ if __name__ == "__main__":
         vd.read_files()
         # vd.mask_land_or_water(mask_water=True)
     for this_t in range(0, 1):  # 255
-        fig = graphics(vd, t_idx=this_t, layer=0)
+        fig = graphics(vd, t_idx=this_t, layer=0, domain=1)
