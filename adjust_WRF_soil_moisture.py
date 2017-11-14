@@ -48,9 +48,10 @@ def reduce_soil_moisture(fname, f, soil_moist_vars=None,
     # cells are 1.0.  Create a mask that is TRUE for water cells,
     # FALSE for land cells
     is_water = ma.masked_values(land_sea, 0.0).mask
-    is_water = np.tile(is_water[:, np.newaxis, :, :], (1, 4, 1, 1))
     for this_var in soil_moist_vars:
         sm_adjusted = nc.variables[this_var][...] * f
+        if sm_adjusted.ndim == 4:
+            is_water = np.tile(is_water[:, np.newaxis, :, :], (1, 4, 1, 1))
         # set water cells back to 1.0
         sm_adjusted[is_water] = 1.0
         nc.variables[this_var][...] = sm_adjusted
