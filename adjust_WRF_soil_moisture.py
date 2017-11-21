@@ -83,11 +83,11 @@ if __name__ == "__main__":
                            'WRFv3.9_Sensitivity_DrySoil', 'WPS', '')
     wrf_run_dir = os.path.join('/', 'global', 'cscratch1', 'sd',
                                'twhilton', 'WRFv3.9_Sensitivity',
-                               'WRFv3.9_Sensitivity_DrySoil_newrst',
+                               'met_em_tests', 'Dry',
                                'WRFV3', 'run')
     met_em_files = gather_files(wps_dir, "met_em*.nc")
     wrf_restart_files = gather_files(wrf_run_dir, "wrfrst_d*.nc")
-    for this_file in ['wrfrst_d02_2009-06-02_00:00:00',
-                      'wrfrst_d01_2009-06-02_00:00:00']:
-        reduce_soil_moisture(os.path.join(wrf_run_dir, this_file), 0.05,
+    wrf_input_files = gather_files(wrf_run_dir, "wrfinput_d*")
+    for this_file in wrf_input_files:
+        reduce_soil_moisture(this_file, 0.05,
                              soil_moist_vars=("SMOIS", ))
