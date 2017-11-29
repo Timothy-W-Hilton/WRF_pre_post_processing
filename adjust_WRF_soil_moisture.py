@@ -54,9 +54,12 @@ def make_all_land_urban(fname):
     # LANDUSEF[LU_water]) and all other non-water fractions to 0.0.
     all_land_use = np.arange(1, nc.NUM_LAND_CAT)
     non_water_non_urban = np.setdiff1d(all_land_use, [nc.ISWATER, nc.ISURBAN])
-    nc.variables['LANDUSEF'][:, non_water_non_urban, ...] = 0.0
-    non_water_fraction = 1.0 - nc.variables['LANDUSEF'][:, nc.ISWATER, ...]
-    nc.variables['LANDUSEF'][:, nc.ISURBAN, ...] = non_water_fraction
+    # need to subtract 1 from land use codes to translante them to
+    # zero-based array indices
+    nc.variables['LANDUSEF'][:, (non_water_non_urban - 1), ...] = 0.0
+    non_water_fraction = (
+        1.0 - nc.variables['LANDUSEF'][:, (nc.ISWATER - 1), ...])
+    nc.variables['LANDUSEF'][:, (nc.ISURBAN - 1), ...] = non_water_fraction
     # TODO change module name to reflect that it
     # now can alter landuse
     nc.history = ("created by metgrid_exe.  All non-waterland use set "
