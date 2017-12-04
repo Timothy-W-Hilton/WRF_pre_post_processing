@@ -177,7 +177,7 @@ class var_diff(object):
                 self.data[k] = ma.masked_where(mask, self.data[k])
 
 
-def graphics(vd, t_idx=0, layer=None, fig_type='png', domain=2):
+def graphics(vd, t_idx=0, layer=None, fig_type='png', domain=2, pfx=None):
     """plot contours of WRF var vals, differences from two different runs
 
     ARGS:
@@ -198,10 +198,13 @@ def graphics(vd, t_idx=0, layer=None, fig_type='png', domain=2):
         layer_id = "lay{}_".format(layer)
 
     # TODO: add a label to identify the sensitivity test run
+    if pfx is not None:
+        pfx = pfx + '_'
     fname = os.path.join('/global/homes/t/twhilton',
                          'plots', 'Summen',
-                         ("newrst_{varname}_{layer_id}"
+                         ("{pfx}{varname}_{layer_id}"
                           "d{domain:02d}_diff_maps_{tstamp}.{ext}").format(
+                              pfx=pfx,
                              varname=vd.varname,
                              layer_id=layer_id,
                              domain=domain,
