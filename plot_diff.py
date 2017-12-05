@@ -13,7 +13,8 @@ import numpy.ma as ma
 import datetime
 import os
 import netCDF4
-from wrf import getvar, extract_times, ALL_TIMES
+import glob
+from wrf import getvar, extract_times, to_np, ALL_TIMES
 
 from matplotlib.cm import get_cmap
 from matplotlib.figure import Figure
@@ -199,8 +200,13 @@ class var_diff(object):
         error_str = '{labA} {var} differs from {labB} {var}'
         for k, v in self.data.iteritems():
             nf = netCDF4.MFDataset(self.fnames[k])
-            wv = wrf_var(self.fnames[k], label=self.label_A,
-                         varname=self.varname, is_atm=False)
+            # TODO: decide whether to keep or get rid of nf.
+            wv = wrf_var(glob.glob(self.fnames[k]),
+                         label=self.label_A,
+                         varname=self.varname,
+                         is_atm=False)
+            wv.read_files()
+            self.data[k] = to_np(wv.data)
             # read latitude
             if self.lat is None:
                 self.lat = wv.lat
@@ -223,7 +229,7 @@ class var_diff(object):
                                                         var='longitude'))
             # read land/water mask
             if self.is_land is None:
-                self.is_land = nf['XLAND'][0, ...] == 1
+                self.is_land = np.isclose(to_np(getvar(nf, 'XLAND')), 1.0)
 
             # read units
             if self.units is None:
@@ -232,15 +238,12 @@ class var_diff(object):
                 raise RuntimeError(error_str.format(labA=self.label_A,
                                                     labB=self.label_B,
                                                     var='units'))
+            # read variable description to longname
+            self.longname = wv.data.description
             # read time
-            xtime = nf["XTIME"][...].astype('float')
-            sim_start_time = nf.SIMULATION_START_DATE
-            self.time[k] = pd.DatetimeIndex([
-                datetime.datetime.strptime(sim_start_time,
-                                           "%Y-%m-%d_%H:%M:%S") +
-                pd.tseries.offsets.DateOffset(minutes=m) for m in xtime])
-
-            self.longname = nf[self.varname].description
+            xtime = extract_times(nf, ALL_TIMES)
+            self.time[k] = pd.DatetimeIndex(xtime)
+            # read model heights
             try:
                 self.z = getvar(nf, 'z')
             except ValueError as e:
