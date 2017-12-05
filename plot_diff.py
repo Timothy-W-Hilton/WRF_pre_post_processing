@@ -13,7 +13,7 @@ import numpy.ma as ma
 import datetime
 import os
 import netCDF4
-from wrf import getvar
+from wrf import getvar, ALL_TIMES
 
 from matplotlib.cm import get_cmap
 from matplotlib.figure import Figure
@@ -41,6 +41,100 @@ class MyFig(Figure):
         # The size * the dpi gives the final image sys.getsizeof()
         #   a4"x4" image * 80 dpi ==> 320x320 pixel image
         canvas.print_figure(fname, dpi=dpi)
+
+
+class wrf_var(object):
+    def __init__(self, fnames, label, varname, is_atm):
+        self.fnames = fnames
+        self.label = label
+        self.varname = varname
+        self.is_atm = None
+        self.longname = None
+        self.units = None
+        self.time = None
+        self.lat = None
+        self.lon = None
+        self.data = None
+        self.is_land = None
+        self.z = None  # height above sea level (meters)
+
+    def read_land_water_mask(self):
+        """read land/water mask from WRF netcdf files
+
+        RETURNS:
+        array containing True for land pixels, False for water pixels
+        """
+        nclist = [netCDF4.Dataset(f, mode="r") for f in self.fnames]
+        xland = getvar(nclist, 'XLAND', timeidx=ALL_TIMES, meta=False)
+        land_value = 1.0  # land pixels are set to 1.0, water to 2.0
+        return(np.isclose(xland, 1.0))
+
+    def read_soil_layers(self, silent=False):
+        """read soil layers, optionally print to stdout
+        """
+        nclist = [netCDF4.Dataset(f, mode="r") for f in self.fnames]
+        # ZS is soil layer midpoints
+        zs = getvar(nclist, 'ZS', timeidx=ALL_TIMES, meta=False)
+        # DZS is soil layer thickness
+        dzs = getvar(nclist, 'DZS', timeidx=ALL_TIMES, meta=False)
+        depth_top = zs - (dzs / 2.0)
+        depth_bot = zs + (dzs / 2.0)
+        if silent is False:
+            for this_lay in zs.shape[1]:
+                print("soil layer {}: {:0.1f} - {:0.1f} m".format(
+                    this_lay, depth_top[this_lay], depth_bot[this_lay]))
+        for this_nc in nclist:
+            this_nc.close()
+        return({'top': depth_top, 'bot': depth_bot})
+
+    def get_atm_layer_str(self, layer):
+        """return a string describing atmosphere height above sea level
+        """
+        return("{} m ASL".format(self.z[layer, ...].mean()))
+
+    def get_soil_layer_str(self, layer, t_idx=0):
+        """return a string describing soil layer depth
+
+        returns a string the format "T - B m", with T the depth of the top
+        of the layer and B the depth at the bottom.
+
+        ARGS:
+        layer (int): index of the soil layer in the WRF netCDF data
+        """
+        if layer is None:
+            return("")
+        else:
+            layer_depths = self.read_soil_layers(silent=True)
+            return("{:0.1f} - {:0.1f} m".format(
+                layer_depths['top'][t_idx, layer],
+                layer_depths['bot'][t_idx, layer]))
+
+    def read_files(self, mask_land=False, mask_water=False):
+        """read variable from run output
+        """
+        nclist = [netCDF4.Dataset(f, mode="r") for f in self.fnames]
+        self.data = getvar(nclist, varname=self.varname, timeidx=ALL_TIMES)
+        if self.units is None:
+            self.units = self.data.attrs['units']
+        if self.lat is None:
+            self.lat = self.data.coords['XLAT'].values
+        if self.lon is None:
+            self.lon = self.data.coords['XLONG'].values
+        # read time
+        xtime = self.data.coords['Time'].values
+        self.time = pd.DatetimeIndex(xtime)
+        self.longname = self.data.attrs['description']
+        self.z = getvar(nclist, 'z')
+        for this_nc in nclist:
+            this_nc.close()
+        if mask_land or mask_water:
+            m = self.read_land_water_mask()
+            if self.data.ndim == 4:
+                m = m[:, np.newaxis, ...]
+            m = np.broadcast_to(m, self.data.values.shape)
+            if mask_water:
+                m = np.logical_not(m)
+            self.data.values = ma.masked_where(self.data.values, m)
 
 
 class var_diff(object):
