@@ -13,7 +13,7 @@ import numpy.ma as ma
 import datetime
 import os
 import netCDF4
-from wrf import getvar, ALL_TIMES
+from wrf import getvar, extract_times, ALL_TIMES
 
 from matplotlib.cm import get_cmap
 from matplotlib.figure import Figure
@@ -67,7 +67,7 @@ class wrf_var(object):
         nclist = [netCDF4.Dataset(f, mode="r") for f in self.fnames]
         xland = getvar(nclist, 'XLAND', timeidx=ALL_TIMES, meta=False)
         land_value = 1.0  # land pixels are set to 1.0, water to 2.0
-        return(np.isclose(xland, 1.0))
+        return(np.isclose(xland, land_value))
 
     def read_soil_layers(self, silent=False):
         """read soil layers, optionally print to stdout
@@ -115,15 +115,15 @@ class wrf_var(object):
         nclist = [netCDF4.Dataset(f, mode="r") for f in self.fnames]
         self.data = getvar(nclist, varname=self.varname, timeidx=ALL_TIMES)
         if self.units is None:
-            self.units = self.data.attrs['units']
+            self.units = self.data.units
         if self.lat is None:
             self.lat = self.data.coords['XLAT'].values
         if self.lon is None:
             self.lon = self.data.coords['XLONG'].values
         # read time
-        xtime = self.data.coords['Time'].values
+        xtime = extract_times(nclist, ALL_TIMES)
         self.time = pd.DatetimeIndex(xtime)
-        self.longname = self.data.attrs['description']
+        self.longname = self.data.description
         self.z = getvar(nclist, 'z')
         for this_nc in nclist:
             this_nc.close()
@@ -199,12 +199,13 @@ class var_diff(object):
         error_str = '{labA} {var} differs from {labB} {var}'
         for k, v in self.data.iteritems():
             nf = netCDF4.MFDataset(self.fnames[k])
-            self.data[k] = nf[self.varname][...]
+            wv = wrf_var(self.fnames[k], label=self.label_A,
+                         varname=self.varname, is_atm=False)
             # read latitude
             if self.lat is None:
-                self.lat = nf['XLAT'][0, ...]
+                self.lat = wv.lat
             else:
-                if np.allclose(nf['XLAT'][0, ...],
+                if np.allclose(wv.lat,
                                self.lat,
                                equal_nan=True) is False:
                     raise RuntimeError(error_str.format(labA=self.label_A,
@@ -212,9 +213,9 @@ class var_diff(object):
                                                         var='latitude'))
             # read longitude
             if self.lon is None:
-                self.lon = nf['XLONG'][0, ...]
+                self.lon = wv.lon
             else:
-                if np.allclose(nf['XLONG'][0, ...],
+                if np.allclose(wv.lon,
                                self.lon,
                                equal_nan=True) is False:
                     raise RuntimeError(error_str.format(labA=self.label_A,
@@ -226,8 +227,8 @@ class var_diff(object):
 
             # read units
             if self.units is None:
-                self.units = nf[self.varname].units
-            elif nf[self.varname].units != self.units:
+                self.units = wv.units
+            elif wv.units != self.units:
                 raise RuntimeError(error_str.format(labA=self.label_A,
                                                     labB=self.label_B,
                                                     var='units'))
