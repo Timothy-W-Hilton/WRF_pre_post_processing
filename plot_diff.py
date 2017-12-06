@@ -261,10 +261,10 @@ class var_diff(object):
         idx_A = self.time[self.label_A].isin(self.time[self.label_B])
         idx_B = self.time[self.label_B].isin(self.time[self.label_A])
         self.data[self.label_A] = np.take(self.data[self.label_A],
-                                          idx_A,
+                                          np.flatnonzero(idx_A),
                                           self.var_axes['Time'])
         self.data[self.label_B] = np.take(self.data[self.label_B],
-                                          idx_B,
+                                          np.flatnonzero(idx_B),
                                           self.var_axes['Time'])
         self.time = self.time[self.label_A][idx_A]
 
