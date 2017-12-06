@@ -207,6 +207,10 @@ class var_diff(object):
                          is_atm=False)
             wv.read_files()
             self.data[k] = to_np(wv.data)
+
+            # locate variable dimensions - they vary from variable to
+            # variable.  e.g. Time is not always the same array axis.
+            self.var_axes = wrf_var_find_axes(wv)
             # read latitude
             if self.lat is None:
                 self.lat = wv.lat
@@ -256,8 +260,12 @@ class var_diff(object):
         """
         idx_A = self.time[self.label_A].isin(self.time[self.label_B])
         idx_B = self.time[self.label_B].isin(self.time[self.label_A])
-        self.data[self.label_A] = self.data[self.label_A][idx_A, ...]
-        self.data[self.label_B] = self.data[self.label_B][idx_B, ...]
+        self.data[self.label_A] = np.take(self.data[self.label_A],
+                                          idx_A,
+                                          self.var_axes['Time'])
+        self.data[self.label_B] = np.take(self.data[self.label_B],
+                                          idx_B,
+                                          self.var_axes['Time'])
         self.time = self.time[self.label_A][idx_A]
 
     def mask_land_or_water(self, mask_water=True):
@@ -273,6 +281,34 @@ class var_diff(object):
                 if mask_water:
                     mask = np.logical_not(mask)
                 self.data[k] = ma.masked_where(mask, self.data[k])
+
+
+def wrf_var_find_axes(wv):
+    """locate vertical, horizontal, and time axes in a WRF variable
+
+    ARGS:
+    wv (xarray): XArray containing the WRF output, as read by
+       wrf.getvar() or wrf.extract_vars().
+
+    RETURNS
+    a dict containing the integer values of the time, vertical,
+       north-south, and east-west axes of the variable.
+    """
+    axes = {}
+    axes.update({"Time": wv.data.dims.index('Time')})
+    try:
+        axes.update({"AtmLay": wv.data.dims.index('bottom_top')})
+    except ValueError:
+        print("variable has no atmospheric vertical axis")
+        axes.update({"AtmLay": None})
+    try:
+        axes.update({"SoilLay": wv.data.dims.index('soil_layers_stag')})
+        axes.update({"SoilLay": None})
+    except ValueError:
+        print("variable has no soil axis")
+    axes.update({"Lon": wv.data.dims.index('west_east')})
+    axes.update({"Lat": wv.data.dims.index('south_north')})
+    return(axes)
 
 
 def graphics(vd, t_idx=0, layer=None, fig_type='png', domain=2, pfx=None):
