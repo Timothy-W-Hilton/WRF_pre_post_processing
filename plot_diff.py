@@ -306,15 +306,15 @@ def wrf_var_find_axes(wv):
     axes = {}
     axes.update({"Time": wv.data.dims.index('Time')})
     try:
-        axes.update({"AtmLay": wv.data.dims.index('bottom_top')})
+        axes.update({"Lay": wv.data.dims.index('bottom_top')})
     except ValueError:
         print("variable has no atmospheric vertical axis")
-        axes.update({"AtmLay": None})
-    try:
-        axes.update({"SoilLay": wv.data.dims.index('soil_layers_stag')})
-        axes.update({"SoilLay": None})
-    except ValueError:
-        print("variable has no soil axis")
+        axes.update({"Lay": None})
+        try:
+            axes.update({"Lay": wv.data.dims.index('soil_layers_stag')})
+        except ValueError:
+            print("variable has no soil axis")
+            axes.update({"Lay": None})
     axes.update({"Lon": wv.data.dims.index('west_east')})
     axes.update({"Lat": wv.data.dims.index('south_north')})
     return(axes)
