@@ -374,13 +374,14 @@ class VarDiffPlotter(object):
         """
         t0 = datetime.datetime.now()
         # construct index into data
-        if self.layer is None:
+        if self.vd.data.values()[0].ndim is 3:
             idx = np.s_[self.t_idx, ...]
-            layer_id = ""
-        else:
+        elif self.vd.data.values()[0].ndim is 4:
             idx = np.s_[self.t_idx, self.layer, ...]
-            layer_id = "lay{}_".format(self.layer)
-
+        elif self.vd.data.values()[0].ndim is 5:
+            idx = np.s_[0, self.t_idx, self.layer, ...]
+        else:
+            raise IndexError("data have unexpected shape")
         self.get_filename()
         print('plotting {}'.format(self.fname))
 
