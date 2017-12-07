@@ -167,8 +167,8 @@ class var_diff(object):
         """
         nf = netCDF4.MFDataset(self.fnames[self.label_A])
         # ZS is soil layer midpoints
-        zs = nf.variables['ZS'][0, ...]  # assume (for now) that soil
-                                         # layers are time-invariant
+        # assume (for now) that soil layers are time-invariant
+        zs = nf.variables['ZS'][0, ...]
         # DZS is soil layer thickness
         dzs = nf.variables['DZS'][0, ...]
         depth_top = np.zeros(len(zs))
@@ -320,111 +320,131 @@ def wrf_var_find_axes(wv):
     return(axes)
 
 
-def graphics(vd, t_idx=0, layer=None, fig_type='png', domain=2, pfx=None):
+class VarDiffPlotter(object):
     """plot contours of WRF var vals, differences from two different runs
-
-    ARGS:
-    vd (var_diff object): values for one variable from two different
-       model runs
-    t_idx (int): time stamp index (in [0, number of time stamps])
-       layer (int): the vertical layer to be plotted.
-    fig_type ({"png"}|"pdf"): type of image to create
     """
 
-    t0 = datetime.datetime.now()
-    # construct index into data
-    if layer is None:
-        idx = np.s_[t_idx, ...]
-        layer_id = ""
-    else:
-        idx = np.s_[t_idx, layer, ...]
-        layer_id = "lay{}_".format(layer)
+    def __init__(self, vd, t_idx=0, layer=None, fig_type='png',
+                 domain=2, pfx=None):
+        """
+        Initialize a VarDiffPlotter with a Figure instance and four Axes
 
-    # TODO: add a label to identify the sensitivity test run
-    if pfx is not None:
-        pfx = pfx + '_'
-    fname = os.path.join('/global/homes/t/twhilton',
-                         'plots', 'Summen',
-                         ("{pfx}{varname}_{layer_id}"
-                          "d{domain:02d}_diff_maps_{tstamp}.{ext}").format(
-                              pfx=pfx,
-                             varname=vd.varname,
-                             layer_id=layer_id,
-                             domain=domain,
-                             tstamp=vd.time[t_idx].strftime('%Y-%m-%d_%H%M'),
-                             ext=fig_type))
-    print('plotting {}'.format(fname))
+        ARGS:
+        vd (var_diff instance): values for one variable from two
+           different model runs
+        t_idx (int): time stamp index (in [0, number of time stamps])
+           layer (int): the vertical layer to be plotted.
+        fig_type ({"png"}|"pdf"): type of image to create
+        """
+        self.vd = vd
+        self.t_idx = t_idx
+        self.layer = layer
+        self.fig_type = fig_type
+        self.domain = domain
+        self.pfx = pfx
 
-    # initialize figure, axes
-    nplots = 4
-    fig = MyFig(figsize=(8, 8))
-    ax = [None] * nplots
-    for axidx, axspec in enumerate(range(221, 225)):
-        ax[axidx] = fig.add_subplot(axspec, projection=CoastalSEES_WRF_prj())
-        ax[axidx].set_extent((vd.lon.min(), vd.lon.max(),
-                              vd.lat.min(), vd.lat.max()))
+    def plot(self):
+        """plot contour plots for both variables, difference, percent difference
+        """
+        t0 = datetime.datetime.now()
+        # construct index into data
+        if self.layer is None:
+            idx = np.s_[self.t_idx, ...]
+            layer_id = ""
+        else:
+            idx = np.s_[self.t_idx, self.layer, ...]
+            layer_id = "lay{}_".format(self.layer)
 
-    dmin = 0.0  # min(all_data)
-    dmax = np.max(map(np.max, vd.data.values()))
-    cmap, norm = setup_colormap(dmin, dmax, nlevs=10,
-                                cmap=get_cmap('YlGnBu'))
+        if self.pfx is not None:
+            self.pfx = self.pfx + '_'
+        fname = os.path.join('/global/homes/t/twhilton',
+                             'plots', 'Summen',
+                             ("{pfx}{varname}_{layer_id}"
+                              "d{domain:02d}_diff_maps_{tstamp}.{ext}").format(
+                                  pfx=self.pfx,
+                                  varname=self.vd.varname,
+                                  layer_id=layer_id,
+                                  domain=self.domain,
+                                  tstamp=self.vd.time[self.t_idx].strftime(
+                                      '%Y-%m-%d_%H%M'),
+                                  ext=self.fig_type))
+        print('plotting {}'.format(fname))
 
-    for axidx, k in enumerate(vd.data.keys()):
-        print("    plot {} data - {}".format(k, str(vd.time[t_idx])))
-        this_map = CoastalSEES_WRF_Mapper(ax=ax[axidx], domain=domain)
+        # initialize figure, axes
+        nplots = 4
+        fig = MyFig(figsize=(8, 8))
+        ax = [None] * nplots
+        for axidx, axspec in enumerate(range(221, 225)):
+            ax[axidx] = fig.add_subplot(axspec,
+                                        projection=CoastalSEES_WRF_prj())
+            ax[axidx].set_extent((self.vd.lon.min(), self.vd.lon.max(),
+                                  self.vd.lat.min(), self.vd.lat.max()))
 
-        this_map.pcolormesh(vd.lon,
-                            vd.lat,
-                            vd.data[k][idx],
-                            norm=norm, cmap=cmap)
-        this_map.colorbar()
-        this_map.ax.set_title(k)
+        dmin = 0.0  # min(all_data)
+        dmax = np.max(map(np.max, self.vd.data.values()))
+        cmap, norm = setup_colormap(dmin, dmax, nlevs=10,
+                                    cmap=get_cmap('YlGnBu'))
 
-    # plot the difference
-    d = vd.data[vd.label_A][idx] - vd.data[vd.label_B][idx]
-    d = ma.masked_where(np.isclose(d, 0.0), d)
-    idx_max = vd.data[vd.label_A].shape[0]
-    if layer is None:
-        idxA = np.s_[...]
-        idxB = np.s_[:idx_max, ...]
-    else:
-        idxA = np.s_[:, layer, ...]
-        idxB = np.s_[:idx_max, layer, ...]
-    d_all = vd.data[vd.label_A][idxA] - vd.data[vd.label_B][idxB]
-    abs_max = np.abs((d_all.min(), d_all.max())).max()
-    cmap, norm = get_discrete_midpt_cmap_norm(vmin=abs_max * -1.0,
-                                              vmax=abs_max,
-                                              midpoint=0.0,
-                                              this_cmap=get_cmap('cool'))
-    d_map = CoastalSEES_WRF_Mapper(ax=ax[2], domain=domain)
-    d_map.pcolormesh(vd.lon, vd.lat, d, cmap=cmap, norm=norm)
-    d_map.colorbar()
-    d_map.ax.set_title("{labA} - {labB} ({units})".format(
-        labA=vd.label_A,
-        labB=vd.label_B,
-        units=vd.units))
+        for axidx, k in enumerate(self.vd.data.keys()):
+            print("    plot {} data - {}".format(
+                k, str(self.vd.time[self.t_idx])))
+            this_map = CoastalSEES_WRF_Mapper(ax=ax[axidx], domain=self.domain)
 
-    d_pct = (d / vd.data[vd.label_A][idx]) * 100.0
-    # d_pct_all = (d_all / vd.data[vd.label_A][idxA]) * 100.0
-    abs_max = 500  # np.abs((d_pct_all.min(), d_pct_all.max())).max()
-    cmap, norm = get_discrete_midpt_cmap_norm(vmin=abs_max * -1.0,
-                                              vmax=abs_max,
-                                              midpoint=0.0,
-                                              this_cmap=get_cmap('cool'))
-    pct_map = CoastalSEES_WRF_Mapper(ax=ax[3], domain=domain)
-    pct_map.pcolormesh(vd.lon, vd.lat, d_pct, cmap=cmap, norm=norm)
-    pct_map.colorbar()
-    pct_map.ax.set_title("{labA} to {labB} pct decrease".format(
-        labA=vd.label_A,
-        labB=vd.label_B))
+            this_map.pcolormesh(self.vd.lon,
+                                self.vd.lat,
+                                self.vd.data[k][idx],
+                                norm=norm, cmap=cmap)
+            this_map.colorbar()
+            this_map.ax.set_title(k)
 
-    # Draw a title before we draw plots
-    title = "{vname}, {layerid}{tstamp} UTC ({units})".format(
-        vname=vd.longname,
-        layerid="{}, ".format(layer_id),
-        tstamp=vd.time[t_idx].strftime('%d %b %Y %H:%M'),
-        units=vd.units)
-    fig.suptitle(title)
-    fig.savefig(fname=fname)
-    print("done ({})".format(str(datetime.datetime.now() - t0)))
-    return(None)
+        # plot the difference
+        d = (self.vd.data[self.vd.label_A][idx] -
+             self.vd.data[self.vd.label_B][idx])
+        d = ma.masked_where(np.isclose(d, 0.0), d)
+        idx_max = self.vd.data[self.vd.label_A].shape[0]
+        if self.layer is None:
+            idxA = np.s_[...]
+            idxB = np.s_[:idx_max, ...]
+        else:
+            idxA = np.s_[:, self.layer, ...]
+            idxB = np.s_[:idx_max, self.layer, ...]
+        d_all = (self.vd.data[self.vd.label_A][idxA] -
+                 self.vd.data[self.vd.label_B][idxB])
+        abs_max = np.abs((d_all.min(), d_all.max())).max()
+        cmap, norm = get_discrete_midpt_cmap_norm(vmin=abs_max * -1.0,
+                                                  vmax=abs_max,
+                                                  midpoint=0.0,
+                                                  this_cmap=get_cmap('cool'))
+        d_map = CoastalSEES_WRF_Mapper(ax=ax[2], domain=self.domain)
+        d_map.pcolormesh(self.vd.lon, self.vd.lat, d, cmap=cmap, norm=norm)
+        d_map.colorbar()
+        d_map.ax.set_title("{labA} - {labB} ({units})".format(
+            labA=self.vd.label_A,
+            labB=self.vd.label_B,
+            units=self.vd.units))
+
+        d_pct = (d / self.vd.data[self.vd.label_A][idx]) * 100.0
+        # d_pct_all = (d_all / self.vd.data[self.vd.label_A][idxA]) * 100.0
+        abs_max = 500  # np.abs((d_pct_all.min(), d_pct_all.max())).max()
+        cmap, norm = get_discrete_midpt_cmap_norm(vmin=abs_max * -1.0,
+                                                  vmax=abs_max,
+                                                  midpoint=0.0,
+                                                  this_cmap=get_cmap('cool'))
+        pct_map = CoastalSEES_WRF_Mapper(ax=ax[3], domain=self.domain)
+        pct_map.pcolormesh(self.vd.lon, self.vd.lat,
+                           d_pct, cmap=cmap, norm=norm)
+        pct_map.colorbar()
+        pct_map.ax.set_title("{labA} to {labB} pct decrease".format(
+            labA=self.vd.label_A,
+            labB=self.vd.label_B))
+
+        # Draw a title before we draw plots
+        title = "{vname}, {layerid}{tstamp} UTC ({units})".format(
+            vname=self.vd.longname,
+            layerid="{}, ".format(layer_id),
+            tstamp=self.vd.time[self.t_idx].strftime('%d %b %Y %H:%M'),
+            units=self.vd.units)
+        fig.suptitle(title)
+        fig.savefig(fname=fname)
+        print("done ({})".format(str(datetime.datetime.now() - t0)))
+        return(None)
