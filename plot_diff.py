@@ -343,6 +343,32 @@ class VarDiffPlotter(object):
         self.domain = domain
         self.pfx = pfx
 
+    def get_filename(self):
+        """return string containing filename for saving plot
+        """
+        if self.pfx is not None:
+            self.pfx = self.pfx + '_'
+        self.fname = os.path.join(
+            '/global/homes/t/twhilton',
+            'plots', 'Summen',
+            ("{pfx}{varname}_{layer_id}"
+             "d{domain:02d}_diff_maps_{tstamp}.{ext}").format(
+                 pfx=self.pfx,
+                 varname=self.vd.varname,
+                 layer_id=self._get_layer_id(),
+                 domain=self.domain,
+                 tstamp=self.vd.time[self.t_idx].strftime(
+                     '%Y-%m-%d_%H%M'),
+                 ext=self.fig_type))
+
+    def _get_layer_id(self):
+        """return string identifying the vertical layer of the plot
+        """
+        if self.layer is None:
+            return("")
+        else:
+            return("lay{}_".format(self.layer))
+
     def plot(self):
         """plot contour plots for both variables, difference, percent difference
         """
@@ -355,20 +381,8 @@ class VarDiffPlotter(object):
             idx = np.s_[self.t_idx, self.layer, ...]
             layer_id = "lay{}_".format(self.layer)
 
-        if self.pfx is not None:
-            self.pfx = self.pfx + '_'
-        fname = os.path.join('/global/homes/t/twhilton',
-                             'plots', 'Summen',
-                             ("{pfx}{varname}_{layer_id}"
-                              "d{domain:02d}_diff_maps_{tstamp}.{ext}").format(
-                                  pfx=self.pfx,
-                                  varname=self.vd.varname,
-                                  layer_id=layer_id,
-                                  domain=self.domain,
-                                  tstamp=self.vd.time[self.t_idx].strftime(
-                                      '%Y-%m-%d_%H%M'),
-                                  ext=self.fig_type))
-        print('plotting {}'.format(fname))
+        self.get_filename()
+        print('plotting {}'.format(self.fname))
 
         # initialize figure, axes
         nplots = 4
@@ -441,10 +455,10 @@ class VarDiffPlotter(object):
         # Draw a title before we draw plots
         title = "{vname}, {layerid}{tstamp} UTC ({units})".format(
             vname=self.vd.longname,
-            layerid="{}, ".format(layer_id),
+            layerid="{}, ".format(self._get_layer_id()),
             tstamp=self.vd.time[self.t_idx].strftime('%d %b %Y %H:%M'),
             units=self.vd.units)
         fig.suptitle(title)
-        fig.savefig(fname=fname)
+        fig.savefig(fname=self.fname)
         print("done ({})".format(str(datetime.datetime.now() - t0)))
         return(None)
