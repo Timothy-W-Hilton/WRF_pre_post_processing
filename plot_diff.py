@@ -27,6 +27,15 @@ from timutils.colormap_nlevs import setup_colormap
 
 
 class MyFig(Figure):
+    """Subclass of matplotlib.figure.Figure; provides one-line saving
+
+    matplotlib.figure.Figure requires some boilerplate to save a
+    figure outside of matplotlib.pyplot.  Using pyplot often doesn't
+    play well with detaching and reattaching screen sessions because
+    screen loses its connection to $DISPLAY.  This class allows
+    one-line figure saving independent of platform and $DISPLAY.
+
+    """
     def savefig(self, dpi=150, fname="figure.pdf"):
         """save the object's map to an image file
         """
