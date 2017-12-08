@@ -291,6 +291,33 @@ class var_diff(object):
                     mask = np.logical_not(mask)
                 self.data[k] = ma.masked_where(mask, self.data[k])
 
+    def calc_diff(self, idx, layer):
+        """calculate the variables' difference, pct diff, and absolute max diff
+
+        populate fields d (difference), d_pct (percent difference) and
+        abs_max (absolute maximum difference)
+
+        ARGS:
+        idx (tuple of slice instances or indices, as from numpy.s_):
+           index into the time step to calculate difference for
+
+        """
+        d = (self.data[self.label_A][idx] -
+             self.data[self.label_B][idx])
+        self.d = ma.masked_where(np.isclose(d, 0.0), d)
+        idx_max = self.data[self.label_A].shape[0]
+        if layer is None:
+            idxA = np.s_[...]
+            idxB = np.s_[:idx_max, ...]
+        else:
+            idxA = np.s_[:, layer, ...]
+            idxB = np.s_[:idx_max, layer, ...]
+        d_all = (self.data[self.label_A][idxA] -
+                 self.data[self.label_B][idxB])
+        self.abs_max = np.abs((d_all.min(), d_all.max())).max()
+        self.d_pct = (self.d / self.data[self.label_A][idx]) * 100.0
+        # d_pct_all = (d_all / self.data[self.label_A][idxA]) * 100.0
+
 
 def wrf_var_find_axes(wv):
     """locate vertical, horizontal, and time axes in a WRF variable
@@ -415,25 +442,14 @@ class VarDiffPlotter(object):
             this_map.ax.set_title(k)
 
         # plot the difference
-        d = (self.vd.data[self.vd.label_A][idx] -
-             self.vd.data[self.vd.label_B][idx])
-        d = ma.masked_where(np.isclose(d, 0.0), d)
-        idx_max = self.vd.data[self.vd.label_A].shape[0]
-        if self.layer is None:
-            idxA = np.s_[...]
-            idxB = np.s_[:idx_max, ...]
-        else:
-            idxA = np.s_[:, self.layer, ...]
-            idxB = np.s_[:idx_max, self.layer, ...]
-        d_all = (self.vd.data[self.vd.label_A][idxA] -
-                 self.vd.data[self.vd.label_B][idxB])
-        abs_max = np.abs((d_all.min(), d_all.max())).max()
-        cmap, norm = get_discrete_midpt_cmap_norm(vmin=abs_max * -1.0,
-                                                  vmax=abs_max,
+        self.vd.calc_diff(idx, self.layer)
+        cmap, norm = get_discrete_midpt_cmap_norm(vmin=self.vd.abs_max * -1.0,
+                                                  vmax=self.vd.abs_max,
                                                   midpoint=0.0,
                                                   this_cmap=get_cmap('cool'))
         d_map = CoastalSEES_WRF_Mapper(ax=ax[2], domain=self.domain)
-        d_map.pcolormesh(self.vd.lon, self.vd.lat, d, cmap=cmap, norm=norm)
+        d_map.pcolormesh(self.vd.lon, self.vd.lat, self.vd.d,
+                         cmap=cmap, norm=norm)
         d_map.colorbar(orientation='horizontal')
         d_map.cb.ax.set_xticklabels(this_map.cb.ax.get_xticklabels(),
                                     rotation=-60)
@@ -442,8 +458,7 @@ class VarDiffPlotter(object):
             labB=self.vd.label_B,
             units=self.vd.units))
 
-        d_pct = (d / self.vd.data[self.vd.label_A][idx]) * 100.0
-        # d_pct_all = (d_all / self.vd.data[self.vd.label_A][idxA]) * 100.0
+        # plot the pct difference
         abs_max = 500  # np.abs((d_pct_all.min(), d_pct_all.max())).max()
         cmap, norm = get_discrete_midpt_cmap_norm(vmin=abs_max * -1.0,
                                                   vmax=abs_max,
@@ -451,7 +466,7 @@ class VarDiffPlotter(object):
                                                   this_cmap=get_cmap('cool'))
         pct_map = CoastalSEES_WRF_Mapper(ax=ax[3], domain=self.domain)
         pct_map.pcolormesh(self.vd.lon, self.vd.lat,
-                           d_pct, cmap=cmap, norm=norm)
+                           self.vd.d_pct, cmap=cmap, norm=norm)
         pct_map.colorbar(orientation='horizontal')
         pct_map.cb.ax.set_xticklabels(this_map.cb.ax.get_xticklabels(),
                                       rotation=-60)
