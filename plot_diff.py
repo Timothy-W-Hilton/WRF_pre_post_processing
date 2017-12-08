@@ -409,7 +409,9 @@ class VarDiffPlotter(object):
                                 self.vd.lat,
                                 self.vd.data[k][idx],
                                 norm=norm, cmap=cmap)
-            this_map.colorbar()
+            this_map.colorbar(orientation='horizontal')
+            this_map.cb.ax.set_xticklabels(this_map.cb.ax.get_xticklabels(),
+                                           rotation=-60)
             this_map.ax.set_title(k)
 
         # plot the difference
@@ -432,7 +434,9 @@ class VarDiffPlotter(object):
                                                   this_cmap=get_cmap('cool'))
         d_map = CoastalSEES_WRF_Mapper(ax=ax[2], domain=self.domain)
         d_map.pcolormesh(self.vd.lon, self.vd.lat, d, cmap=cmap, norm=norm)
-        d_map.colorbar()
+        d_map.colorbar(orientation='horizontal')
+        d_map.cb.ax.set_xticklabels(this_map.cb.ax.get_xticklabels(),
+                                    rotation=-60)
         d_map.ax.set_title("{labA} - {labB} ({units})".format(
             labA=self.vd.label_A,
             labB=self.vd.label_B,
@@ -448,7 +452,9 @@ class VarDiffPlotter(object):
         pct_map = CoastalSEES_WRF_Mapper(ax=ax[3], domain=self.domain)
         pct_map.pcolormesh(self.vd.lon, self.vd.lat,
                            d_pct, cmap=cmap, norm=norm)
-        pct_map.colorbar()
+        pct_map.colorbar(orientation='horizontal')
+        pct_map.cb.ax.set_xticklabels(this_map.cb.ax.get_xticklabels(),
+                                      rotation=-60)
         pct_map.ax.set_title("{labA} to {labB} pct decrease".format(
             labA=self.vd.label_A,
             labB=self.vd.label_B))
