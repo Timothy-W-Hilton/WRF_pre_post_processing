@@ -291,6 +291,20 @@ class var_diff(object):
                     mask = np.logical_not(mask)
                 self.data[k] = ma.masked_where(mask, self.data[k])
 
+    def get_tstep_idx(self, t_idx):
+        """construct an index into the data to extract given time step
+        """
+        # construct index into data
+        if self.vd.data.values()[0].ndim is 3:
+            idx = np.s_[t_idx, ...]
+        elif self.vd.data.values()[0].ndim is 4:
+            idx = np.s_[t_idx, self.layer, ...]
+        elif self.vd.data.values()[0].ndim is 5:
+            idx = np.s_[:, t_idx, self.layer, ...]
+        else:
+            raise IndexError("data have unexpected shape")
+        return(idx)
+
     def calc_diff(self, idx, layer):
         """calculate the variables' difference, pct diff, and absolute max diff
 
@@ -400,15 +414,8 @@ class VarDiffPlotter(object):
         """plot contour plots for both variables, difference, percent difference
         """
         t0 = datetime.datetime.now()
-        # construct index into data
-        if self.vd.data.values()[0].ndim is 3:
-            idx = np.s_[self.t_idx, ...]
-        elif self.vd.data.values()[0].ndim is 4:
-            idx = np.s_[self.t_idx, self.layer, ...]
-        elif self.vd.data.values()[0].ndim is 5:
-            idx = np.s_[0, self.t_idx, self.layer, ...]
-        else:
-            raise IndexError("data have unexpected shape")
+
+        idx = self.vd.get_tstep_idx(self.t_idx)
         self.get_filename()
         print('plotting {}'.format(self.fname))
 
