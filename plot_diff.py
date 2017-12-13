@@ -291,16 +291,16 @@ class var_diff(object):
                     mask = np.logical_not(mask)
                 self.data[k] = ma.masked_where(mask, self.data[k])
 
-    def get_tstep_idx(self, t_idx):
+    def get_tstep_idx(self, t_idx, layer):
         """construct an index into the data to extract given time step
         """
         # construct index into data
-        if self.vd.data.values()[0].ndim is 3:
+        if self.data.values()[0].ndim is 3:
             idx = np.s_[t_idx, ...]
-        elif self.vd.data.values()[0].ndim is 4:
-            idx = np.s_[t_idx, self.layer, ...]
-        elif self.vd.data.values()[0].ndim is 5:
-            idx = np.s_[:, t_idx, self.layer, ...]
+        elif self.data.values()[0].ndim is 4:
+            idx = np.s_[t_idx, layer, ...]
+        elif self.data.values()[0].ndim is 5:
+            idx = np.s_[:, t_idx, layer, ...]
         else:
             raise IndexError("data have unexpected shape")
         return(idx)
@@ -415,7 +415,7 @@ class VarDiffPlotter(object):
         """
         t0 = datetime.datetime.now()
 
-        idx = self.vd.get_tstep_idx(self.t_idx)
+        idx = self.vd.get_tstep_idx(self.t_idx, self.layer)
         self.get_filename()
         print('plotting {}'.format(self.fname))
 
