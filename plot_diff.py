@@ -458,7 +458,7 @@ class VarDiffPlotter(object):
         d_map.pcolormesh(self.vd.lon, self.vd.lat, self.vd.d,
                          cmap=cmap, norm=norm)
         d_map.colorbar(orientation='horizontal')
-        d_map.cb.ax.set_xticklabels(this_map.cb.ax.get_xticklabels(),
+        d_map.cb.ax.set_xticklabels(d_map.cb.ax.get_xticklabels(),
                                     rotation=-60)
         d_map.ax.set_title("{labA} - {labB} ({units})".format(
             labA=self.vd.label_A,
@@ -466,7 +466,7 @@ class VarDiffPlotter(object):
             units=self.vd.units))
 
         # plot the pct difference
-        abs_max = 500  # np.abs((d_pct_all.min(), d_pct_all.max())).max()
+        abs_max = 150  # np.abs((d_pct_all.min(), d_pct_all.max())).max()
         cmap, norm = get_discrete_midpt_cmap_norm(vmin=abs_max * -1.0,
                                                   vmax=abs_max,
                                                   midpoint=0.0,
@@ -475,7 +475,7 @@ class VarDiffPlotter(object):
         pct_map.pcolormesh(self.vd.lon, self.vd.lat,
                            self.vd.d_pct, cmap=cmap, norm=norm)
         pct_map.colorbar(orientation='horizontal')
-        pct_map.cb.ax.set_xticklabels(this_map.cb.ax.get_xticklabels(),
+        pct_map.cb.ax.set_xticklabels(pct_map.cb.ax.get_xticklabels(),
                                       rotation=-60)
         pct_map.ax.set_title("{labA} to {labB} pct decrease".format(
             labA=self.vd.label_A,
