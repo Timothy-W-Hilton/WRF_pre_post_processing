@@ -410,6 +410,24 @@ class VarDiffPlotter(object):
         else:
             return("lay{}_".format(self.layer))
 
+    def contour_height(self, layer):
+        """make a map of WRF height for specified layer
+        """
+        fig = MyFig(figsize=(8, 8))
+        ax = fig.add_subplot(111,
+                             projection=CoastalSEES_WRF_prj())
+        ax.set_extent((self.vd.lon.min(), self.vd.lon.max(),
+                       self.vd.lat.min(), self.vd.lat.max()))
+        this_map = CoastalSEES_WRF_Mapper(ax=ax, domain=self.domain)
+        hgt = ma.masked_greater(self.vd.z[layer, ...], 400)
+        this_map.pcolormesh(self.vd.lon,
+                            self.vd.lat,
+                            hgt,
+                            vmin=0, vmax=400)
+        ax.set_title('WRF height, layer {:02d} (m)'.format(layer))
+        this_map.colorbar()
+        fig.savefig(fname='height_lay{:02d}.png'.format(layer))
+
     def plot(self, cb_orientation='vertical'):
         """plot contour plots for both variables, diff, pct diff
 
