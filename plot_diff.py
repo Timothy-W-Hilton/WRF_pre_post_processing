@@ -207,7 +207,7 @@ class var_diff(object):
         """read variable from run A output, run B output
         """
         error_str = '{labA} {var} differs from {labB} {var}'
-        for k, v in self.data.iteritems():
+        for k, v in self.data.items():
             nf = netCDF4.MFDataset(self.fnames[k])
             # TODO: decide whether to keep or get rid of nf.
             wv = wrf_var(glob.glob(self.fnames[k]),
@@ -295,11 +295,11 @@ class var_diff(object):
         """construct an index into the data to extract given time step
         """
         # construct index into data
-        if self.data.values()[0].ndim is 3:
+        if self.data[self.label_A].ndim is 3:
             idx = np.s_[t_idx, ...]
-        elif self.data.values()[0].ndim is 4:
+        elif self.data[self.label_A].ndim is 4:
             idx = np.s_[t_idx, layer, ...]
-        elif self.data.values()[0].ndim is 5:
+        elif self.data[self.label_A].ndim is 5:
             idx = np.s_[:, t_idx, layer, ...]
         else:
             raise IndexError("data have unexpected shape")
@@ -430,7 +430,7 @@ class VarDiffPlotter(object):
                                   self.vd.lat.min(), self.vd.lat.max()))
 
         dmin = 0.0  # min(all_data)
-        dmax = np.max(map(np.max, self.vd.data.values()))
+        dmax = np.max(list(map(np.max, self.vd.data.values())))
         cmap, norm = setup_colormap(dmin, dmax, nlevs=10,
                                     cmap=get_cmap('YlGnBu'))
 
