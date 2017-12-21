@@ -207,6 +207,15 @@ class var_diff(object):
         """read variable from run A output, run B output
         """
         error_str = '{labA} {var} differs from {labB} {var}'
+        print('begin var_diff.read_files()')
+        if self.varname.upper() == "LCL":
+            lcl_flag = True
+            # wrf.getvar() calculates LCL as part of reading analysis
+            # variable 'cape_2d'.  for cape_2d wrf.getvar() returns an
+            # array of shape (4, ...) of which axis 2 is LCL.
+            self.varname = 'cape_2d'
+        else:
+            lcl_flag = False
         for k, v in self.data.items():
             nf = netCDF4.MFDataset(self.fnames[k])
             # TODO: decide whether to keep or get rid of nf.
@@ -263,6 +272,14 @@ class var_diff(object):
                 print('unable to read Z from input file: ' + str(e))
             nf.close()
         self._match_tstamps()
+        if lcl_flag:
+            # extract LCL from wrf.getvar('cape_2d') output
+            for k, v in self.data.items():
+                LCL_IDX = self.longname.lower().split(' ; ').index('lcl')
+                self.data[k] = self.data[k][LCL_IDX, ...]
+            self.longname = 'LCL'
+            self.units = self.units.split(';')[LCL_IDX].strip()
+        print('done var_diff.read_files()')
 
     def _match_tstamps(self):
         """find time corresponding time indices
@@ -428,7 +445,7 @@ class VarDiffPlotter(object):
         this_map.colorbar()
         fig.savefig(fname='height_lay{:02d}.png'.format(layer))
 
-    def plot(self, cb_orientation='vertical'):
+    def plot(self, cb_orientation='vertical', vmin=None, vmax=None):
         """plot contour plots for both variables, diff, pct diff
 
         ARGS
@@ -450,9 +467,14 @@ class VarDiffPlotter(object):
                                         projection=CoastalSEES_WRF_prj())
             ax[axidx].set_extent((self.vd.lon.min(), self.vd.lon.max(),
                                   self.vd.lat.min(), self.vd.lat.max()))
-
-        dmin = 0.0  # min(all_data)
-        dmax = np.max(list(map(np.max, self.vd.data.values())))
+        if vmin is None:
+            dmin = 0.0  # min(all_data)
+        else:
+            dmin = vmin
+        if vmax is None:
+            dmax = np.max(list(map(np.max, self.vd.data.values())))
+        else:
+            dmax = vmax
         cmap, norm = setup_colormap(dmin, dmax, nlevs=10,
                                     cmap=get_cmap('YlGnBu'))
 
@@ -474,8 +496,17 @@ class VarDiffPlotter(object):
 
         # plot the difference
         self.vd.calc_diff(idx, self.layer)
-        cmap, norm = get_discrete_midpt_cmap_norm(vmin=self.vd.abs_max * -1.0,
-                                                  vmax=self.vd.abs_max,
+        if vmax is None:
+            vmax = self.vd.abs_max
+        # the colorbar should always be symmetict about 0.  Make the
+        # choice to use vmax to define the range if both vmin and vmax
+        # are specified.  Specifying both vmin and vmax is useful for
+        # e.g. LCL, where the two LCL maps should go 0 to some max
+        # value, but the *difference* plots should still be symmetric
+        # about 0.0.
+        vmin = vmax * -1.0
+        cmap, norm = get_discrete_midpt_cmap_norm(vmin=vmin,
+                                                  vmax=vmax,
                                                   midpoint=0.0,
                                                   this_cmap=get_cmap('cool'))
         d_map = CoastalSEES_WRF_Mapper(ax=ax[2], domain=self.domain)
