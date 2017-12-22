@@ -219,7 +219,7 @@ class var_diff(object):
         for k, v in self.data.items():
             nf = netCDF4.MFDataset(self.fnames[k])
             # TODO: decide whether to keep or get rid of nf.
-            wv = wrf_var(glob.glob(self.fnames[k]),
+            wv = wrf_var(sorted(glob.glob(self.fnames[k])),
                          label=self.label_A,
                          varname=self.varname,
                          is_atm=False)
