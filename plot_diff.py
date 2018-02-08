@@ -328,6 +328,12 @@ class var_diff(object):
         populate fields d (difference), d_pct (percent difference) and
         abs_max (absolute maximum difference)
 
+        TODO: implement a four-value scheme to indicate
+        (both foggy) /
+        (A foggy, B not foggy) /
+        (A not foggy, B foggy) /
+        (neither foggy)
+
         ARGS:
         idx (tuple of slice instances or indices, as from numpy.s_):
            index into the time step to calculate difference for
