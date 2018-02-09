@@ -18,6 +18,8 @@ from wrf import getvar, extract_times, to_np, ALL_TIMES
 
 from matplotlib.cm import get_cmap
 from matplotlib.figure import Figure
+from matplotlib import colors
+
 
 from map_tools_twh.map_tools_twh import CoastalSEES_WRF_prj
 from map_tools_twh.map_tools_twh import CoastalSEES_WRF_Mapper
@@ -481,10 +483,9 @@ class VarDiffPlotter(object):
             dmax = np.max(list(map(np.max, self.vd.data.values())))
         else:
             dmax = vmax
-        cmap, norm = setup_colormap(dmin, dmax, nlevs=3,
-                                    cmap=get_cmap('Pastel1_r'),
-                                    extend='neither')
-
+        cmap = colors.ListedColormap(['#a6cee3', 'grey'])
+        bounds = [-0.0001, 0.5, 1.0001]
+        norm = colors.BoundaryNorm(bounds, cmap.N)
         for axidx, k in enumerate(self.vd.data.keys()):
             print("    plot {} data - {}".format(
                 k, str(self.vd.time[self.t_idx])))
@@ -514,22 +515,23 @@ class VarDiffPlotter(object):
         # value, but the *difference* plots should still be symmetric
         # about 0.0.
         vmin = vmax * -1.0
-        cmap, norm = get_discrete_midpt_cmap_norm(vmin=vmin,
-                                                  vmax=vmax,
-                                                  midpoint=0.0,
-                                                  this_cmap=get_cmap('cool'))
+        cmap = colors.ListedColormap(['#fc8d62', '#8da0cb'])
+        bounds = [-1.0001, 0.0, 1.0001]
+        norm = colors.BoundaryNorm(bounds, cmap.N)
         d_map = CoastalSEES_WRF_Mapper(ax=ax[2], domain=self.domain)
         d_map.pcolormesh(self.vd.lon, self.vd.lat, self.vd.d,
                          cmap=cmap, norm=norm)
         d_map.colorbar(orientation=cb_orientation)
+        d_map.cb.set_ticks([-0.5, 0.5])
+        d_map.cb.set_ticklabels(['ctl fog,\nurb. no fog',
+                                 'ctl no fog,\nurb. fog'])
         if cb_orientation is "horizontal":
             d_map.cb.ax.set_xticklabels(
                 d_map.cb.ax.get_xticklabels(),
                 rotation=-60)
-        d_map.ax.set_title("{labA} - {labB} ({units})".format(
+        d_map.ax.set_title("{labA} - {labB} difference".format(
             labA=self.vd.label_A,
-            labB=self.vd.label_B,
-            units=self.vd.units))
+            labB=self.vd.label_B))
 
         # plot the pct difference
         abs_max = 150  # np.abs((d_pct_all.min(), d_pct_all.max())).max()
@@ -537,17 +539,23 @@ class VarDiffPlotter(object):
                                                   vmax=abs_max,
                                                   midpoint=0.0,
                                                   this_cmap=get_cmap('cool'))
+        cmap = colors.ListedColormap(['#fc8d62', '#8da0cb'])
+        bounds = [-1.0001, 0.0, 1.0001]
+        norm = colors.BoundaryNorm(bounds, cmap.N)
         pct_map = CoastalSEES_WRF_Mapper(ax=ax[3],
                                          domain='bigbasin',
                                          res='10m')
         pct_map.pcolormesh(self.vd.lon, self.vd.lat,
                            self.vd.d_pct, cmap=cmap, norm=norm)
         pct_map.colorbar(orientation=cb_orientation)
+        pct_map.cb.set_ticks([-0.5, 0.5])
+        pct_map.cb.set_ticklabels(['ctl fog,\nurb. no fog',
+                                   'ctl no fog,\nurb. fog'])
         if cb_orientation is "horizontal":
             pct_map.cb.ax.set_xticklabels(
                 pct_map.cb.ax.get_xticklabels(),
                 rotation=-60)
-        pct_map.ax.set_title("{labA} - {labB} ({units})".format(
+        pct_map.ax.set_title("{labA} - {labB} difference".format(
             labA=self.vd.label_A,
             labB=self.vd.label_B,
             units=self.vd.units))
