@@ -481,8 +481,9 @@ class VarDiffPlotter(object):
             dmax = np.max(list(map(np.max, self.vd.data.values())))
         else:
             dmax = vmax
-        cmap, norm = setup_colormap(dmin, dmax, nlevs=10,
-                                    cmap=get_cmap('YlGnBu'))
+        cmap, norm = setup_colormap(dmin, dmax, nlevs=3,
+                                    cmap=get_cmap('Pastel1_r'),
+                                    extend='neither')
 
         for axidx, k in enumerate(self.vd.data.keys()):
             print("    plot {} data - {}".format(
@@ -494,6 +495,8 @@ class VarDiffPlotter(object):
                                 self.vd.data[k][idx],
                                 norm=norm, cmap=cmap)
             this_map.colorbar(orientation=cb_orientation)
+            this_map.cb.set_ticks([0.25, 0.75])
+            this_map.cb.set_ticklabels(['no fog', 'fog'])
             if cb_orientation is "horizontal":
                 this_map.cb.ax.set_xticklabels(
                     this_map.cb.ax.get_xticklabels(),
