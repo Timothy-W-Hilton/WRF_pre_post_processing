@@ -534,7 +534,9 @@ class VarDiffPlotter(object):
                                                   vmax=abs_max,
                                                   midpoint=0.0,
                                                   this_cmap=get_cmap('cool'))
-        pct_map = CoastalSEES_WRF_Mapper(ax=ax[3], domain=self.domain)
+        pct_map = CoastalSEES_WRF_Mapper(ax=ax[3],
+                                         domain='bigbasin',
+                                         res='10m')
         pct_map.pcolormesh(self.vd.lon, self.vd.lat,
                            self.vd.d_pct, cmap=cmap, norm=norm)
         pct_map.colorbar(orientation=cb_orientation)
@@ -542,9 +544,10 @@ class VarDiffPlotter(object):
             pct_map.cb.ax.set_xticklabels(
                 pct_map.cb.ax.get_xticklabels(),
                 rotation=-60)
-        pct_map.ax.set_title("{labA} to {labB} pct decrease".format(
+        pct_map.ax.set_title("{labA} - {labB} ({units})".format(
             labA=self.vd.label_A,
-            labB=self.vd.label_B))
+            labB=self.vd.label_B,
+            units=self.vd.units))
 
         # Draw a title before we draw plots
         title = "{vname}, {layerid}{tstamp} UTC ({units})".format(
