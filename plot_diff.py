@@ -523,8 +523,8 @@ class VarDiffPlotter(object):
                          cmap=cmap, norm=norm)
         d_map.colorbar(orientation=cb_orientation)
         d_map.cb.set_ticks([-0.5, 0.5])
-        d_map.cb.set_ticklabels(['ctl fog,\nurb. no fog',
-                                 'ctl no fog,\nurb. fog'])
+        d_map.cb.set_ticklabels(['ctl no fog,\nurb. fog',
+                                 'ctl fog,\nurb. no fog'])
         if cb_orientation is "horizontal":
             d_map.cb.ax.set_xticklabels(
                 d_map.cb.ax.get_xticklabels(),
@@ -546,11 +546,11 @@ class VarDiffPlotter(object):
                                          domain='bigbasin',
                                          res='10m')
         pct_map.pcolormesh(self.vd.lon, self.vd.lat,
-                           self.vd.d_pct, cmap=cmap, norm=norm)
+                           self.vd.d, cmap=cmap, norm=norm)
         pct_map.colorbar(orientation=cb_orientation)
         pct_map.cb.set_ticks([-0.5, 0.5])
-        pct_map.cb.set_ticklabels(['ctl fog,\nurb. no fog',
-                                   'ctl no fog,\nurb. fog'])
+        pct_map.cb.set_ticklabels(['ctl no fog,\nurb. fog',
+                                   'ctl fog,\nurb. no fog'])
         if cb_orientation is "horizontal":
             pct_map.cb.ax.set_xticklabels(
                 pct_map.cb.ax.get_xticklabels(),

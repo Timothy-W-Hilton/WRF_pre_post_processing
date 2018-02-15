@@ -81,10 +81,10 @@ if __name__ == "__main__":
     for this_series in ['all_tstamps', 'time_avg']:
         if this_series == 'all_tstamps':
             t_end = 1440
-            pfx = '2018-02-08'
+            pfx = '2018-02-09'
         else:
             t_end = 1
-            pfx = pfx + '2018-02-08_timeavg'
+            pfx = pfx + '_timeavg'
             vd = sum_layers(vd, time_avg=True)
         for this_t in range(0, t_end):  #
             plotter = VarDiffPlotter(vd, t_idx=this_t, layer=0,
@@ -94,6 +94,6 @@ if __name__ == "__main__":
                 cb_orientation = 'horizontal'
             else:
                 cb_orientation = 'vertical'
-            fig = plotter.plot(cb_orientation=cb_orientation)
-                               # vmin=0,
-                               # vmax=500)
+            fig = plotter.plot(cb_orientation=cb_orientation,
+                               vmin=-0.0000001,
+                               vmax=1.0000001)
