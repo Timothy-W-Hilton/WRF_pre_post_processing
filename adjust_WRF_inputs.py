@@ -28,13 +28,17 @@ def make_redwood_range_urban_quick_dirty(fname):
     crescent_city_lat = 41.7558  # Crescent City, CA latitude
     big_sur_latitude = 35.84
     landuse = nc.variables['LU_INDEX'][...]
-    lat = nc.variables['XLAT'][...]
+
+    # met_em* uses CLAT, wrfinput* uses XLAT.
+    try:
+        lat = nc.variables['XLAT'][...]
+    except KeyError:
+        lat = nc.variables['CLAT'][...]
     near_coast = np.zeros(lat.shape, dtype='bool')
     for i in range(landuse.shape[1]):
         land_count = 0
         for j in range(landuse.shape[2]):
             if (landuse[0, i, j] != nc.ISWATER):
-                print('found coast')
                 if (land_count < 4):
                     near_coast[0, i, j] = True
                 land_count = land_count + 1
