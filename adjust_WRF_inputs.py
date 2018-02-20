@@ -61,9 +61,13 @@ def make_redwood_range_urban_quick_dirty(fname):
     plant_mask[:, nc.ISURBAN - 1, ...] = False
     plant_mask[:, nc.ISWATER - 1, ...] = False
     landusef[plant_mask] = 0.0
+
     non_water_fraction = (
         1.0 - landusef[:, (nc.ISWATER - 1), ...])
-    landusef[:, (nc.ISURBAN - 1), ...] = non_water_fraction
+    non_water_mask = coastal_mask[0, (nc.ISURBAN - 1), ...]
+    landusef[:, (nc.ISURBAN - 1), ...][
+        non_water_mask[np.newaxis, ...]] = non_water_fraction[
+            non_water_mask[np.newaxis, ...]]
     nc.variables['LANDUSEF'][...] = landusef
     nc.history = ("created by metgrid_exe.  Land use set "
                   "to urban from coastline to four pixels "
