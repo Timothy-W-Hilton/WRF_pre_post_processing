@@ -52,18 +52,19 @@ def make_redwood_range_urban_quick_dirty(fname):
     # LANDUSEF specifies a fraction for all land use types in each
     # pixel.  Set all urban fraction in LANDUSEF to (1.0 -
     # LANDUSEF[LU_water]) and all other non-water fractions to 0.0.
-    all_land_use = np.arange(1, nc.NUM_LAND_CAT)
-    non_water_non_urban = np.setdiff1d(all_land_use, [nc.ISWATER, nc.ISURBAN])
-    # need to subtract 1 from land use codes to translante them to
+    # need to subtract 1 from land use codes to translate them to
     # zero-based array indices
-    nc.variables['LANDUSEF'][:, (non_water_non_urban - 1),
-                             np.where(coastal_mask)[1],
-                             np.where(coastal_mask)[2]] = 0.0
+    landusef = nc.variables['LANDUSEF'][...]
+    coastal_mask = np.broadcast_to(coastal_mask,
+                                   landusef.shape)
+    plant_mask = np.copy(coastal_mask)
+    plant_mask[:, nc.ISURBAN - 1, ...] = False
+    plant_mask[:, nc.ISWATER - 1, ...] = False
+    landusef[plant_mask] = 0.0
     non_water_fraction = (
-        1.0 - nc.variables['LANDUSEF'][:, (nc.ISWATER - 1), ...])
-    nc.variables['LANDUSEF'][:, (nc.ISURBAN - 1), ...] = non_water_fraction
-    # TODO change module name to reflect that it
-    # now can alter landuse
+        1.0 - landusef[:, (nc.ISWATER - 1), ...])
+    landusef[:, (nc.ISURBAN - 1), ...] = non_water_fraction
+    nc.variables['LANDUSEF'][...] = landusef
     nc.history = ("created by metgrid_exe.  Land use set "
                   "to urban from coastline to four pixels "
                   "inland by adjust_WRF_inputs python module.")
