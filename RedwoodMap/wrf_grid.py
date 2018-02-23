@@ -44,16 +44,16 @@ def get_cell_corner_coords(fname_wrf):
     # Calculate lower left, upper left, upper right, lower right cell
     # corner coordinates. For WRF grid illustration see
     # https://www.ncl.ucar.edu/Applications/Images/wrf_debug_3_lg.png
-    lat_LL = lat_v[:-1, :]
-    lon_LL = lon_u[:, :-1]
+    lat_LL = lat_v.data[:-1, :]
+    lon_LL = lon_u.data[:, :-1]
 
-    lat_UL = lat_v[1:, :]
-    lon_UL = lon_u[:, :-1]
+    lat_UL = lat_v.data[1:, :]
+    lon_UL = lon_u.data[:, :-1]
 
-    lat_UR = lat_v[1:, :]
-    lon_UR = lon_u[:, 1:]
+    lat_UR = lat_v.data[1:, :]
+    lon_UR = lon_u.data[:, 1:]
 
-    lat_LR = lat_v[:-1, :]
-    lon_LR = lon_u[:, 1:]
+    lat_LR = lat_v.data[:-1, :]
+    lon_LR = lon_u.data[:, 1:]
 
     return((lon_LL, lat_LL, lon_UL, lat_UL, lon_UR, lat_UR, lon_LR, lat_LR))
