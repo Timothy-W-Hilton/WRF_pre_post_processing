@@ -6,6 +6,7 @@ import netCDF4
 from wrf import getvar
 from shapely.geometry import Polygon
 import geopandas as gp
+from pyproj import Proj, transform
 
 def get_wrf_latlon(wrf_file, lonvar='XLONG', latvar='XLAT'):
     """read latitude and longitude from WRF input or output
@@ -62,7 +63,7 @@ def get_cell_corner_coords(fname_wrf):
     return((lon_LL, lat_LL, lon_UL, lat_UL, lon_UR, lat_UR, lon_LR, lat_LR))
 
 
-def WRF_cells_to_shapes_list(fname_wrf):
+def WRF_cells_to_shapes_list(fname_wrf, proj=None):
     """create a geopandas.geodataframe object for WRF corners
     """
     (lon_LL, lat_LL,
@@ -70,11 +71,27 @@ def WRF_cells_to_shapes_list(fname_wrf):
      lon_UR, lat_UR,
      lon_LR, lat_LR) = get_cell_corner_coords(fname_wrf)
 
+    if proj is not None:
+        latlonProj = Proj(init='epsg:4326')
+        x_LL, y_LL = transform(latlonProj, proj,
+                               lon_LL, lat_LL)
+        x_UL, y_UL = transform(latlonProj, proj,
+                               lon_UL, lat_UL)
+        x_UR, y_UR = transform(latlonProj, proj,
+                               lon_UR, lat_UR)
+        x_LR, y_LR = transform(latlonProj, proj,
+                               lon_LR, lat_LR)
+    else:
+        x_LL, y_LL = (lon_LL, lat_LL)
+        x_UL, y_UL = (lon_UL, lat_UL)
+        x_UR, y_UR = (lon_UR, lat_UR)
+        x_LR, y_LR = (lon_LR, lat_LR)
+
     vertices_list = list(zip(
-        list(zip(lon_LL.flatten(), lat_LL.flatten())),
-        list(zip(lon_UL.flatten(), lat_UL.flatten())),
-        list(zip(lon_UR.flatten(), lat_UR.flatten())),
-        list(zip(lon_LR.flatten(), lat_LR.flatten()))))
+        list(zip(x_LL.flatten(), y_LL.flatten())),
+        list(zip(x_UL.flatten(), y_UL.flatten())),
+        list(zip(x_UR.flatten(), y_UR.flatten())),
+        list(zip(x_LR.flatten(), y_LR.flatten()))))
     pgons_list = [Polygon(these_vertices) for these_vertices in vertices_list]
     idx = np.unravel_index(np.arange(lon_LL.size), lon_LL.shape)
     return(pgons_list, idx)
@@ -85,4 +102,13 @@ def pgons_2_gdf(pgons_list, idx):
     gdf = gp.GeoDataFrame(geometry=pgons_list)
     gdf['x'] = idx[0]
     gdf['y'] = idx[1]
+    return(gdf)
+
+def WRF_cells_to_gdf(fname_wrf, proj=None):
+    """make a geopandas dataframe of polygons representing WRF grid cells
+
+    this is a wrapper for WRF_cells_to_shapes_list, pgons_2_gdf
+    """
+    pgons_list, idx = WRF_cells_to_shapes_list(fname_wrf, proj)
+    gdf = pgons_2_gdf(pgons_list, idx)
     return(gdf)
