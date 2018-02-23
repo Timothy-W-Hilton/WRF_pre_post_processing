@@ -6,6 +6,10 @@ from pyproj import Proj, transform
 import netCDF4
 from wrf import getvar
 
+import cartopy.crs as ccrs
+import cartopy.feature as cfeature
+import matplotlib.pyplot as plt
+
 def get_wrf_latlon(wrf_file, lonvar='XLONG', latvar='XLAT'):
     """read latitude and longitude from WRF input or output
     """
@@ -16,7 +20,7 @@ def get_wrf_latlon(wrf_file, lonvar='XLONG', latvar='XLAT'):
     return(lon, lat)
 
 fname_wrf = os.path.join('/', 'Users', 'tim', 'work', 'Data', 'WRF_Driver',
-                         'met_em.d02.2009-06-01_00:00:00.nc')
+                         'met_em.d01.2009-06-01_00:00:00.nc')
 lonwrf, latwrf = get_wrf_latlon(fname_wrf, 'CLAT', 'CLONG')
 
 # def in_wrf_domain(lonwrf, latwrf):
@@ -62,3 +66,19 @@ for i in range(latwrf.shape[0]):
 # pointvec = np.vectorize(myPoint)
 # p2 = np.empty(latwrf.shape, dtype=object)
 # p2 = pointvec(xwrf, ywrf)
+
+fig = plt.figure(figsize=(6, 6))
+ax = plt.axes(projection=ccrs.PlateCarree())
+ax.coastlines(resolution='10m')
+states_provinces = cfeature.NaturalEarthFeature(
+    category='cultural',
+    name='admin_1_states_provinces_lines',
+    scale='10m',
+    facecolor='none')
+ax.add_feature(states_provinces, edgecolor='grey')
+# ax.add_geometries(geoms=rw_shapes, crs=proj,
+#                   edgecolor='blue', facecolor='blue')
+ax.set_extent((lonwrf.min(), lonwrf.max(), latwrf.min(), latwrf.max()))
+ax.pcolormesh(xwrf, ywrf, has_redwoods,
+              transform=ccrs.Mercator.GOOGLE)
+plt.show()
