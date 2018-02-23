@@ -8,6 +8,7 @@ from wrf import getvar
 
 import cartopy.crs as ccrs
 import cartopy.feature as cfeature
+import cartopy.io.shapereader as shpreader
 import matplotlib.pyplot as plt
 
 def get_wrf_latlon(wrf_file, lonvar='XLONG', latvar='XLAT'):
@@ -81,4 +82,9 @@ ax.add_feature(states_provinces, edgecolor='grey')
 ax.set_extent((lonwrf.min(), lonwrf.max(), latwrf.min(), latwrf.max()))
 ax.pcolormesh(xwrf, ywrf, has_redwoods,
               transform=ccrs.Mercator.GOOGLE)
+
+rw_shapes_c = list(shpreader.Reader(fname).geometries())
+ax.add_geometries(geoms=rw_shapes_c, crs=ccrs.Mercator.GOOGLE,
+                  edgecolor='blue', facecolor='gray', alpha=0.5)
+
 plt.show()
