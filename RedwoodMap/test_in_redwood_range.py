@@ -32,7 +32,8 @@ def half_cell_shift(x, y):
 
 fname_wrf = os.path.join('/', 'Users', 'tim', 'work', 'Data', 'WRF_Driver',
                          'met_em.d01.2009-06-01_00:00:00.nc')
-lonwrf, latwrf = get_wrf_latlon(fname_wrf, 'CLAT', 'CLONG')
+lonwrf_crnr, latwrf_crnr = get_wrf_latlon(fname_wrf, 'XLONG_C', 'XLAT_C')
+lonwrf_ctr, latwrf_ctr = get_wrf_latlon(fname_wrf, 'CLONG', 'CLAT')
 
 # def in_wrf_domain(lonwrf, latwrf):
     # """test whether points in WRF domain are within the Redwoods range
@@ -44,8 +45,10 @@ fname = os.path.join('/', 'Users', 'tim', 'work', 'Data',
 
 rwProj = Proj(init='epsg:3857')
 latlonProj = Proj(init='epsg:4326')
-lonwrf, latwrf = get_wrf_latlon(fname_wrf, lonvar='CLONG', latvar='CLAT')
-xwrf, ywrf = transform(latlonProj, rwProj, lonwrf.data, latwrf.data)
+xwrf_ctr, ywrf_ctr = transform(latlonProj, rwProj,
+                               lonwrf_ctr.data, latwrf_ctr.data)
+xwrf_crnr, ywrf_crnr = transform(latlonProj, rwProj,
+                                 lonwrf_crnr.data, latwrf_crnr.data)
 
 rw_polys = fiona.open(fname)  # Redwood range polygons
 rw_shapes = [shape(this_poly['geometry']) for this_poly in rw_polys]
@@ -64,10 +67,10 @@ rw_shapes = [shape(this_poly['geometry']) for this_poly in rw_polys]
 # x2, y2 = transform(latlonProj, rwProj, -122.2464, 37.1737)
 # bbrwsp = Point(x2, y2)  # Big Basin Redwoods State Park
 
-has_redwoods = np.zeros(latwrf.shape, dtype=bool)
-for i in range(latwrf.shape[0]):
-    for j in range(latwrf.shape[1]):
-        p = Point(xwrf[i, j], ywrf[i, j])
+has_redwoods = np.zeros(latwrf_ctr.shape, dtype=bool)
+for i in range(latwrf_ctr.shape[0]):
+    for j in range(latwrf_ctr.shape[1]):
+        p = Point(xwrf_ctr[i, j], ywrf_ctr[i, j])
         has_redwoods[i, j] = np.any([p.within(this_shape) for
                                      this_shape in rw_shapes])
 
@@ -89,12 +92,14 @@ states_provinces = cfeature.NaturalEarthFeature(
 ax.add_feature(states_provinces, edgecolor='grey')
 # ax.add_geometries(geoms=rw_shapes, crs=proj,
 #                   edgecolor='blue', facecolor='blue')
-ax.set_extent((lonwrf.min(), lonwrf.max(), latwrf.min(), latwrf.max()))
+ax.set_extent((lonwrf_ctr.min(), lonwrf_ctr.max(),
+               latwrf_ctr.min(), latwrf_ctr.max()))
 has_redwoods = ma.masked_where(has_redwoods == False, has_redwoods)
-xcent, ycent = half_cell_shift(xwrf, ywrf)
-ax.pcolormesh(xcent, ycent, has_redwoods[:-1, :-1],
+ax.pcolormesh(xwrf_crnr, ywrf_crnr, has_redwoods,
               transform=ccrs.Mercator.GOOGLE)
-ax.scatter(xwrf, ywrf, color='black', marker='x', transform=ccrs.Mercator.GOOGLE)
+ax.scatter(xwrf_ctr, ywrf_ctr,
+           color='black', marker='x',
+           transform=ccrs.Mercator.GOOGLE)
 rw_shapes_c = list(shpreader.Reader(fname).geometries())
 ax.add_geometries(geoms=rw_shapes_c, crs=ccrs.Mercator.GOOGLE,
                   edgecolor='blue', facecolor='gray', alpha=0.5)
