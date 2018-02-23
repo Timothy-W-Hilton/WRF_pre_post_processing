@@ -19,6 +19,62 @@ import glob
 import os
 
 
+def make_redwood_range_urban_quick_dirty(fname):
+    """'quick and dirty' method to make approximate redwood range urban
+    """
+    nc = netCDF4.Dataset(fname, 'a')  # open in append mode
+    # set LU_INDEX to urban for all non-water pixels.  This approach
+    #
+    crescent_city_lat = 41.7558  # Crescent City, CA latitude
+    big_sur_latitude = 35.84
+    landuse = nc.variables['LU_INDEX'][...]
+
+    # met_em* uses CLAT, wrfinput* uses XLAT.
+    try:
+        lat = nc.variables['XLAT'][...]
+    except KeyError:
+        lat = nc.variables['CLAT'][...]
+    near_coast = np.zeros(lat.shape, dtype='bool')
+    for i in range(landuse.shape[1]):
+        land_count = 0
+        for j in range(landuse.shape[2]):
+            if (landuse[0, i, j] != nc.ISWATER):
+                if (land_count < 4):
+                    near_coast[0, i, j] = True
+                land_count = land_count + 1
+    coastal_mask = ((lat <= crescent_city_lat) &
+                    (lat >= big_sur_latitude) &
+                    near_coast)
+    landuse[np.where(coastal_mask)] = nc.ISURBAN
+    nc.variables['LU_INDEX'][...] = landuse
+    print("modified LU_INDEX in {fname}".format(fname=fname))
+
+    # LANDUSEF specifies a fraction for all land use types in each
+    # pixel.  Set all urban fraction in LANDUSEF to (1.0 -
+    # LANDUSEF[LU_water]) and all other non-water fractions to 0.0.
+    # need to subtract 1 from land use codes to translate them to
+    # zero-based array indices
+    landusef = nc.variables['LANDUSEF'][...]
+    coastal_mask = np.broadcast_to(coastal_mask,
+                                   landusef.shape)
+    plant_mask = np.copy(coastal_mask)
+    plant_mask[:, nc.ISURBAN - 1, ...] = False
+    plant_mask[:, nc.ISWATER - 1, ...] = False
+    landusef[plant_mask] = 0.0
+
+    non_water_fraction = (
+        1.0 - landusef[:, (nc.ISWATER - 1), ...])
+    non_water_mask = coastal_mask[0, (nc.ISURBAN - 1), ...]
+    landusef[:, (nc.ISURBAN - 1), ...][
+        non_water_mask[np.newaxis, ...]] = non_water_fraction[
+            non_water_mask[np.newaxis, ...]]
+    nc.variables['LANDUSEF'][...] = landusef
+    nc.history = ("created by metgrid_exe.  Land use set "
+                  "to urban from coastline to four pixels "
+                  "inland by adjust_WRF_inputs python module.")
+    nc.close()
+
+
 def make_all_land_urban(fname):
     """set all land use in a real.exe wrfinput netcdf file to urban
 
@@ -48,7 +104,7 @@ def make_all_land_urban(fname):
     landuse = nc.variables['LU_INDEX'][...]
     landuse[np.where(landuse != nc.ISWATER)] = nc.ISURBAN
     nc.variables['LU_INDEX'][...] = landuse
-    print "modified LU_INDEX in {fname}".format(fname=fname)
+    print("modified LU_INDEX in {fname}".format(fname=fname))
     # LANDUSEF specifies a fraction for all land use types in each
     # pixel.  Set all urban fraction in LANDUSEF to (1.0 -
     # LANDUSEF[LU_water]) and all other non-water fractions to 0.0.
@@ -103,8 +159,8 @@ def reduce_soil_moisture(fname, f, soil_moist_vars=None,
         # set water cells back to 1.0
         sm_adjusted[is_water] = 1.0
         nc.variables[this_var][...] = sm_adjusted
-        print "modified {this_var} in {fname}".format(this_var=this_var,
-                                                      fname=fname)
+        print("modified {this_var} in {fname}").format(this_var=this_var,
+                                                       fname=fname)
     nc.history = ("created by metgrid_exe.  Soil moisture adjusted by"
                   " a factor of {f} by reduce_soil_moisture python"
                   " module.".format(f=f))
