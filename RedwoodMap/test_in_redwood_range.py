@@ -12,50 +12,12 @@ import cartopy.feature as cfeature
 import cartopy.io.shapereader as shpreader
 import matplotlib.pyplot as plt
 
-def get_wrf_latlon(wrf_file, lonvar='XLONG', latvar='XLAT'):
-    """read latitude and longitude from WRF input or output
-    """
-    nc = netCDF4.Dataset(wrf_file)
-    lat = getvar(nc, latvar)
-    lon = getvar(nc, lonvar)
-    nc.close()
-    return(lon, lat)
-
-
-def get_cell_corner_coords(fname_wrf):
-    """calculate 4 corner coordinates for every WRF grid cell
-
-    RETURNS:
-    tuple of arrays: (lon_LL, lat_LL, lon_UL, lat_UL, lon_UR, lat_UR,
-                      lon_LR, lon_LR)
-    """
-    lon_c, lat_c = get_wrf_latlon(fname_wrf,
-                                  'XLONG_C', 'XLAT_C')
-    lon_u, lat_u = get_wrf_latlon(fname_wrf,
-                                  'XLONG_U', 'XLAT_U')
-    lon_v, lat_v = get_wrf_latlon(fname_wrf,
-                                  'XLONG_V', 'XLAT_V')
-    # Calculate lower left, upper left, upper right, lower right cell
-    # corner coordinates. For WRF grid illustration see
-    # https://www.ncl.ucar.edu/Applications/Images/wrf_debug_3_lg.png
-    lat_LL = lat_v[:-1, :]
-    lon_LL = lon_u[:, :-1]
-
-    lat_UL = lat_v[1:, :]
-    lon_UL = lon_u[:, :-1]
-
-    lat_UR = lat_v[1:, :]
-    lon_UR = lon_u[:, 1:]
-
-    lat_LR = lat_v[:-1, :]
-    lon_LR = lon_u[:, 1:]
-
-    return((lon_LL, lat_LL, lon_UL, lat_UL, lon_UR, lat_UR, lon_LR, lat_LR))
+import wrf_grid
 
 fname_wrf = os.path.join('/', 'Users', 'tim', 'work', 'Data', 'WRF_Driver',
                          'met_em.d01.2009-06-01_00:00:00.nc')
-lonwrf_crnr, latwrf_crnr = get_wrf_latlon(fname_wrf, 'XLONG_C', 'XLAT_C')
-lonwrf_ctr, latwrf_ctr = get_wrf_latlon(fname_wrf, 'CLONG', 'CLAT')
+lonwrf_crnr, latwrf_crnr = wrf_grid.get_wrf_latlon(fname_wrf, 'XLONG_C', 'XLAT_C')
+lonwrf_ctr, latwrf_ctr = wrf_grid.get_wrf_latlon(fname_wrf, 'CLONG', 'CLAT')
 
 # def in_wrf_domain(lonwrf, latwrf):
     # """test whether points in WRF domain are within the Redwoods range
@@ -106,7 +68,7 @@ for i in range(latwrf_ctr.shape[0]):
 (lon_LL, lat_LL,
  lon_UL, lat_UL,
  lon_UR, lat_UR,
- lon_LR, lat_LR) = get_cell_corner_coords(fname_wrf)
+ lon_LR, lat_LR) = wrf_grid.get_cell_corner_coords(fname_wrf)
 
 fig = plt.figure(figsize=(6, 6))
 ax = plt.axes(projection=ccrs.PlateCarree())
@@ -128,22 +90,6 @@ ax.scatter(xwrf_ctr, ywrf_ctr,
            color='black', marker='x',
            transform=ccrs.Mercator.GOOGLE,
            label='center')
-ax.scatter(lon_LL, lat_LL,
-           color='#1b9e77', marker='x',
-           transform=ccrs.PlateCarree(),
-           label='LL')
-ax.scatter(lon_UL, lat_UL,
-           color='#d95f02', marker='x',
-           transform=ccrs.PlateCarree(),
-           label='UL')
-ax.scatter(lon_UR, lat_UR,
-           color='#7570b3', marker='x',
-           transform=ccrs.PlateCarree(),
-           label='UR')
-ax.scatter(lon_LR, lat_LR,
-           color='#e7298a', marker='x',
-           transform=ccrs.PlateCarree(),
-           label='LR')
 rw_shapes_c = list(shpreader.Reader(fname).geometries())
 ax.add_geometries(geoms=rw_shapes_c, crs=ccrs.Mercator.GOOGLE,
                   edgecolor='blue', facecolor='gray', alpha=0.5)
