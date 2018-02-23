@@ -1,8 +1,11 @@
 """functions useful for interpreting WRF grid coordinates
 """
 
+import numpy as np
 import netCDF4
 from wrf import getvar
+from shapely.geometry import Polygon
+import geopandas as gp
 
 def get_wrf_latlon(wrf_file, lonvar='XLONG', latvar='XLAT'):
     """read latitude and longitude from WRF input or output
@@ -57,3 +60,29 @@ def get_cell_corner_coords(fname_wrf):
     lon_LR = lon_u.data[:, 1:]
 
     return((lon_LL, lat_LL, lon_UL, lat_UL, lon_UR, lat_UR, lon_LR, lat_LR))
+
+
+def WRF_cells_to_shapes_list(fname_wrf):
+    """create a geopandas.geodataframe object for WRF corners
+    """
+    (lon_LL, lat_LL,
+     lon_UL, lat_UL,
+     lon_UR, lat_UR,
+     lon_LR, lat_LR) = get_cell_corner_coords(fname_wrf)
+
+    vertices_list = list(zip(
+        list(zip(lon_LL.flatten(), lat_LL.flatten())),
+        list(zip(lon_UL.flatten(), lat_UL.flatten())),
+        list(zip(lon_UR.flatten(), lat_UR.flatten())),
+        list(zip(lon_LR.flatten(), lat_LR.flatten()))))
+    pgons_list = [Polygon(these_vertices) for these_vertices in vertices_list]
+    idx = np.unravel_index(np.arange(lon_LL.size), lon_LL.shape)
+    return(pgons_list, idx)
+
+def pgons_2_gdf(pgons_list, idx):
+    """create a geodataframe from a list of shapely polygons
+    """
+    gdf = gp.GeoDataFrame(geometry=pgons_list)
+    gdf['x'] = idx[0]
+    gdf['y'] = idx[1]
+    return(gdf)
