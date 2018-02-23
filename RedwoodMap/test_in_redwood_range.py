@@ -1,4 +1,5 @@
 import numpy as np
+import numpy.ma as ma
 import os.path
 import fiona
 from shapely.geometry import shape,mapping, Point, Polygon, MultiPolygon
@@ -19,6 +20,15 @@ def get_wrf_latlon(wrf_file, lonvar='XLONG', latvar='XLAT'):
     lon = getvar(nc, lonvar)
     nc.close()
     return(lon, lat)
+
+def half_cell_shift(x, y):
+    dx = np.diff(x, axis=1)
+    dy = np.diff(y, axis=0)
+    xshift = x.copy()
+    xshift[:, :-1] -= (dx / 2.0)
+    yshift = y.copy()
+    yshift[:-1, :] -= (dy / 2.0)
+    return(xshift, yshift)
 
 fname_wrf = os.path.join('/', 'Users', 'tim', 'work', 'Data', 'WRF_Driver',
                          'met_em.d01.2009-06-01_00:00:00.nc')
@@ -80,9 +90,11 @@ ax.add_feature(states_provinces, edgecolor='grey')
 # ax.add_geometries(geoms=rw_shapes, crs=proj,
 #                   edgecolor='blue', facecolor='blue')
 ax.set_extent((lonwrf.min(), lonwrf.max(), latwrf.min(), latwrf.max()))
-ax.pcolormesh(xwrf, ywrf, has_redwoods,
+has_redwoods = ma.masked_where(has_redwoods == False, has_redwoods)
+xcent, ycent = half_cell_shift(xwrf, ywrf)
+ax.pcolormesh(xcent, ycent, has_redwoods[:-1, :-1],
               transform=ccrs.Mercator.GOOGLE)
-
+ax.scatter(xwrf, ywrf, color='black', marker='x', transform=ccrs.Mercator.GOOGLE)
 rw_shapes_c = list(shpreader.Reader(fname).geometries())
 ax.add_geometries(geoms=rw_shapes_c, crs=ccrs.Mercator.GOOGLE,
                   edgecolor='blue', facecolor='gray', alpha=0.5)
