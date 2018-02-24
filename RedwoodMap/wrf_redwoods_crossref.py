@@ -2,12 +2,12 @@
 """
 
 import numpy as np
-import redwoods_shapes
+from . import redwoods_shapes
 import geopandas as gpd
 from pyproj import Proj
 
 import os.path
-import wrf_grid
+from . import wrf_grid
 
 def get_WRF_geodataframe(fname_wrf, proj=None):
     gdf_wrf = wrf_grid.WRF_cells_to_gdf(fname_wrf, proj=proj)
@@ -33,8 +33,9 @@ def get_wrf_cells_with_redwoods(gdf_wrf, gdf_rw):
     return(gdf_wrf, wrf_cells_with_redwoods)
 
 def get_redwood_mask(gdf_wrf, wrf_cells_with_redwoods):
-    redwood_mask = np.zeros((gdf_wrf['x'].max(),
-                             gdf_wrf['y'].max()),
+    # add 1 to max indices to account for zero-based indices
+    redwood_mask = np.zeros((gdf_wrf['x'].max() + 1,
+                             gdf_wrf['y'].max() + 1),
                             dtype=bool)
     redwood_mask[wrf_cells_with_redwoods['x'],
                  wrf_cells_with_redwoods['y']] = True
