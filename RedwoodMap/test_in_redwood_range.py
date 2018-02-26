@@ -1,3 +1,8 @@
+"""script to plot redwood range, WRF grid on single map
+
+superceded by WRF_redwoods_grid_demo.py
+"""
+
 import numpy as np
 import numpy.ma as ma
 import os.path

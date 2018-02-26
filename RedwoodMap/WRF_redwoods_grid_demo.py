@@ -1,3 +1,6 @@
+"""demonstrate redwood location -- WRF grid cross referencing
+"""
+
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
 import os.path
@@ -5,9 +8,21 @@ import wrf_grid
 import redwoods_shapes
 import cartopy.crs as ccrs
 import cartopy.feature as cfeature
-from wrf_redwoods_crossref import main_wrapper
+
+import wrf_redwoods_crossref
 
 def draw_map(gdf_wrf_all, gdf_wrf_rw, gdf_rw):
+    """map WRF grid & redwood locations; highlight WRF cells containing redwoods
+
+    ARGS:
+    gdf_wrf_all (GeoDataFrame): GeoDataFrame containing boundaries of
+       each WRF grid cell as a geosequence of polygons
+    gdf_wrf_rw (GeoDataFrame): GeoDataFrame containing the subset of
+       gdf_wrf_all that contain redwoods
+    gdf_rw (GeoDataFrame): GeoDataFrame containing Redwood
+       locations as geosequence of polygons
+
+    """
     fig = plt.figure(figsize=(6, 6))
     ax = plt.axes(projection=ccrs.PlateCarree())
     ax.coastlines(resolution='10m')
@@ -56,6 +71,6 @@ if __name__ == "__main__":
 
     (gdf_rw, gdf_wrf,
      wrf_cells_with_redwoods,
-     redwoods_mask) = main_wrapper(fname_redwoods, fname_wrf)
+     redwoods_mask) = wrf_redwoods_crossref.main_wrapper(fname_redwoods, fname_wrf)
 
     draw_map(gdf_wrf, wrf_cells_with_redwoods, gdf_rw)

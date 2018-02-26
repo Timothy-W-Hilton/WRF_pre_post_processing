@@ -63,8 +63,18 @@ def get_cell_corner_coords(fname_wrf):
     return((lon_LL, lat_LL, lon_UL, lat_UL, lon_UR, lat_UR, lon_LR, lat_LR))
 
 
-def WRF_cells_to_shapes_list(fname_wrf, proj=None):
-    """create a geopandas.geodataframe object for WRF corners
+def _WRF_cells_to_shapes_list(fname_wrf, proj=None):
+    """create a list of polygons representing WRF grid cells
+
+    The WRF cells are represented as `shapely.geometry.Polygon` objects.
+
+    ARGS:
+    fname_wrf (str): full path to a WRF data file.
+    proj (`proj4.Proj`): optional projection to apply to cell corner
+       coordinates
+
+    RETURNS
+    list of `shapely.geometry.Polygon` objects reprensting WRF grid cells
     """
     (lon_LL, lat_LL,
      lon_UL, lat_UL,
@@ -96,8 +106,20 @@ def WRF_cells_to_shapes_list(fname_wrf, proj=None):
     idx = np.unravel_index(np.arange(lon_LL.size), lon_LL.shape)
     return(pgons_list, idx)
 
-def pgons_2_gdf(pgons_list, idx):
-    """create a geodataframe from a list of shapely polygons
+def _pgons_2_gdf(pgons_list, idx):
+    """create a geodataframe from a list of shapely polygons and indices
+
+    The indices index the list items to the WRF grid [x, y] coordinates.
+
+    ARGS:
+    pgons_list (list): list of `shapely.geometry.Polygon` objects
+       reprensting WRF grid cells, as from `WRF_cells_to_shapes_list()`.
+    idx (two-tuple): tuple of lists containing x and y indices of the
+       WRF cell polygons in pgons_list
+
+    RETURNS
+    `geopandas.GeoDataFrame` object containing the WRF cell polygons
+       in its geometry and the indices in columns 'x' and 'y'
     """
     gdf = gp.GeoDataFrame(geometry=pgons_list)
     gdf['x'] = idx[0]
@@ -108,7 +130,16 @@ def WRF_cells_to_gdf(fname_wrf, proj=None):
     """make a geopandas dataframe of polygons representing WRF grid cells
 
     this is a wrapper for WRF_cells_to_shapes_list, pgons_2_gdf
+
+    ARGS:
+    fname_wrf (str): full path to a WRF data file.
+    proj (`proj4.Proj`): optional projection to apply to cell corner
+       coordinates
+
+    RETURNS
+    `geopandas.GeoDataFrame` object containing the WRF cell polygons
+       in its geometry and the indices in columns 'x' and 'y'
     """
-    pgons_list, idx = WRF_cells_to_shapes_list(fname_wrf, proj)
-    gdf = pgons_2_gdf(pgons_list, idx)
+    pgons_list, idx = _WRF_cells_to_shapes_list(fname_wrf, proj)
+    gdf = _pgons_2_gdf(pgons_list, idx)
     return(gdf)

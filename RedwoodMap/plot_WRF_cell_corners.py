@@ -1,3 +1,9 @@
+"""script to plot WRF cell centers and corners on a map
+
+If the map looks reasonable it demonstrates that
+wrf_grid.get_cell_corner_coords works.
+"""
+
 import numpy as np
 import numpy.ma as ma
 import os.path
@@ -45,6 +51,7 @@ ax.scatter(lon_c, lat_c,
            color='black', marker='x',
            transform=ccrs.PlateCarree(),
            label='center')
+# colors from colorbrewer2.org 'dark2' palette
 ax.scatter(lon_LL, lat_LL,
            color='#1b9e77', marker='x',
            transform=ccrs.PlateCarree(),

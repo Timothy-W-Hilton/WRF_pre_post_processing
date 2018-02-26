@@ -1,4 +1,6 @@
-"""modified from https://gis.stackexchange.com/questions/259831/shapefiles-wont-display-with-cartopy
+"""script to plot redwood location polygons to a map
+
+modified from https://gis.stackexchange.com/questions/259831/shapefiles-wont-display-with-cartopy
 """
 
 import cartopy.crs as ccrs
