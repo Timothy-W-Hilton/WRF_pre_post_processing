@@ -67,6 +67,7 @@ class wrf_var(object):
         self.data = None
         self.is_land = None
         self.z = None  # height above sea level (meters)
+        self.lcl_flag = False
 
     def read_land_water_mask(self):
         """read land/water mask from WRF netcdf files
@@ -122,6 +123,13 @@ class wrf_var(object):
     def read_files(self, mask_land=False, mask_water=False):
         """read variable from run output
         """
+        if self.varname.upper() == "LCL":
+            self.lcl_flag = True
+            # wrf.getvar() calculates LCL as part of reading analysis
+            # variable 'cape_2d'.  for cape_2d wrf.getvar() returns an
+            # array of shape (4, ...) of which axis 2 is LCL.
+            self.varname = 'cape_2d'
+
         nclist = [netCDF4.Dataset(f, mode="r") for f in self.fnames]
         self.data = getvar(nclist, varname=self.varname, timeidx=ALL_TIMES)
         if self.units is None:
@@ -145,6 +153,13 @@ class wrf_var(object):
             if mask_water:
                 m = np.logical_not(m)
             self.data.values = ma.masked_where(self.data.values, m)
+        if self.lcl_flag:
+            # extract LCL from wrf.getvar('cape_2d') output
+            LCL_IDX = self.longname.lower().split(' ; ').index('lcl')
+            self.varname = 'LCL'
+            self.data = self.data[LCL_IDX, ...]
+            self.longname = 'lifting condensation level'
+            self.units = self.units.split(';')[LCL_IDX].strip()
 
 
 class var_diff(object):
@@ -225,14 +240,7 @@ class var_diff(object):
         """
         error_str = '{labA} {var} differs from {labB} {var}'
         print('begin var_diff.read_files()')
-        if self.varname.upper() == "LCL":
-            lcl_flag = True
-            # wrf.getvar() calculates LCL as part of reading analysis
-            # variable 'cape_2d'.  for cape_2d wrf.getvar() returns an
-            # array of shape (4, ...) of which axis 2 is LCL.
-            self.varname = 'cape_2d'
-        else:
-            lcl_flag = False
+
         for k, v in self.data.items():
             nf = netCDF4.MFDataset(self.fnames[k])
             # TODO: decide whether to keep or get rid of nf.
@@ -242,7 +250,6 @@ class var_diff(object):
                          is_atm=False)
             wv.read_files()
             self.data[k] = to_np(wv.data)
-
             # locate variable dimensions - they vary from variable to
             # variable.  e.g. Time is not always the same array axis.
             self.var_axes = wrf_var_find_axes(wv)
@@ -278,7 +285,7 @@ class var_diff(object):
                                                     labB=self.label_B,
                                                     var='units'))
             # read variable description to longname
-            self.longname = wv.data.description
+            self.longname = wv.longname
             # read time
             xtime = extract_times(nf, ALL_TIMES)
             self.time[k] = pd.DatetimeIndex(xtime)
@@ -289,13 +296,6 @@ class var_diff(object):
                 print('unable to read Z from input file: ' + str(e))
             nf.close()
         self._match_tstamps()
-        if lcl_flag:
-            # extract LCL from wrf.getvar('cape_2d') output
-            for k, v in self.data.items():
-                LCL_IDX = self.longname.lower().split(' ; ').index('lcl')
-                self.data[k] = self.data[k][LCL_IDX, ...]
-            self.longname = 'LCL'
-            self.units = self.units.split(';')[LCL_IDX].strip()
         print('done var_diff.read_files()')
 
     def _match_tstamps(self):
@@ -406,7 +406,7 @@ class VarDiffPlotter(object):
     """
 
     def __init__(self, vd, t_idx=0, layer=None, fig_type='png',
-                 domain=2, pfx=None):
+                 domain=2, pfx=None, savedir=None):
         """
         Initialize a VarDiffPlotter with a Figure instance and four Axes
 
@@ -416,6 +416,10 @@ class VarDiffPlotter(object):
         t_idx (int): time stamp index (in [0, number of time stamps])
            layer (int): the vertical layer to be plotted.
         fig_type ({"png"}|"pdf"): type of image to create
+        domain (int): WRF domain number (to be placed in filename)
+        pfx (str): optional prefix to place in filename of every image
+        savedir (str): optional full path to a directory in which to
+           save the figure
         """
         self.vd = vd
         self.t_idx = t_idx
@@ -424,14 +428,20 @@ class VarDiffPlotter(object):
         self.domain = domain
         self.pfx = pfx
 
+        if savedir is None:
+            self.savedir = os.path.join('/', 'global', 'homes', 't',
+                                       'twhilton', 'plots', 'Summen')
+        else:
+            self.savedir = savedir
+
     def get_filename(self):
         """return string containing filename for saving plot
         """
         if self.pfx is not None:
             self.pfx = self.pfx + '_'
+
         self.fname = os.path.join(
-            '/global/homes/t/twhilton',
-            'plots', 'Summen',
+            self.savedir,
             ("{pfx}{varname}_{layer_id}"
              "d{domain:02d}_diff_maps_{tstamp}.{ext}").format(
                  pfx=self.pfx,
