@@ -68,6 +68,7 @@ class wrf_var(object):
         self.is_land = None
         self.z = None  # height above sea level (meters)
         self.lcl_flag = False
+        self.fog_present_flag = False
 
     def read_land_water_mask(self):
         """read land/water mask from WRF netcdf files
@@ -120,6 +121,29 @@ class wrf_var(object):
                 layer_depths['top'][t_idx, layer],
                 layer_depths['bot'][t_idx, layer]))
 
+    def is_foggy_obrien_2013(self):
+        """sets data field to true if any layer <= 400m has qc > 0.05 g / kg
+
+        Implements the definition of fog from O'Brien et al 2013: fog
+        is defintied is present in a horizontal gridcell if any layer
+        at or below 400 m has liquid water content (qc) >= 0.05 g /
+        kg.
+
+        REFERENCES
+
+        Brien, T. A., L. C. Sloan, P. Y. Chuang, I. C. Faloona, and
+        J. A. Johnstone (2013), Multidecadal simulation of coastal fog
+        with a regional climate model, Climate Dynamics, 40(11-12),
+        2801-2812, doi:10.1007/s00382-012-1486-x.
+
+        """
+        gram_per_kg = 1e-3
+        vertical_axis = 1  # axes are (0=time, 1=vertical, 2=x, 3=y)
+        layer_is_foggy = self.data[:, 0:9, ...] >= (0.05 * gram_per_kg)
+        self.data = layer_is_foggy.any(axis=vertical_axis)
+        self.longname = 'fog_present'
+        self.units = 'Boolean'
+
     def read_files(self, mask_land=False, mask_water=False):
         """read variable from run output
         """
@@ -129,7 +153,10 @@ class wrf_var(object):
             # variable 'cape_2d'.  for cape_2d wrf.getvar() returns an
             # array of shape (4, ...) of which axis 2 is LCL.
             self.varname = 'cape_2d'
-
+        elif self.varname.lower() == 'fogpresent':
+            self.fog_present_flag = True
+            # presence of fog is calculated from QCLOUD
+            self.varname = 'QCLOUD'
         nclist = [netCDF4.Dataset(f, mode="r") for f in self.fnames]
         self.data = getvar(nclist, varname=self.varname, timeidx=ALL_TIMES)
         if self.units is None:
@@ -160,6 +187,8 @@ class wrf_var(object):
             self.data = self.data[LCL_IDX, ...]
             self.longname = 'lifting condensation level'
             self.units = self.units.split(';')[LCL_IDX].strip()
+        elif self.fog_present_flag:
+            self.is_foggy_obrien_2013()
 
 
 class var_diff(object):
@@ -167,12 +196,12 @@ class var_diff(object):
         """class constructor: instantiates a var_diff object.
 
         varname may be any valid varname for `wrf.getvar()`, as well
-        as "LCL" (liftring condensation level" or "fog".  fog
-        calculates a boolean indicating whether a horizontal cell
-        contains or does not contain fog.  A cell is considered foggy
-        if any vertical level below 400 m above ground level has a
-        cloud water content greater than or equal to 0.05 g / kg
-        (O'Brien et al., 2013).
+        as "LCL" (liftring condensation level") or "fogpresent".
+        fogpresent calculates a boolean indicating whether a
+        horizontal cell contains or does not contain fog.  A cell is
+        considered foggy if any vertical level below 400 m above
+        ground level has a cloud water content greater than or equal
+        to 0.05 g / kg (O'Brien et al., 2013).
 
         REFERENCES
 
@@ -180,6 +209,7 @@ class var_diff(object):
         J. A. Johnstone (2013), Multidecadal simulation of coastal fog
         with a regional climate model, Climate Dynamics, 40(11-12),
         2801-2812, doi:10.1007/s00382-012-1486-x.
+
         """
         self.fnames = {label_A: fname_A, label_B: fname_B}
         self.label_A = label_A
