@@ -149,6 +149,23 @@ class wrf_var(object):
 
 class var_diff(object):
     def __init__(self, fname_A, fname_B, label_A, label_B, varname):
+        """class constructor: instantiates a var_diff object.
+
+        varname may be any valid varname for `wrf.getvar()`, as well
+        as "LCL" (liftring condensation level" or "fog".  fog
+        calculates a boolean indicating whether a horizontal cell
+        contains or does not contain fog.  A cell is considered foggy
+        if any vertical level below 400 m above ground level has a
+        cloud water content greater than or equal to 0.05 g / kg
+        (O'Brien et al., 2013).
+
+        REFERENCES
+
+        O'Brien, T. A., L. C. Sloan, P. Y. Chuang, I. C. Faloona, and
+        J. A. Johnstone (2013), Multidecadal simulation of coastal fog
+        with a regional climate model, Climate Dynamics, 40(11-12),
+        2801-2812, doi:10.1007/s00382-012-1486-x.
+        """
         self.fnames = {label_A: fname_A, label_B: fname_B}
         self.label_A = label_A
         self.label_B = label_B
