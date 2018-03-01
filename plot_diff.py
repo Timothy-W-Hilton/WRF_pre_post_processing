@@ -25,6 +25,28 @@ from map_tools_twh.map_tools_twh import CoastalSEES_WRF_Mapper
 from timutils.midpt_norm import get_discrete_midpt_cmap_norm
 from timutils.colormap_nlevs import setup_colormap
 
+def test_ax_min():
+    """test that ax_min is functioning properly
+    """
+    arr = np.array([[[ True,  True],
+                     [False,  True]],
+                    [[ True, False],
+                     [False,  True]],
+                    [[False,  True],
+                     [False, False]],
+                    [[False, False],
+                     [False,  True]]], dtype=bool)
+    correct = np.array([[ 0,  0],
+                        [-1,  0]])
+    assert(np.array_equal(ax_max(arr, 0),correct))
+
+def ax_max(arr, ax):
+    """find the index of the maximum value along an axis of an array
+    """
+
+    idx = (arr == True).argmax(ax)
+    idx[np.all(arr == False, axis=ax)] = -1
+    return(idx)
 
 class MyFig(Figure):
     """Subclass of matplotlib.figure.Figure; provides one-line saving
@@ -54,6 +76,8 @@ class MyFig(Figure):
 
 
 class wrf_var(object):
+    """class to parse WRF output files
+    """
     def __init__(self, fnames, label, varname, is_atm):
         self.fnames = fnames
         self.label = label
@@ -69,6 +93,7 @@ class wrf_var(object):
         self.z = None  # height above sea level (meters)
         self.lcl_flag = False
         self.fog_present_flag = False
+        self.fog_base_height_flag = False
 
     def read_land_water_mask(self):
         """read land/water mask from WRF netcdf files
@@ -121,28 +146,94 @@ class wrf_var(object):
                 layer_depths['top'][t_idx, layer],
                 layer_depths['bot'][t_idx, layer]))
 
-    def is_foggy_obrien_2013(self):
-        """sets data field to true if any layer <= 400m has qc > 0.05 g / kg
+    def get_fog_base_height(self, z_threshold=400, q_threshold=0.05):
+        """find lowest vertical level in every column with qc >= 0.05 g / kg
 
         Implements the definition of fog from O'Brien et al 2013: fog
         is defintied is present in a horizontal gridcell if any layer
         at or below 400 m has liquid water content (qc) >= 0.05 g /
         kg.
 
+        ARGS:
+        z_threshold (int): meters above sea level to test for fog.
+           Default is 400 (from O'Brien et al. (2013).
+        q_threshold (int): cloud liquid water content (in g H2O / kg
+           dry air) at which to consider the air "foggy". Default is
+           0.05 (from O'Brien et al. (2013).
+
         REFERENCES
 
-        Brien, T. A., L. C. Sloan, P. Y. Chuang, I. C. Faloona, and
+        O'Brien, T. A., L. C. Sloan, P. Y. Chuang, I. C. Faloona, and
+        J. A. Johnstone (2013), Multidecadal simulation of coastal fog
+        with a regional climate model, Climate Dynamics, 40(11-12),
+        2801-2812, doi:10.1007/s00382-012-1486-x.
+        """
+        self.longname = 'fog_base_height'
+        self.units = 'm'
+        self.is_foggy_obrien_2013(z_threshold, q_threshold)
+        vertical_axis = 1  # axes are (0=time, 1=vertical, 2=x, 3=y)
+        self.data = ma.masked_less(ax_max(self.data, axis=vertical_axis), 0)
+
+    def is_foggy_obrien_2013_3D(self, z_threshold=400, q_threshold=0.05):
+        """find near-surface grid cells with qc >= 0.05 g / kg
+
+        Implements the definition of fog from O'Brien et al 2013: fog
+        is defintied is present in a horizontal gridcell if any layer
+        at or below 400 m has liquid water content (qc) >= 0.05 g /
+        kg.
+
+        ARGS:
+        z_threshold (int): meters above sea level to test for fog.
+           Default is 400 (from O'Brien et al. (2013).
+        q_threshold (int): cloud liquid water content (in g H2O / kg
+           dry air) at which to consider the air "foggy". Default is
+           0.05 (from O'Brien et al. (2013).
+
+        REFERENCES
+
+        O'Brien, T. A., L. C. Sloan, P. Y. Chuang, I. C. Faloona, and
+        J. A. Johnstone (2013), Multidecadal simulation of coastal fog
+        with a regional climate model, Climate Dynamics, 40(11-12),
+        2801-2812, doi:10.1007/s00382-012-1486-x.
+        """
+        gram_per_kg = 1e-3
+        q_threshold = q_threshold * gram_per_kg
+        cell_is_foggy = np.zeros(self.data.shape, dtype='bool')
+        cell_is_foggy[(self.data >= q_threshold) &
+                      (self.z <= z_threshold)] = True
+        self.data.data = cell_is_foggy
+        self.longname = 'fog_present_3D'
+        self.units = 'Boolean'
+
+    def is_foggy_obrien_2013_2D(self, z_threshold=400, q_threshold=0.05):
+        """find horizontal cells where any layer <= 400 m has qc >= 0.05 g / kg
+
+        Implements the definition of fog from O'Brien et al 2013: fog
+        is defintied is present in a horizontal gridcell if any layer
+        at or below 400 m has liquid water content (qc) >= 0.05 g /
+        kg.
+
+        ARGS:
+        z_threshold (int): meters above sea level to test for fog.
+           Default is 400 (from O'Brien et al. (2013).
+        q_threshold (int): cloud liquid water content (in g H2O / kg
+           dry air) at which to consider the air "foggy". Default is
+           0.05 (from O'Brien et al. (2013).
+
+        REFERENCES
+
+        O'Brien, T. A., L. C. Sloan, P. Y. Chuang, I. C. Faloona, and
         J. A. Johnstone (2013), Multidecadal simulation of coastal fog
         with a regional climate model, Climate Dynamics, 40(11-12),
         2801-2812, doi:10.1007/s00382-012-1486-x.
 
         """
-        gram_per_kg = 1e-3
-        vertical_axis = 1  # axes are (0=time, 1=vertical, 2=x, 3=y)
-        layer_is_foggy = self.data[:, 0:9, ...] >= (0.05 * gram_per_kg)
-        self.data = layer_is_foggy.any(axis=vertical_axis)
-        self.longname = 'fog_present'
+
+        self.longname = 'fog_present_2D'
         self.units = 'Boolean'
+        self.is_foggy_obrien_2013_3D(z_threshold, q_threshold)
+        vertical_axis = 1  # axes are (0=time, 1=vertical, 2=x, 3=y)
+        self.data = self.data.any(axis=vertical_axis)
 
     def read_files(self, mask_land=False, mask_water=False):
         """read variable from run output
@@ -188,7 +279,9 @@ class wrf_var(object):
             self.longname = 'lifting condensation level'
             self.units = self.units.split(';')[LCL_IDX].strip()
         elif self.fog_present_flag:
-            self.is_foggy_obrien_2013()
+            self.is_foggy_obrien_2013_2D()
+        elif self.fog_base_height_flag:
+            self.get_fog_base_height()
 
 
 class var_diff(object):
