@@ -25,28 +25,30 @@ from map_tools_twh.map_tools_twh import CoastalSEES_WRF_Mapper
 from timutils.midpt_norm import get_discrete_midpt_cmap_norm
 from timutils.colormap_nlevs import setup_colormap
 
+
 def test_ax_min():
     """test that ax_min is functioning properly
     """
-    arr = np.array([[[ True,  True],
+    arr = np.array([[[True,  True],
                      [False,  True]],
-                    [[ True, False],
+                    [[True, False],
                      [False,  True]],
                     [[False,  True],
                      [False, False]],
                     [[False, False],
                      [False,  True]]], dtype=bool)
-    correct = np.array([[ 0,  0],
+    correct = np.array([[0,  0],
                         [-1,  0]])
-    assert(np.array_equal(ax_max(arr, 0),correct))
+    assert(np.array_equal(ax_max(arr, 0), correct))
 
-def ax_max(arr, ax):
+
+def ax_max(arr, axis):
     """find the index of the maximum value along an axis of an array
     """
-
-    idx = (arr == True).argmax(ax)
-    idx[np.all(arr == False, axis=ax)] = -1
+    idx = arr.argmax(axis=axis)
+    idx.data[np.all(arr.data == False, axis=axis)] = -1
     return(idx)
+
 
 class MyFig(Figure):
     """Subclass of matplotlib.figure.Figure; provides one-line saving
@@ -170,9 +172,10 @@ class wrf_var(object):
         """
         self.longname = 'fog_base_height'
         self.units = 'm'
-        self.is_foggy_obrien_2013(z_threshold, q_threshold)
+        self.is_foggy_obrien_2013_3D(z_threshold, q_threshold)
         vertical_axis = 1  # axes are (0=time, 1=vertical, 2=x, 3=y)
-        self.data = ma.masked_less(ax_max(self.data, axis=vertical_axis), 0)
+        # self.data = ma.masked_less(ax_max(self.data, axis=vertical_axis), 0)
+        self.data = ax_max(self.data, axis=vertical_axis)
 
     def is_foggy_obrien_2013_3D(self, z_threshold=400, q_threshold=0.05):
         """find near-surface grid cells with qc >= 0.05 g / kg
@@ -247,6 +250,9 @@ class wrf_var(object):
         elif self.varname.lower() == 'fogpresent':
             self.fog_present_flag = True
             # presence of fog is calculated from QCLOUD
+            self.varname = 'QCLOUD'
+        elif self.varname.lower() == 'fogbase':
+            self.fog_base_height_flag = True
             self.varname = 'QCLOUD'
         nclist = [netCDF4.Dataset(f, mode="r") for f in self.fnames]
         self.data = getvar(nclist, varname=self.varname, timeidx=ALL_TIMES)
@@ -553,7 +559,7 @@ class VarDiffPlotter(object):
 
         if savedir is None:
             self.savedir = os.path.join('/', 'global', 'homes', 't',
-                                       'twhilton', 'plots', 'Summen')
+                                        'twhilton', 'plots', 'Summen')
         else:
             self.savedir = savedir
 
