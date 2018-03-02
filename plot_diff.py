@@ -701,11 +701,11 @@ class VarDiffPlotter(object):
             units=self.vd.units))
 
         # plot the pct difference
-        abs_max = 150  # np.abs((d_pct_all.min(), d_pct_all.max())).max()
-        cmap, norm = get_discrete_midpt_cmap_norm(vmin=abs_max * -1.0,
-                                                  vmax=abs_max,
-                                                  midpoint=0.0,
-                                                  this_cmap=get_cmap('cool'))
+        # abs_max = 150  # np.abs((d_pct_all.min(), d_pct_all.max())).max()
+        # cmap, norm = get_discrete_midpt_cmap_norm(vmin=abs_max * -1.0,
+        #                                           vmax=abs_max,
+        #                                           midpoint=0.0,
+        #                                           this_cmap=get_cmap('cool'))
         pct_map = CoastalSEES_WRF_Mapper(ax=ax[3],
                                          domain='bigbasin',
                                          res='10m')
@@ -722,9 +722,8 @@ class VarDiffPlotter(object):
             units=self.vd.units))
 
         # Draw a title before we draw plots
-        title = "{vname}, {layerid}{tstamp} UTC ({units})".format(
+        title = "{vname}, {tstamp} UTC ({units})".format(
             vname=self.vd.longname,
-            layerid="{}, ".format(self._get_layer_id()),
             tstamp=self.vd.time[self.t_idx].strftime('%d %b %Y %H:%M'),
             units=self.vd.units)
         fig.suptitle(title)
