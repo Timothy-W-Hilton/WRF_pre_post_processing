@@ -7,6 +7,16 @@ run A, run B, and (run A - run B).
 Timothy W. Hilton, UC Merced, thilton@ucmerced.edu
 """
 
+# TODO: improve reading speed of netCDF files.
+#    reading one variable from one month of WRF files concatenated
+#    with ncrcat takes about 17 seconds.  ncrcat takes 1:35 to
+#    assemble the combined file
+# TODO: improve plotting speed by updating the data on the cartopy map
+# rather than replotting the map anew for every timestep.
+# TODO: implement fog percentage calculation
+# TODO: merge fog/no fog plotting and colorbars into this branch
+
+
 import numpy as np
 import pandas as pd
 import numpy.ma as ma
