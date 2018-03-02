@@ -569,6 +569,10 @@ class VarDiffPlotter(object):
         self.domain = domain
         self.pfx = pfx
 
+        for k in self.vd.data.keys():
+            if np.isnan(self.vd.data[k]).any():
+                self.vd.data[k] = ma.masked_invalid(self.vd.data[k])
+
         if savedir is None:
             self.savedir = os.path.join('/', 'global', 'homes', 't',
                                         'twhilton', 'plots', 'Summen')
