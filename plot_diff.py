@@ -14,6 +14,7 @@ import datetime
 import os
 import netCDF4
 import glob
+from xarray import DataArray
 from wrf import getvar, extract_times, to_np, ALL_TIMES
 
 from matplotlib.cm import get_cmap
@@ -175,7 +176,22 @@ class wrf_var(object):
         self.is_foggy_obrien_2013_3D(z_threshold, q_threshold)
         vertical_axis = 1  # axes are (0=time, 1=vertical, 2=x, 3=y)
         # self.data = ma.masked_less(ax_max(self.data, axis=vertical_axis), 0)
-        self.data = ax_max(self.data, axis=vertical_axis)
+        zidx = ax_max(self.data, axis=vertical_axis)
+        fogbase_height = DataArray(data=np.empty(zidx.shape,
+                                                 dtype=float),
+                                   coords=zidx.coords,
+                                   dims=zidx.dims,
+                                   name='fogbase_height')
+        fogbase_height.data[:] = np.nan
+        print('starting loop')
+        for t in range(fogbase_height.shape[0]):
+            for x in range(fogbase_height.shape[1]):
+                for y in range(fogbase_height.shape[2]):
+                    if zidx[t, x, y] >= 0:
+                        fogbase_height[t, x, y] = self.z[zidx[t, x, y],
+                                                         x, y]
+        print('done loop')
+        self.data = fogbase_height
 
     def is_foggy_obrien_2013_3D(self, z_threshold=400, q_threshold=0.05):
         """find near-surface grid cells with qc >= 0.05 g / kg
