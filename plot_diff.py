@@ -171,8 +171,6 @@ class wrf_var(object):
         with a regional climate model, Climate Dynamics, 40(11-12),
         2801-2812, doi:10.1007/s00382-012-1486-x.
         """
-        self.longname = 'fog_base_height'
-        self.units = 'm'
         self.is_foggy_obrien_2013_3D(z_threshold, q_threshold)
         vertical_axis = 1  # axes are (0=time, 1=vertical, 2=x, 3=y)
         # self.data = ma.masked_less(ax_max(self.data, axis=vertical_axis), 0)
@@ -183,15 +181,13 @@ class wrf_var(object):
                                    dims=zidx.dims,
                                    name='fogbase_height')
         fogbase_height.data[:] = np.nan
-        print('starting loop')
-        for t in range(fogbase_height.shape[0]):
-            for x in range(fogbase_height.shape[1]):
-                for y in range(fogbase_height.shape[2]):
-                    if zidx[t, x, y] >= 0:
-                        fogbase_height[t, x, y] = self.z[zidx[t, x, y],
-                                                         x, y]
-        print('done loop')
+        j, k = np.meshgrid(np.arange(self.z.shape[1]),
+                           np.arange(self.z.shape[2]))
+        fogbase_height.data[:, j, k] = self.z.data[zidx.data[:, j, k], j, k]
+        fogbase_height.data[zidx < 0] = np.nan
         self.data = fogbase_height
+        self.longname = 'fog_base_height'
+        self.units = 'm'
 
     def is_foggy_obrien_2013_3D(self, z_threshold=400, q_threshold=0.05):
         """find near-surface grid cells with qc >= 0.05 g / kg
