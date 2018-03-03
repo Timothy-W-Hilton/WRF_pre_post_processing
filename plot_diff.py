@@ -106,6 +106,7 @@ class wrf_var(object):
         self.z = None  # height above sea level (meters)
         self.lcl_flag = False
         self.fog_present_flag = False
+        self.fog_pct_flag = False
         self.fog_base_height_flag = False
 
     def read_land_water_mask(self):
@@ -273,6 +274,10 @@ class wrf_var(object):
             self.fog_present_flag = True
             # presence of fog is calculated from QCLOUD
             self.varname = 'QCLOUD'
+        elif self.varname.lower() == 'fogpct':
+            self.fog_pct_flag = True
+            # presence of fog is calculated from QCLOUD
+            self.varname = 'QCLOUD'
         elif self.varname.lower() == 'fogbase':
             self.fog_base_height_flag = True
             self.varname = 'QCLOUD'
@@ -308,8 +313,40 @@ class wrf_var(object):
             self.units = self.units.split(';')[LCL_IDX].strip()
         elif self.fog_present_flag:
             self.is_foggy_obrien_2013_2D()
+        elif self.fog_pct_flag:
+            self.get_fog_pct()
         elif self.fog_base_height_flag:
             self.get_fog_base_height()
+
+    def get_fog_pct(self, z_threshold=400, q_threshold=0.05):
+        """find proportion of time each horizontal cell contains fog
+
+        Implements the definition of fog from O'Brien et al 2013: fog
+        is defintied is present in a horizontal gridcell if any layer
+        at or below 400 m has liquid water content (qc) >= 0.05 g /
+        kg.
+
+        ARGS:
+        z_threshold (int): meters above sea level to test for fog.
+           Default is 400 (from O'Brien et al. (2013).
+        q_threshold (int): cloud liquid water content (in g H2O / kg
+           dry air) at which to consider the air "foggy". Default is
+           0.05 (from O'Brien et al. (2013).
+
+        REFERENCES
+
+        O'Brien, T. A., L. C. Sloan, P. Y. Chuang, I. C. Faloona, and
+        J. A. Johnstone (2013), Multidecadal simulation of coastal fog
+        with a regional climate model, Climate Dynamics, 40(11-12),
+        2801-2812, doi:10.1007/s00382-012-1486-x.
+
+        """
+        self.longname = 'fog_pct'
+        self.units = 'percent'
+        self.is_foggy_obrien_2013_2D(z_threshold, q_threshold)
+        time_axis= 0  # axes are (0=time, 2=x, 3=y)
+        n_tsteps = self.data.shape[time_axis]
+        self.data = self.data.sum(axis=time_axis) / n_tsteps
 
 
 class var_diff(object):
