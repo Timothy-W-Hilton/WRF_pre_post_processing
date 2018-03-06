@@ -341,12 +341,18 @@ class wrf_var(object):
         2801-2812, doi:10.1007/s00382-012-1486-x.
 
         """
-        self.longname = 'fog_pct'
-        self.units = 'percent'
         self.is_foggy_obrien_2013_2D(z_threshold, q_threshold)
-        time_axis= 0  # axes are (0=time, 2=x, 3=y)
+        time_axis = 0  # axes are (0=time, 2=x, 3=y)
         n_tsteps = self.data.shape[time_axis]
-        self.data = self.data.sum(axis=time_axis) / n_tsteps
+        pct = self.data.sum(axis=time_axis) / n_tsteps
+        print('pct coords: {}'.format(pct.coords))
+        pct = pct.expand_dims("Time", 0)
+        pct = pct.assign_coords(Time=self.data.coords['Time'][0].data)
+        print('pct coords 2: {}'.format(pct.coords))
+        self.data = pct
+        self.varname = 'fogpct'
+        self.longname = 'fog frequency (time)'
+        self.units = 'percent'
 
 
 class var_diff(object):
@@ -474,9 +480,8 @@ class var_diff(object):
                                                     var='units'))
             # read variable description to longname
             self.longname = wv.longname
-            # read time
-            xtime = extract_times(nf, ALL_TIMES)
-            self.time[k] = pd.DatetimeIndex(xtime)
+            # set time
+            self.time[k] = pd.DatetimeIndex([wv.data.Time.values])
             # read model heights
             try:
                 self.z = getvar(nf, 'z')
@@ -573,16 +578,20 @@ def wrf_var_find_axes(wv):
        north-south, and east-west axes of the variable.
     """
     axes = {}
-    axes.update({"Time": wv.data.dims.index('Time')})
+    try:
+        axes.update({"Time": wv.data.dims.index('Time')})
+    except ValueError:
+        print("{} has no time axis".format(wv.varname))
+        axes.update({"Time": None})
     try:
         axes.update({"Lay": wv.data.dims.index('bottom_top')})
     except ValueError:
-        print("variable has no atmospheric vertical axis")
+        print("{} has no atmospheric vertical axis".format(wv.varname))
         axes.update({"Lay": None})
         try:
             axes.update({"Lay": wv.data.dims.index('soil_layers_stag')})
         except ValueError:
-            print("variable has no soil axis")
+            print("{} has no soil axis".format(wv.varname))
             axes.update({"Lay": None})
     axes.update({"Lon": wv.data.dims.index('west_east')})
     axes.update({"Lat": wv.data.dims.index('south_north')})
