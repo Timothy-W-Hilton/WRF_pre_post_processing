@@ -481,7 +481,8 @@ class var_diff(object):
             # read variable description to longname
             self.longname = wv.longname
             # set time
-            self.time[k] = pd.DatetimeIndex([wv.data.Time.values])
+            self.time[k] = pd.DatetimeIndex(np.array(wv.data.Time.values,
+                                                     ndmin=1))
             # read model heights
             try:
                 self.z = getvar(nf, 'z')
