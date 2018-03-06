@@ -604,7 +604,8 @@ class VarDiffPlotter(object):
     """
 
     def __init__(self, vd, t_idx=0, layer=None, fig_type='png',
-                 domain=2, pfx=None, savedir=None):
+                 domain=2, pfx=None, savedir=None,
+                 time_title_str=None):
         """
         Initialize a VarDiffPlotter with a Figure instance and four Axes
 
@@ -625,6 +626,7 @@ class VarDiffPlotter(object):
         self.fig_type = fig_type
         self.domain = domain
         self.pfx = pfx
+        self.time_title_str = time_title_str
 
         for k in self.vd.data.keys():
             if np.isnan(self.vd.data[k]).any():
@@ -779,9 +781,12 @@ class VarDiffPlotter(object):
             units=self.vd.units))
 
         # Draw a title before we draw plots
-        title = "{vname}, {tstamp} UTC ({units})".format(
+        if self.time_title_str is None:
+            self.time_title_str = self.vd.time[self.t_idx].strftime(
+                '%d %b %Y %H:%M UTC')
+        title = "{vname}, {tstamp} ({units})".format(
             vname=self.vd.longname,
-            tstamp=self.vd.time[self.t_idx].strftime('%d %b %Y %H:%M'),
+            tstamp=self.time_title_str,
             units=self.vd.units)
         fig.suptitle(title)
         fig.savefig(fname=self.fname)
