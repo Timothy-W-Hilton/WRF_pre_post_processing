@@ -562,7 +562,8 @@ class var_diff(object):
             idxB = np.s_[:idx_max, layer, ...]
         d_all = (self.data[self.label_A][idxA] -
                  self.data[self.label_B][idxB])
-        self.abs_max = np.abs((d_all.min(), d_all.max())).max()
+        self.abs_max = np.nanmax(np.abs((np.nanmin(d_all.data),
+                                         np.nanmax(d_all.data))))
         self.d_pct = (self.d / self.data[self.label_A][idx]) * 100.0
         # d_pct_all = (d_all / self.data[self.label_A][idxA]) * 100.0
 
