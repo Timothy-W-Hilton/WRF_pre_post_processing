@@ -4,18 +4,25 @@ Produces a three-panel figure showing contours overlaied on a map for
 a specified WRF variable.  The three panels show the values from WRF
 run A, run B, and (run A - run B).
 
-Timothy W. Hilton, UC Merced, thilton@ucmerced.edu
+Timothy W. Hilton, UC Santa Cruz, twhilton@ucsc.edu
 """
 
-# TODO: improve reading speed of netCDF files.
-#    reading one variable from one month of WRF files concatenated
-#    with ncrcat takes about 17 seconds.  ncrcat takes 1:35 to
-#    assemble the combined file
+# TODO: improve reading speed of netCDF files.  reading one variable
+#    from one month of WRF files concatenated with ncrcat takes about
+#    17 seconds.  ncrcat takes 1:35 to assemble the combined file.
+#    UPDATE: not sure it's possible to read files faster than it
+#    already is.  Current code takes about two minutes, close to (1:35
+#    + 0:17).
 # TODO: improve plotting speed by updating the data on the cartopy map
 # rather than replotting the map anew for every timestep.
-# TODO: implement fog percentage calculation
-# TODO: merge fog/no fog plotting and colorbars into this branch
-
+# TODO: merge fog/no fog plotting and colorbars into this branch.
+#    UPDATE: This is probably superceded by the now-implemented fog
+#    percentage plot.
+# TODO: move sum_layers from driver to plot_diff.py.  Probably rename
+#    to aggregate_time or something, because it does averages as well
+#    as sums and now works on time axis, not vertical axis.
+# TODO: maybe revise fog base height to allow it to find base > 400 m?
+# TODO: add legend to diff panels to indicate that white ~= 0.0?
 
 import numpy as np
 import pandas as pd
@@ -197,7 +204,7 @@ class wrf_var(object):
         fogbase_height.data[:, j, k] = self.z.data[zidx.data[:, j, k], j, k]
         fogbase_height.data[zidx < 0] = np.nan
         self.data = fogbase_height
-        self.longname = 'fog_base_height'
+        self.longname = 'fog base height'
         self.units = 'm'
 
     def is_foggy_obrien_2013_3D(self, z_threshold=400, q_threshold=0.05):
