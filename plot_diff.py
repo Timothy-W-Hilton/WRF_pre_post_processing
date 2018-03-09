@@ -777,7 +777,7 @@ class VarDiffPlotter(object):
                                          domain='bigbasin',
                                          res='10m')
         pct_map.pcolormesh(self.vd.lon, self.vd.lat,
-                           self.vd.d_pct, cmap=cmap, norm=norm)
+                           self.vd.d, cmap=cmap, norm=norm)
         pct_map.colorbar(orientation=cb_orientation)
         if cb_orientation is "horizontal":
             pct_map.cb.ax.set_xticklabels(
