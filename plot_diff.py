@@ -540,6 +540,25 @@ class var_diff(object):
             raise IndexError("data have unexpected shape")
         return(idx)
 
+    def aggregate_time(self, time_avg=False):
+        """aggregate var_diff data for all time steps
+
+        Calculate the sum of each run's data across all time steps,
+        or, optionally, the arithmetic mean.
+
+        ARGS:
+        time_avg (logical): if true, calculate the arithmetic mean
+           across time steps.  Default is False.
+        """
+        print('summing layers 0 to 9')
+        for k, v in self.data.items():
+            n_tsteps = v.shape[0]   # axes are [time, y, x]
+            self.data[k] = np.nansum(v, axis=0, keepdims=True)
+            if time_avg:
+                self.data[k] = self.data[k] / n_tsteps
+        if time_avg:   # outside loop so string is only appended once
+            self.longname = self.longname + ' time avg'
+
     def calc_diff(self, idx, layer):
         """calculate the variables' difference, pct diff, and absolute max diff
 
@@ -798,5 +817,5 @@ class VarDiffPlotter(object):
             units=self.vd.units)
         fig.suptitle(title)
         fig.savefig(fname=self.fname)
-        print("done ({})".format(str(datetime.datetime.now() - t0)))
+        print("done plotting ({})".format(str(datetime.datetime.now() - t0)))
         return(None)
