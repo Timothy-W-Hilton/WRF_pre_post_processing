@@ -8,7 +8,7 @@ arbitrary constant factor.
 The motiviation behind this is testing WRF sensitivity to soil
 moisture.
 
-Timothy W. Hilton <thilton@ucmerced.edu>
+Timothy W. Hilton <twhilton@ucsc.edu>
 12 Oct 2017
 """
 
@@ -17,6 +17,32 @@ import numpy as np
 import numpy.ma as ma
 import glob
 import os
+
+
+def remove_urban(fname_wrf):
+    """remove urban landuse from WRF input files
+
+    Set urban landuse fraction to 0.0, increase non-water land uses
+    such that the sum of all land uses remains 1.0 and the relative
+    proportions of non-water landuses are unchanged, and reset the
+    land-use index to the highest-fraction remaining landuse in teh
+    gridcell.
+    """
+    nc = netCDF4.Dataset(fname_wrf, 'a')  # open in append mode
+    landusef = nc.variables['LANDUSEF'][...]
+
+    non_water_fraction = (
+        1.0 - landusef[:, (nc.ISWATER - 1), ...])
+    landusef[:, (nc.ISURBAN - 1), ...][
+        non_water_mask[np.newaxis, ...]] = non_water_fraction[
+            non_water_mask[np.newaxis, ...]]
+    nc.variables['LANDUSEF'][...] = landusef
+    nc.history = ("created by metgrid_exe.  Land use set "
+                  "to urban in WRF pixels containing redwoods "
+                  "according to Little (1971).  Atlas of United States "
+                  "trees. Volume 1. Conifers and important hardwoods.")
+    nc.close()
+
 
 def make_redwood_range_urban(redwoods_mask, fname_wrf):
     """make redwood range urban using digital redwoods data
