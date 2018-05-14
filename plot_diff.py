@@ -351,8 +351,7 @@ class wrf_var(object):
         self.is_foggy_obrien_2013_2D(z_threshold, q_threshold)
         time_axis = 0  # axes are (0=time, 2=x, 3=y)
         n_tsteps = self.data.shape[time_axis]
-        pct = self.data.sum(axis=time_axis) / n_tsteps
-        print('pct coords: {}'.format(pct.coords))
+        pct = (self.data.sum(axis=time_axis) / n_tsteps) * 100.0
         pct = pct.expand_dims("Time", 0)
         pct = pct.assign_coords(Time=self.data.coords['Time'][0].data)
         print('pct coords 2: {}'.format(pct.coords))
