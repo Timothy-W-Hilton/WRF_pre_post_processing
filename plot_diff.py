@@ -42,7 +42,7 @@ from map_tools_twh.map_tools_twh import CoastalSEES_WRF_Mapper
 
 from timutils.midpt_norm import get_discrete_midpt_cmap_norm
 from timutils.colormap_nlevs import setup_colormap
-
+from timutils.std_error import calc_neff
 
 def test_ax_min():
     """test that ax_min is functioning properly
@@ -229,6 +229,9 @@ class wrf_var(object):
         with a regional climate model, Climate Dynamics, 40(11-12),
         2801-2812, doi:10.1007/s00382-012-1486-x.
         """
+        t0 = datetime.datetime.now()
+        print('is_foggy_obrien_2013_3D()', end='')
+
         gram_per_kg = 1e-3
         q_threshold = q_threshold * gram_per_kg
         cell_is_foggy = np.zeros(self.data.shape, dtype='bool')
@@ -237,6 +240,8 @@ class wrf_var(object):
         self.data.data = cell_is_foggy
         self.longname = 'fog_present_3D'
         self.units = 'Boolean'
+        print(' done is_foggy_obrien_2013_3D ({})'.format(
+            datetime.datetime.now() - t0))
 
     def is_foggy_obrien_2013_2D(self, z_threshold=400, q_threshold=0.05):
         """find horizontal cells where any layer <= 400 m has qc >= 0.05 g / kg
@@ -261,16 +266,20 @@ class wrf_var(object):
         2801-2812, doi:10.1007/s00382-012-1486-x.
 
         """
-
+        t0 = datetime.datetime.now()
+        print('is_foggy_obrien_2013_2D()', end='')
         self.longname = 'fog_present_2D'
         self.units = 'Boolean'
         self.is_foggy_obrien_2013_3D(z_threshold, q_threshold)
         vertical_axis = 1  # axes are (0=time, 1=vertical, 2=x, 3=y)
         self.data = self.data.any(axis=vertical_axis)
+        print(' done is_foggy_obrien_2013_2D ({})'.format(
+            datetime.datetime.now() - t0))
 
     def read_files(self, mask_land=False, mask_water=False):
         """read variable from run output
         """
+        t0 = datetime.datetime.now()
         if self.varname.upper() == "LCL":
             self.lcl_flag = True
             # wrf.getvar() calculates LCL as part of reading analysis
@@ -288,8 +297,16 @@ class wrf_var(object):
         elif self.varname.lower() == 'fogbase':
             self.fog_base_height_flag = True
             self.varname = 'QCLOUD'
+        print('start netCDF4.Dataset()', end='')
+        t0_Dataset = datetime.datetime.now()
         nclist = [netCDF4.Dataset(f, mode="r") for f in self.fnames]
+        print('done netCDF4.Dataset() ({})'.format(
+            datetime.datetime.now() - t0_Dataset))
+        print('start getvar()', end='')
+        t0_getvar = datetime.datetime.now()
         self.data = getvar(nclist, varname=self.varname, timeidx=ALL_TIMES)
+        print('done getvar() ({})'.format(
+            datetime.datetime.now() - t0_getvar))
         if self.units is None:
             self.units = self.data.units
         if self.lat is None:
@@ -324,6 +341,8 @@ class wrf_var(object):
             self.get_fog_pct()
         elif self.fog_base_height_flag:
             self.get_fog_base_height()
+        print('done wrf_var.read_files() ({})'.format(
+            datetime.datetime.now() - t0))
 
     def get_fog_pct(self, z_threshold=400, q_threshold=0.05):
         """find proportion of time each horizontal cell contains fog
@@ -348,17 +367,20 @@ class wrf_var(object):
         2801-2812, doi:10.1007/s00382-012-1486-x.
 
         """
+
+        t0 = datetime.datetime.now()
+        print('start get_fog_pct()', end='')
         self.is_foggy_obrien_2013_2D(z_threshold, q_threshold)
         time_axis = 0  # axes are (0=time, 2=x, 3=y)
         n_tsteps = self.data.shape[time_axis]
         pct = (self.data.sum(axis=time_axis) / n_tsteps) * 100.0
         pct = pct.expand_dims("Time", 0)
         pct = pct.assign_coords(Time=self.data.coords['Time'][0].data)
-        print('pct coords 2: {}'.format(pct.coords))
         self.data = pct
         self.varname = 'fogpct'
         self.longname = 'fog frequency (time)'
         self.units = 'percent'
+        print(' done get_fog_pct ({})'.format(datetime.datetime.now() - t0))
 
 
 class var_diff(object):
@@ -442,6 +464,7 @@ class var_diff(object):
         print('begin var_diff.read_files()')
 
         for k, v in self.data.items():
+            t0 = datetime.datetime.now()
             nf = netCDF4.MFDataset(self.fnames[k])
             # TODO: decide whether to keep or get rid of nf.
             wv = wrf_var(sorted(glob.glob(self.fnames[k])),
@@ -450,6 +473,9 @@ class var_diff(object):
                          is_atm=False)
             wv.read_files()
             self.data[k] = to_np(wv.data)
+            t0 = datetime.datetime.now()
+            print('done {} to_np ({})'.format(
+                k, datetime.datetime.now() - t0))
             # locate variable dimensions - they vary from variable to
             # variable.  e.g. Time is not always the same array axis.
             self.var_axes = wrf_var_find_axes(wv)
@@ -495,7 +521,10 @@ class var_diff(object):
             except ValueError as e:
                 print('unable to read Z from input file: ' + str(e))
             nf.close()
+        t0 = datetime.datetime.now()
+        print('start _match_tstamps... ', end='')
         self._match_tstamps()
+        print('done match_tstamps ({})'.format(datetime.datetime.now() - t0))
         print('done var_diff.read_files()')
 
     def _match_tstamps(self):
@@ -557,6 +586,49 @@ class var_diff(object):
                 self.data[k] = self.data[k] / n_tsteps
         if time_avg:   # outside loop so string is only appended once
             self.longname = self.longname + ' time avg'
+
+    def diff_means_test(self, adj_autocorr=True):
+        """run a paired difference of means test
+
+        Run a standard paired difference of means test (e.g. Devore
+        (1995) section 9.1) on the data.
+
+        ARGS:
+        adj_autocorr (boolean): if true, adjust the effective number
+           of independent samples according to Wilks 1995.
+
+        REFERENCES
+
+        Devore, J.L., 1995. Probability and Statistics for Engineering
+        and the Sciences, 4th ed.  Brooks/Cole Publishing Co., Pacific
+        Grove, California, USA.
+
+        Wilks, D., 1995 Statistical Methods in the Atmospheric
+        Sciences: An Introduction.  Academic Press, New York
+        """
+        ax_time = 0  # time is axis 0 in the data array
+        for k in self.data.keys():
+            if adj_autocorr:
+                # reduce the number of effectively independent data points
+                # to account for temporal autocorrelation.
+                n_eff = {k: calc_neff(v.astype(float), dim=ax_time)
+                         for k, v in self.data.items()}
+            else:
+                # assume all data points are independent
+                n_eff = {k: v.shape[ax_time] for k, v in self.data.items()}
+        # calculate test statistic z according to Devore (1995) section 9.1
+        means = {k: np.mean(v.astype(float), axis=ax_time)
+                 for k, v in self.data.items()}
+        vars = {k: np.var(v.astype(float), axis=ax_time)
+                for k, v in self.data.items()}
+        numerator = means[self.label_A] - means[self.label_B]
+        denominator = (np.sqrt((vars[self.label_A] / n_eff[self.label_A]) +
+                               (vars[self.label_B] / n_eff[self.label_B])))
+        # return infinity where denominator is zero
+        z = np.divide(numerator, denominator,
+                      out=np.full_like(numerator, np.inf),
+                      where=denominator != 0)
+        return(z)
 
     def calc_diff(self, idx, layer):
         """calculate the variables' difference, pct diff, and absolute max diff
