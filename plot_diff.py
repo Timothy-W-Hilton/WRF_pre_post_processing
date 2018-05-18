@@ -664,6 +664,34 @@ class var_diff(object):
         self.d_pct = (self.d / self.data[self.label_A][idx]) * 100.0
         # d_pct_all = (d_all / self.data[self.label_A][idxA]) * 100.0
 
+    def to_netcdf(self, fname):
+        """write a netcdf file containing variables and their difference
+
+        ARGS:
+           fname (str): full path to the netcdf file to be written.
+           If fname exists it will be deleted and replace.
+        """
+        nc = netCDF4.Dataset(fname, mode='w')
+        nc.createDimension('time', self.data['ctl'].shape[0])
+        nc.createDimension('x', self.data['ctl'].shape[1])
+        nc.createDimension('y', self.data['ctl'].shape[2])
+        nc.createVariable('lat', np.float, ('x', 'y'))
+        nc.createVariable('lon', np.float, ('x', 'y'))
+        nc.variables['lat'][...] = self.lat
+        nc.variables['lon'][...] = self.lon
+        grpA = nc.createGroup(self.label_A)
+        grpB = nc.createGroup(self.label_B)
+        var_dtype = self.data[self.label_A].dtype
+        if var_dtype is np.dtype('bool'):
+            var_dtype = 'i1'
+        grpA.createVariable(self.varname, var_dtype, ('time', 'x', 'y'))
+        grpB.createVariable(self.varname, var_dtype, ('time', 'x', 'y'))
+        grpA.variables[self.varname][...] = self.data[self.label_A][...]
+        grpB.variables[self.varname][...] = self.data[self.label_B][...]
+        nc.varname = self.varname
+        nc.units = self.units
+        nc.close()
+
 
 def wrf_var_find_axes(wv):
     """locate vertical, horizontal, and time axes in a WRF variable
