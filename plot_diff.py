@@ -384,7 +384,10 @@ class wrf_var(object):
 
 
 class var_diff(object):
-    def __init__(self, fname_A, fname_B, label_A, label_B, varname):
+    def __init__(self, fname_A=None, fname_B=None,
+                 label_A=None, label_B=None,
+                 varname=None,
+                 ncfile=None):
         """class constructor: instantiates a var_diff object.
 
         varname may be any valid varname for `wrf.getvar()`, as well
@@ -403,6 +406,22 @@ class var_diff(object):
         2801-2812, doi:10.1007/s00382-012-1486-x.
 
         """
+        if ncfile is not None:
+            nc = netCDF4.Dataset(ncfile, 'r')
+            self.varname = nc.varname
+            self.label_A, self.label_B = nc.groups.keys()
+            self.units = nc.units
+            self.lat = nc.variables['lat'][...]
+            self.lon = nc.variables['lon'][...]
+            self.data = {self.label_A: nc.groups[self.label_A].variables[self.varname][...],
+                         self.label_B: nc.groups[self.label_B].variables[self.varname][...]}
+
+        else:
+            if None in [fname_A, fname_B, label_A, label_B, varname]:
+                raise TypeError(('must specify either a netCDF file or '
+                                 'all of fname_A, fname_B, label_A, label_B, '
+                                 'varname'))
+
         self.fnames = {label_A: fname_A, label_B: fname_B}
         self.label_A = label_A
         self.label_B = label_B
