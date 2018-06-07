@@ -7,6 +7,7 @@ from plot_diff import var_diff, MyFig
 from map_tools_twh.map_tools_twh import CoastalSEES_WRF_prj
 from map_tools_twh.map_tools_twh import CoastalSEES_WRF_Mapper
 import matplotlib.cm
+import matplotlib.patches as mpatches
 
 DOMAIN = 2
 read_vardiff_from_netcdf = True
@@ -62,13 +63,15 @@ def main(significance=None):
     fig = MyFig(figsize=(8, 8))
     ax = fig.add_subplot(111,
                          projection=CoastalSEES_WRF_prj())
+    this_cmap = matplotlib.cm.get_cmap('Dark2_r')
     this_map = CoastalSEES_WRF_Mapper(ax=ax, domain=DOMAIN)
-    this_map.pcolormesh(vd.lon, vd.lat, p, vmin=0, vmax=1.0,
-                        cmap=matplotlib.cm.get_cmap('Dark2_r'))
+    this_map.pcolormesh(vd.lon, vd.lat, p, vmin=0, vmax=1.0, cmap=this_cmap)
     ax.set_title(('urbanized redwood experiment\n'
                   'fog differences significant '
                   'at {:0.1f}%'.format(significance * 100.0)))
-    this_map.colorbar()
+    significant_patch = mpatches.Patch(color=this_cmap.colors[-1],
+                                       label='signficant')
+    ax.legend(handles=(significant_patch, ))
     fname = ('fogpct_RWurban_d{domain:02d}_means_diff_'
              'map_2tail_adj{adj}_p{sig:0.3f}.png'.format(
                  domain=DOMAIN,
