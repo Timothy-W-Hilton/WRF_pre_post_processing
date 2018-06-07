@@ -67,10 +67,10 @@ def main(significance=None):
                         cmap=matplotlib.cm.get_cmap('Dark2_r'))
     ax.set_title(('urbanized redwood experiment\n'
                   'fog differences significant '
-                  'at {:0.0f}%'.format(significance * 100.0)))
+                  'at {:0.1f}%'.format(significance * 100.0)))
     this_map.colorbar()
     fname = ('fogpct_RWurban_d{domain:02d}_means_diff_'
-             'map_2tail_adj{adj}_p{sig:0.2f}.png'.format(
+             'map_2tail_adj{adj}_p{sig:0.3f}.png'.format(
                  domain=DOMAIN,
                  adj=adj_autocorr,
                  sig=significance))
