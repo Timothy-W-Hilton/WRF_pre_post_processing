@@ -390,6 +390,9 @@ class var_diff(object):
                  ncfile=None):
         """class constructor: instantiates a var_diff object.
 
+        ncfile specifies the full path to a previously saved netCDF
+        file created by var_diff.to_netcdf()
+
         varname may be any valid varname for `wrf.getvar()`, as well
         as "LCL" (liftring condensation level") or "fogpresent".
         fogpresent calculates a boolean indicating whether a
@@ -422,18 +425,18 @@ class var_diff(object):
                                  'all of fname_A, fname_B, label_A, label_B, '
                                  'varname'))
 
-        self.fnames = {label_A: fname_A, label_B: fname_B}
-        self.label_A = label_A
-        self.label_B = label_B
-        self.varname = varname
-        self.longname = None
-        self.units = None
-        self.time = {label_A: None, label_B: None}
-        self.lat = None
-        self.lon = None
-        self.data = {label_A: None, label_B: None}
-        self.is_land = None
-        self.z = None  # height above sea level (meters)
+            self.fnames = {label_A: fname_A, label_B: fname_B}
+            self.label_A = label_A
+            self.label_B = label_B
+            self.varname = varname
+            self.longname = None
+            self.units = None
+            self.time = {label_A: None, label_B: None}
+            self.lat = None
+            self.lon = None
+            self.data = {label_A: None, label_B: None}
+            self.is_land = None
+            self.z = None  # height above sea level (meters)
 
     def read_soil_layers(self, silent=False):
         """read soil layers, print to stdout
