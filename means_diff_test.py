@@ -68,12 +68,12 @@ def main(significance=None):
     this_map.pcolormesh(vd.lon, vd.lat, p, vmin=0, vmax=1.0, cmap=this_cmap)
     ax.set_title(('urbanized redwood experiment\n'
                   'fog differences significant '
-                  'at {:0.1f}%'.format(significance * 100.0)))
+                  'at {:0.0f}%'.format(significance * 100.0)))
     significant_patch = mpatches.Patch(color=this_cmap.colors[-1],
                                        label='signficant')
     ax.legend(handles=(significant_patch, ))
     fname = ('fogpct_RWurban_d{domain:02d}_means_diff_'
-             'map_2tail_adj{adj}_p{sig:0.3f}.png'.format(
+             'map_2tail_adj{adj}_p{sig:0.2f}.png'.format(
                  domain=DOMAIN,
                  adj=adj_autocorr,
                  sig=significance))
