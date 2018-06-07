@@ -49,6 +49,6 @@ if __name__ == "__main__":
     ax.set_title(r'Fog pct p(ctl > urban redwoods)')
     this_map.colorbar()
     fig.savefig(fname=('fogpct_d{domain:02d}_means_diff_'
-                       'map_2tail_adj{n_eff}.png'.format(
+                       'map_2tail_adj{adj}.png'.format(
                            domain=DOMAIN,
                            adj=adj_autocorr)))
