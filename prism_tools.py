@@ -16,7 +16,7 @@ class PRISMTimeSeries(object):
 
     """
 
-    def __init__(self, fname):
+    def __init__(self, fname, varname, varunits):
         """intialize filename
 
         ARGS:
@@ -27,24 +27,18 @@ class PRISMTimeSeries(object):
         self.lon = None
         self.tstamps = None
         self.data = None
-        self.varname = None
-        self.varunits = None
+        self.varname = varname
+        self.varunits = varunits
 
-    def placeholder():
+    def from_zip_archive(self):
         # calculate lat, lon coordinates
-        lon_coords = hdr_vars[b'xllcorner'] + (np.arange(hdr_vars[b'nrows']) *
-                                               hdr_vars[b'cellsize'])
-        lat_coords = hdr_vars[b'yllcorner'] + (np.arange(hdr_vars[b'ncols']) *
-                                               hdr_vars[b'cellsize'])
-        if self.lat is None:
-            self.lat = lat_coords
-        else:
-            assert(np.array_equal(self.lat, lat_coords))
-        if self.lon is None:
-            self.lon = lon_coords
-        else:
-            assert(np.array_equal(self.lon, lon_coords))
-        return(data)
+        pmp = PRISMMonthlyParser(self.fname)
+        pmp.parse_all()
+        self.data = pmp.data
+        nrows = pmp.data.shape[1]
+        ncols = pmp.data.shape[2]
+        self.lon = pmp.xllcorner + (np.arange(nrows) * pmp.cellsize)
+        self.lat = pmp.yllcorner + (np.arange(ncols) * pmp.cellsize)
 
 
 class PRISMMonthlyParser(object):
@@ -76,7 +70,6 @@ class PRISMMonthlyParser(object):
         re_datafile = re.compile('\.asc$')
         data_files = list(filter(re_datafile.search, files))
         self.data_files = data_files
-        self.data_list = [None] * len(self.data_files)
 
     def _parse_file(self, fname, n_hdr_lines=6):
         """parse a daily PRISM data file from a zip archive
@@ -114,9 +107,9 @@ class PRISMMonthlyParser(object):
         self._find_data_files()
         data_list = [self._parse_file(this_file) for
                      this_file in self.data_files]
-        self.data = np.array(self.data_list)
+        self.data = np.array(data_list)
 
     def get_time_stamps(self, fname):
         """parse data from PRISM filename
         """
-        #TODO: implement this
+        tstamp_str = None
