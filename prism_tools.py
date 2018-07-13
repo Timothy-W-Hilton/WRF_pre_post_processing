@@ -30,6 +30,22 @@ class PRISMTimeSeries(object):
         self.varname = None
         self.varunits = None
 
+    def placeholder():
+        # calculate lat, lon coordinates
+        lon_coords = hdr_vars[b'xllcorner'] + (np.arange(hdr_vars[b'nrows']) *
+                                               hdr_vars[b'cellsize'])
+        lat_coords = hdr_vars[b'yllcorner'] + (np.arange(hdr_vars[b'ncols']) *
+                                               hdr_vars[b'cellsize'])
+        if self.lat is None:
+            self.lat = lat_coords
+        else:
+            assert(np.array_equal(self.lat, lat_coords))
+        if self.lon is None:
+            self.lon = lon_coords
+        else:
+            assert(np.array_equal(self.lon, lon_coords))
+        return(data)
+
 
 class PRISMMonthlyParser(object):
     """parse a zipped monthly `PRISM <http://prism.oregonstate.edu>`
@@ -45,8 +61,9 @@ class PRISMMonthlyParser(object):
         infile (str): full path to zip archive
         """
         self.infile = infile
-        self.lat = None
-        self.lon = None
+        self.xllcorner = None
+        self.yllcorner = None
+        self.cellsize = None
 
     def _find_data_files(self):
         """locate data files ("*.asc") in a PRISM zip archive
@@ -79,19 +96,16 @@ class PRISMMonthlyParser(object):
         # make sure all the data were read
         assert(data.shape == (np.int(hdr_vars[b'nrows']),
                               np.int(hdr_vars[b'ncols'])))
-        # calculate lat, lon coordinates
-        lon_coords = hdr_vars[b'xllcorner'] + (np.arange(hdr_vars[b'nrows']) *
-                                               hdr_vars[b'cellsize'])
-        lat_coords = hdr_vars[b'yllcorner'] + (np.arange(hdr_vars[b'ncols']) *
-                                               hdr_vars[b'cellsize'])
-        if self.lat is None:
-            self.lat = lat_coords
-        else:
-            assert(np.array_equal(self.lat, lat_coords))
-        if self.lon is None:
-            self.lon = lon_coords
-        else:
-            assert(np.array_equal(self.lon, lon_coords))
+        if self.xllcorner is None:
+            self.xllcorner = hdr_vars[b'xllcorner']
+        if self.yllcorner is None:
+            self.yllcorner = hdr_vars[b'yllcorner']
+        if self.cellsize is None:
+            self.cellsize = hdr_vars[b'cellsize']
+        # make sure all grid dimensions match
+        assert(self.xllcorner == hdr_vars[b'xllcorner'])
+        assert(self.yllcorner == hdr_vars[b'yllcorner'])
+        assert(self.cellsize == hdr_vars[b'cellsize'])
         return(data)
 
     def parse_all(self):
@@ -101,3 +115,8 @@ class PRISMMonthlyParser(object):
         data_list = [self._parse_file(this_file) for
                      this_file in self.data_files]
         self.data = np.array(self.data_list)
+
+    def get_time_stamps(self, fname):
+        """parse data from PRISM filename
+        """
+        #TODO: implement this
