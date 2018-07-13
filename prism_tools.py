@@ -7,6 +7,7 @@ reconstruction of meteorological fields
 import re
 import zipfile
 import numpy as np
+from datetime import datetime
 
 fp_tol = 1e-6   # floating point tolerance
 
@@ -35,6 +36,7 @@ class PRISMTimeSeries(object):
         pmp = PRISMMonthlyParser(self.fname)
         pmp.parse_all()
         self.data = pmp.data
+        self.tstamps = pmp.tstamp_list
         nrows = pmp.data.shape[1]
         ncols = pmp.data.shape[2]
         self.lon = pmp.xllcorner + (np.arange(nrows) * pmp.cellsize)
@@ -108,8 +110,18 @@ class PRISMMonthlyParser(object):
         data_list = [self._parse_file(this_file) for
                      this_file in self.data_files]
         self.data = np.array(data_list)
+        self.tstamp_list = [self.get_time_stamps(this_file) for
+                            this_file in self.data_files]
 
     def get_time_stamps(self, fname):
         """parse data from PRISM filename
         """
-        tstamp_str = None
+        re_tstamp = re.compile('[0-9]{8}')
+        tstamp_str = re_tstamp.search(fname)
+        import pdb; pdb.set_trace()
+        if tstamp_str:
+            tstamp = datetime.strptime(tstamp_str.group(0), '%Y%m%d')
+            return(tstamp)
+        else:
+            warnings.warn('unable to parse time stamp from {}'.format(fname))
+            return(None)
