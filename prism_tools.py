@@ -8,6 +8,7 @@ import re
 import zipfile
 import numpy as np
 from datetime import datetime
+import netCDF4
 
 fp_tol = 1e-6   # floating point tolerance
 
@@ -41,6 +42,14 @@ class PRISMTimeSeries(object):
         ncols = pmp.data.shape[2]
         self.lon = pmp.xllcorner + (np.arange(nrows) * pmp.cellsize)
         self.lat = pmp.yllcorner + (np.arange(ncols) * pmp.cellsize)
+
+    def interpolate(self, new_lat, new_lon):
+        """interpolate PRISM data to new grid
+        """
+        lat_grid, lon_grid = np.meshgrid(lat, lon)
+        n_tstamps = self.data.shape[0]
+        data_interpolated = np.full([new_lat.size, new_lon.size, n_tstamps],
+                                    np.nan)
 
 
 class PRISMMonthlyParser(object):
@@ -114,14 +123,28 @@ class PRISMMonthlyParser(object):
                             this_file in self.data_files]
 
     def get_time_stamps(self, fname):
-        """parse data from PRISM filename
+        """parse timestamp from a PRISM data file name
+
+        ARGS:
+        fname (str): full path to the PRISM data file
+
+        RETURNS:
+        datetime.datetime object containing the timestamp of the file
         """
         re_tstamp = re.compile('[0-9]{8}')
         tstamp_str = re_tstamp.search(fname)
-        import pdb; pdb.set_trace()
         if tstamp_str:
             tstamp = datetime.strptime(tstamp_str.group(0), '%Y%m%d')
             return(tstamp)
         else:
             warnings.warn('unable to parse time stamp from {}'.format(fname))
             return(None)
+
+
+def read_WRF_latlon(fname):
+    """parse latitude, longitude from WRF netcdf file
+    """
+    nc = netCDF4.Dataset(fname)
+    lat = nc.variables['XLAT'][0, ...].data
+    lon = nc.variables['XLONG'][0, ...].data
+    return(lat, lon)
