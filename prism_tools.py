@@ -9,6 +9,7 @@ import zipfile
 import numpy as np
 from datetime import datetime
 import netCDF4
+from pyresample import geometry, image
 
 fp_tol = 1e-6   # floating point tolerance
 
@@ -46,11 +47,15 @@ class PRISMTimeSeries(object):
     def interpolate(self, new_lat, new_lon):
         """interpolate PRISM data to new grid
         """
-        lat_grid, lon_grid = np.meshgrid(lat, lon)
+        lat_grid, lon_grid = np.meshgrid(self.lat, self.lon)
         n_tstamps = self.data.shape[0]
-        data_interpolated = np.full([new_lat.size, new_lon.size, n_tstamps],
-                                    np.nan)
-
+        new_grid = geometry.GridDefinition(lats=new_lat, lons=new_lon)
+        prism_grid = geometry.GridDefinition(lats=lat_grid, lons=lon_grid)
+        img = image.ImageContainerBilinear(image_data=self.data[0, ...],
+                                           geo_def=prism_grid,
+                                           radius_of_influence=10000)
+        new_image = img.resample(new_grid)
+        return(new_image)
 
 class PRISMMonthlyParser(object):
     """parse a zipped monthly `PRISM <http://prism.oregonstate.edu>`
