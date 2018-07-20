@@ -147,4 +147,4 @@ def read_WRF_latlon(fname):
     nc = netCDF4.Dataset(fname)
     lat = nc.variables['XLAT'][0, ...].data
     lon = nc.variables['XLONG'][0, ...].data
-    return(lat, lon)
+    return(lon, lat)
