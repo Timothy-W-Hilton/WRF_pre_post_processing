@@ -13,6 +13,7 @@ import interpolator
 
 fp_tol = 1e-6   # floating point tolerance
 
+
 class PRISMTimeSeries(object):
     """container for time series of `PRISM <http://prism.oregonstate.edu>`
     data with timestamps, coordinates
@@ -44,7 +45,7 @@ class PRISMTimeSeries(object):
         self.lon = pmp.xllcorner + (np.arange(ncols) * pmp.cellsize)
         self.lat = pmp.yllcorner + (np.arange(nrows) * pmp.cellsize)
 
-    def interpolate(self, new_lat, new_lon, method='NN'):
+    def interpolate(self, new_lon, new_lat, method='NN'):
         """interpolate PRISM data to new grid
         """
         lat_grid, lon_grid = np.meshgrid(self.lat, self.lon)
