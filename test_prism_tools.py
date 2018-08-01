@@ -12,7 +12,7 @@ import cartopy.crs as ccrs
 parse_data = False
 
 
-def plot_interpolated(pts):
+def plot_interpolated(pts, lon, lat):
     """
     """
 
@@ -22,22 +22,23 @@ def plot_interpolated(pts):
     ax = [fig.add_subplot(gs[0, n], projection=ccrs.PlateCarree())
           for n in range(2)]
     for this_ax in ax:
-        this_ax.set_extent([pts.lon.min() - 1.0, pts.lon.max() + 1.0,
-                            pts.lat.min() - 1.0, pts.lat.max() + 1.0],
+        this_ax.set_extent([lon.min() - 1.0, lon.max() + 1.0,
+                            lat.min() - 1.0, lat.max() + 1.0],
                            crs=ccrs.PlateCarree())
         this_ax.add_feature(cfeature.LAND)
         this_ax.add_feature(cfeature.OCEAN)
     # plot data
-    long, latg = np.meshgrid(pts.lon, pts.lat)
-    cs = ax[0].pcolormesh(long, np.flipud(latg), pts.data[0, ...])
+    long, latg = np.meshgrid(pts.lon, pts.lat[::-1])
+    cs = ax[0].pcolormesh(long, latg, pts.data[0, ...])
     ax[0].set_title('original PRISM')
-    cs = ax[1].pcolormesh(long, np.flipud(latg), pts.data[0, ...])
+    cs = ax[1].pcolormesh(lon, lat, pts.data_interp)  # , edgecolors='#F2F2F2')
     ax[1].set_title('interpolated NN')
     # colorbar
     ax = fig.add_subplot(gs[0, 2])
     ax.set_title(pts.varname)
     plt.colorbar(cs, cax=ax)
     return(fig)
+
 
 if __name__ == "__main__":
     prism_dir = os.path.join('/', 'Users',
@@ -60,5 +61,5 @@ if __name__ == "__main__":
 
     lon, lat = prism_tools.read_WRF_latlon(
         os.path.join(prism_dir, 'WRF_d02_latlon.nc'))
-    # new_data = pts.interpolate(lon, lat, method='NN')
-    plot_interpolated(pts)
+    pts.interpolate(lon, lat, method='NN')
+    plot_interpolated(pts, lon, lat)
