@@ -9,7 +9,7 @@ import zipfile
 import numpy as np
 from datetime import datetime
 import netCDF4
-from pyresample import geometry, image
+import interpolator
 
 fp_tol = 1e-6   # floating point tolerance
 
@@ -41,21 +41,18 @@ class PRISMTimeSeries(object):
         self.tstamps = pmp.tstamp_list
         nrows = pmp.data.shape[1]
         ncols = pmp.data.shape[2]
-        self.lon = pmp.xllcorner + (np.arange(nrows) * pmp.cellsize)
-        self.lat = pmp.yllcorner + (np.arange(ncols) * pmp.cellsize)
+        self.lon = pmp.xllcorner + (np.arange(ncols) * pmp.cellsize)
+        self.lat = pmp.yllcorner + (np.arange(nrows) * pmp.cellsize)
 
-    def interpolate(self, new_lat, new_lon):
+    def interpolate(self, new_lat, new_lon, method='NN'):
         """interpolate PRISM data to new grid
         """
         lat_grid, lon_grid = np.meshgrid(self.lat, self.lon)
         n_tstamps = self.data.shape[0]
-        new_grid = geometry.GridDefinition(lats=new_lat, lons=new_lon)
-        prism_grid = geometry.GridDefinition(lats=lat_grid, lons=lon_grid)
-        img = image.ImageContainerBilinear(image_data=self.data[0, ...],
-                                           geo_def=prism_grid,
-                                           radius_of_influence=10000)
-        new_image = img.resample(new_grid)
-        return(new_image)
+        itp = interpolator.cKDTreeInterpolator(lon_grid, lat_grid,
+                                               new_lon, new_lat)
+        self.data_interp = itp.interpolate(self.data[0, ...], method)
+
 
 class PRISMMonthlyParser(object):
     """parse a zipped monthly `PRISM <http://prism.oregonstate.edu>`
