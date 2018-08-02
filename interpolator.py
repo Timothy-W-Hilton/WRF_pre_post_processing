@@ -47,32 +47,14 @@ class cKDTreeInterpolator(object):
         """
         find nearest neighbors for a set of lon, lat points from a second
         set of lon, lat points.
-
-        Given a set of arbitrary (lon, lat) positions, find the horizontal
-        (x, y) STEM grid indices of the nearest STEM grid cell center to
-        each position.
-        PARAMETERS
-        ----------
-        lon, lat: ndarray; of arbitrary longitudes and latitudes.  Must
-           contain the same number of elements.
-        lon_stem, lat_stem: ndarrays; longitudes and latitudes of STEM
-           grid cell centers. Must contain the same number of elements.
-
-        RETURNS:
-        an N-element tuple of X and Y indices, one index per observation.
-            The indices are the closest point in (lon, lat) to each point
-            in (lon_stem, lat_stem).  N is therefore equal to the number
-            of dimensions in lon_stem and lat_stem.
         """
+
         # convert spherical lon, lat coordinates to cartesian coords. Note
         # that these x,y,z are 3-dimensional cartesian coordinates of
         # positions on a sphere, and are thus different from the x,y,z
         # *indices* of the STEM grid.
         self.xi, self.yi, self.zi = self._lon_lat_to_cartesian(self.lon_in,
                                                                self.lat_in)
-        self.xo, self.yo, self.zo = self._lon_lat_to_cartesian(self.lon_out,
-                                                               self.lat_out)
-
         # use a K-dimensional tree to find the nearest neighbor to (x,y,z)
         # from the points within (xs, ys, zs).  A KD tree is a data
         # structure that allows efficient queries of K-dimensional space (K
@@ -84,6 +66,8 @@ class cKDTreeInterpolator(object):
     def _get_NN_idx(self):
         """
         """
+        self.xo, self.yo, self.zo = self._lon_lat_to_cartesian(self.lon_out,
+                                                               self.lat_out)
         d, inds = self.tree.query(
             np.dstack((self.xo, self.yo, self.zo)).squeeze(), k=1)
         # self.inds = np.unravel_index(inds, self.lon_out.shape)
@@ -108,4 +92,5 @@ class cKDTreeInterpolator(object):
             raise NotImplementedError("IDW not yet implemented")
         else:
             raise ValueError("method argument must be one of ('NN', 'IWD')")
+        import pdb; pdb.set_trace()
         return(data.flatten()[self.inds])
