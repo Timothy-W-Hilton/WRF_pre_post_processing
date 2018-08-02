@@ -92,5 +92,22 @@ class cKDTreeInterpolator(object):
             raise NotImplementedError("IDW not yet implemented")
         else:
             raise ValueError("method argument must be one of ('NN', 'IWD')")
-        import pdb; pdb.set_trace()
-        return(data.flatten()[self.inds])
+
+        #brute force array filling
+        new_data = np.full(self.inds.shape, np.nan)
+        # f = open('coords.txt', 'w')
+        for i in range(self.inds.shape[0]):
+            for j in range(self.inds.shape[1]):
+                new_data[i, j] = data.flatten()[self.inds[i, j]]
+                thisidx = self.inds[i, j]
+        #         print(thisidx,
+        #               self.lon_in.flatten()[thisidx],
+        #               self.lat_in.flatten()[thisidx],
+        #               self.lon_out[i, j],
+        #               self.lat_out[i, j],
+        #               data.flatten()[thisidx],
+        #               new_data[i, j],
+        #               file=f)
+        # f.close()
+        return(new_data)
+        # return(data.flatten()[self.inds])

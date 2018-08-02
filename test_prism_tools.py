@@ -12,6 +12,10 @@ import cartopy.crs as ccrs
 parse_data = False
 
 
+def double_check_coords():
+    data = np.genfromtxt(fname='coords.txt', delimiter=' ')
+
+
 def plot_interpolated(pts, lon, lat):
     """
     """
