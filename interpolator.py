@@ -132,3 +132,78 @@ class cKDTreeInterpolator(object):
         ax[0, 1].set_title('grid out')
         ax[0, 1].add_feature(cfeature.LAND)
         ax[0, 1].add_feature(cfeature.OCEAN)
+
+
+def find_nearest_xy(lon_in, lat_in, lon_out, lat_out):
+    """
+    find nearest neighbors for a set of lon, lat points from a second
+    set of lon, lat points.
+
+    Given a set of arbitrary (lon, lat) positions, find the horizontal
+    (x, y) STEM grid indices of the nearest STEM grid cell center to
+    each position.
+    PARAMETERS
+    ----------
+    lon, lat: ndarray; of arbitrary longitudes and latitudes.  Must
+       contain the same number of elements.
+    lon_stem, lat_stem: ndarrays; longitudes and latitudes of STEM
+       grid cell centers. Must contain the same number of elements.
+
+    RETURNS:
+    an N-element tuple of X and Y indices, one index per observation.
+        The indices are the closest point in (lon, lat) to each point
+        in (lon_stem, lat_stem).  N is therefore equal to the number
+        of dimensions in lon_stem and lat_stem.
+    """
+    # convert spherical lon, lat coordinates to cartesian coords. Note
+    # that these x,y,z are 3-dimensional cartesian coordinates of
+    # positions on a sphere, and are thus different from the x,y,z
+    # *indices* of the STEM grid.
+    lon_in, lat_in = np.meshgrid(lon_in, lat_in)
+    lat_in = lat_in[::-1]
+    xi, yi, zi = _lon_lat_to_cartesian(lon_in, lat_in)
+    xo, yo, zo = _lon_lat_to_cartesian(lon_out, lat_out)
+
+    # use a K-dimensional tree to find the nearest neighbor to (x,y,z)
+    # from the points within (xs, ys, zs).  A KD tree is a data
+    # structure that allows efficient queries of K-dimensional space (K
+    # here is 3).
+    tree = cKDTree(np.dstack((xi.flatten(),
+                              yi.flatten(),
+                              zi.flatten())).squeeze())
+
+    d, inds = tree.query(
+        np.dstack((xo, yo, zo)).squeeze(), k=1)
+
+    return(np.unravel_index(inds, lon_in.shape))
+
+
+def _lon_lat_to_cartesian(lon, lat, R=1):
+    """
+    Convert spherical coordinates to three-dimensional Cartesian
+    coordinates.
+
+    calculates three dimensional cartesian coordinates (x, y, z) for
+    specified longitude, latitude coordinates on a sphere with radius
+    R.  Written and posted at earthpy.org by Oleksandr Huziy.
+    http://earthpy.org/interpolation_between_grids_with_ckdtree.html
+    accessed 19 Mar 2014 by Timothy W. Hilton.
+
+    PARAMETERS
+    ==========
+    lon; np.ndarray: longitude values
+    lat; np.ndarray: latitude values
+    R: scalar; radius of the sphere.
+
+    RETURNS
+    =======
+    three element tuple containing X, Y, and Z, one element per
+    lon,lat pair.
+    """
+    lon_r = np.radians(lon)
+    lat_r = np.radians(lat)
+
+    x = R * np.cos(lat_r) * np.cos(lon_r)
+    y = R * np.cos(lat_r) * np.sin(lon_r)
+    z = R * np.sin(lat_r)
+    return x, y, z

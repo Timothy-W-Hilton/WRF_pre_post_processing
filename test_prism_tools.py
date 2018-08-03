@@ -8,6 +8,7 @@ import matplotlib.pyplot as plt
 from matplotlib.gridspec import GridSpec
 import cartopy.crs as ccrs
 
+import interpolator
 
 parse_data = False
 
@@ -32,9 +33,11 @@ def plot_interpolated(pts, lon, lat):
         this_ax.coastlines(resolution='50m', color='black', linewidth=1)
     # plot data
     long, latg = np.meshgrid(pts.lon, pts.lat[::-1])
-    cs = ax[0].pcolormesh(long, latg, pts.data[0, ...])
+    cs = ax[0].pcolormesh(long, latg, pts.data[0, ...],
+                          vmin=0, vmax=30)
     ax[0].set_title('original PRISM')
-    cs = ax[1].pcolormesh(lon, lat, pts.data_interp)  # , edgecolors='#F2F2F2')
+    cs = ax[1].pcolormesh(lon, lat, pts.data_interp,
+                          vmin=0, vmax=30)
     ax[1].set_title('interpolated NN')
     # colorbar
     ax = fig.add_subplot(gs[0, 2])
@@ -64,5 +67,7 @@ if __name__ == "__main__":
 
     lon, lat = prism_tools.read_WRF_latlon(
         os.path.join(prism_dir, 'WRF_d02_latlon.nc'))
-    pts.interpolate(lon, lat, method='NN')
+    # pts.interpolate(lon, lat, method='NN')
+    idx = interpolator.find_nearest_xy(pts.lon, pts.lat, lon, lat)
+    pts.data_interp = pts.data[0, idx[0], idx[1]]
     plot_interpolated(pts, lon, lat)
