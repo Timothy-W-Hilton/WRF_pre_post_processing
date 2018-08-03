@@ -29,8 +29,7 @@ def plot_interpolated(pts, lon, lat):
         this_ax.set_extent([lon.min() - 1.0, lon.max() + 1.0,
                             lat.min() - 1.0, lat.max() + 1.0],
                            crs=ccrs.PlateCarree())
-        this_ax.add_feature(cfeature.LAND)
-        this_ax.add_feature(cfeature.OCEAN)
+        this_ax.coastlines(resolution='50m', color='black', linewidth=1)
     # plot data
     long, latg = np.meshgrid(pts.lon, pts.lat[::-1])
     cs = ax[0].pcolormesh(long, latg, pts.data[0, ...])
