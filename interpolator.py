@@ -109,5 +109,26 @@ class cKDTreeInterpolator(object):
         #               new_data[i, j],
         #               file=f)
         # f.close()
+        # self.debug_plot()
         return(new_data)
         # return(data.flatten()[self.inds])
+
+    def debug_plot(self):
+        """
+        """
+        import matplotlib.pyplot as plt
+        import cartopy.crs as ccrs
+        import cartopy.feature as cfeature
+        fig, ax = plt.subplots(
+            ncols=2,
+            nrows=2,
+            subplot_kw={'projection': ccrs.PlateCarree()})
+        ax[0, 0].scatter(self.lon_in, self.lat_in, marker='.')
+        ax[0, 0].set_title('grid in')
+        ax[0, 0].add_feature(cfeature.LAND)
+        ax[0, 0].add_feature(cfeature.OCEAN)
+
+        ax[0, 1].scatter(self.lon_out, self.lat_out, marker='.')
+        ax[0, 1].set_title('grid out')
+        ax[0, 1].add_feature(cfeature.LAND)
+        ax[0, 1].add_feature(cfeature.OCEAN)
