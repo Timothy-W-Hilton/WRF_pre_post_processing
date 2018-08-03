@@ -44,11 +44,13 @@ class PRISMTimeSeries(object):
         ncols = pmp.data.shape[2]
         self.lon = pmp.xllcorner + (np.arange(ncols) * pmp.cellsize)
         self.lat = pmp.yllcorner + (np.arange(nrows) * pmp.cellsize)
+        self.lat = self.lat[::-1]
+        print('latitude corrected')
 
     def interpolate(self, new_lon, new_lat, method='NN'):
         """interpolate PRISM data to new grid
         """
-        lat_grid, lon_grid = np.meshgrid(self.lat, self.lon)
+        lon_grid, lat_grid = np.meshgrid(self.lon, self.lat)
         n_tstamps = self.data.shape[0]
         itp = interpolator.cKDTreeInterpolator(lon_grid, lat_grid,
                                                new_lon, new_lat)

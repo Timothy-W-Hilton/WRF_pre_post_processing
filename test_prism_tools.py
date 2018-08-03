@@ -10,11 +10,7 @@ import cartopy.crs as ccrs
 
 import interpolator
 
-parse_data = False
-
-
-def double_check_coords():
-    data = np.genfromtxt(fname='coords.txt', delimiter=' ')
+parse_data = True
 
 
 def plot_interpolated(pts, lon, lat):
@@ -32,7 +28,7 @@ def plot_interpolated(pts, lon, lat):
                            crs=ccrs.PlateCarree())
         this_ax.coastlines(resolution='50m', color='black', linewidth=1)
     # plot data
-    long, latg = np.meshgrid(pts.lon, pts.lat[::-1])
+    long, latg = np.meshgrid(pts.lon, pts.lat)
     cs = ax[0].pcolormesh(long, latg, pts.data[0, ...],
                           vmin=0, vmax=30)
     ax[0].set_title('original PRISM')
@@ -67,7 +63,7 @@ if __name__ == "__main__":
 
     lon, lat = prism_tools.read_WRF_latlon(
         os.path.join(prism_dir, 'WRF_d02_latlon.nc'))
-    # pts.interpolate(lon, lat, method='NN')
-    idx = interpolator.find_nearest_xy(pts.lon, pts.lat, lon, lat)
-    pts.data_interp = pts.data[0, idx[0], idx[1]]
+    pts.interpolate(lon, lat, method='NN')
+    # idx = interpolator.find_nearest_xy(pts.lon, pts.lat, lon, lat)
+    # pts.data_interp = pts.data[0, idx[0], idx[1]]
     plot_interpolated(pts, lon, lat)
