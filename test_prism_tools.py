@@ -64,6 +64,4 @@ if __name__ == "__main__":
     lon, lat = prism_tools.read_WRF_latlon(
         os.path.join(prism_dir, 'WRF_d02_latlon.nc'))
     pts.interpolate(lon, lat, method='NN')
-    # idx = interpolator.find_nearest_xy(pts.lon, pts.lat, lon, lat)
-    # pts.data_interp = pts.data[0, idx[0], idx[1]]
     plot_interpolated(pts, lon, lat)

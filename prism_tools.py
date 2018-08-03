@@ -45,7 +45,6 @@ class PRISMTimeSeries(object):
         self.lon = pmp.xllcorner + (np.arange(ncols) * pmp.cellsize)
         self.lat = pmp.yllcorner + (np.arange(nrows) * pmp.cellsize)
         self.lat = self.lat[::-1]
-        print('latitude corrected')
 
     def interpolate(self, new_lon, new_lat, method='NN'):
         """interpolate PRISM data to new grid
