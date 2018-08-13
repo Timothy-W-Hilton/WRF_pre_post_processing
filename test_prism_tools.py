@@ -13,7 +13,23 @@ import interpolator
 parse_data = False
 
 
-def plot_interpolated(pts, lon, lat, tidx=0):
+def update(event, pts, lon, lat, ax):
+    if pts.tidx < pts.data.shape[0]:
+        pts.tidx = pts.tidx + 1
+    else:
+        pts.tidx = 0
+    long, latg = np.meshgrid(pts.lon, pts.lat)
+    #clear frame
+    # ax[0].clear()
+    # ax[1].clear()
+    ax[0].pcolormesh(long, latg, pts.data[pts.tidx, ...],
+                     vmin=0, vmax=30)
+    ax[1].pcolormesh(lon, lat, pts.data_interp[pts.tidx, ...],
+                     vmin=0, vmax=30)
+    plt.draw() #redraw
+
+
+def plot_interpolated(pts, lon, lat):
     """
     """
 
@@ -29,17 +45,17 @@ def plot_interpolated(pts, lon, lat, tidx=0):
         this_ax.coastlines(resolution='50m', color='black', linewidth=1)
     # plot data
     long, latg = np.meshgrid(pts.lon, pts.lat)
-    cs = ax[0].pcolormesh(long, latg, pts.data[tidx, ...],
+    cs = ax[0].pcolormesh(long, latg, pts.data[pts.tidx, ...],
                           vmin=0, vmax=30)
     ax[0].set_title('original PRISM')
-    cs = ax[1].pcolormesh(lon, lat, pts.data_interp[tidx, ...],
+    cs = ax[1].pcolormesh(lon, lat, pts.data_interp[pts.tidx, ...],
                           vmin=0, vmax=30)
     ax[1].set_title('interpolated NN')
     # colorbar
-    ax = fig.add_subplot(gs[0, 2])
-    ax.set_title(pts.varname)
-    plt.colorbar(cs, cax=ax)
-    return(fig)
+    ax_cb = fig.add_subplot(gs[0, 2])
+    ax_cb.set_title(pts.varname)
+    plt.colorbar(cs, cax=ax_cb)
+    return(fig, ax)
 
 
 if __name__ == "__main__":
@@ -64,5 +80,8 @@ if __name__ == "__main__":
     lon, lat = prism_tools.read_WRF_latlon(
         os.path.join(prism_dir, 'WRF_d02_latlon.nc'))
     pts.interpolate(lon, lat, method='NN')
-    for this_time in range(30):
-        plot_interpolated(pts, lon, lat, this_time)
+    pts.tidx = 0
+    fig, ax = plot_interpolated(pts, lon, lat)
+    fig.canvas.mpl_connect('button_press_event',
+                           lambda event: update(1, pts, lon, lat, ax))
+    plt.show()
