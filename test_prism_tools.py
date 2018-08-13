@@ -13,19 +13,15 @@ import interpolator
 parse_data = False
 
 
-def update(event, pts, lon, lat, ax):
-    if pts.tidx < pts.data.shape[0]:
-        pts.tidx = pts.tidx + 1
-    else:
+def update(event, pts, cs):
+    pts.tidx = pts.tidx + 1
+    if pts.tidx >= pts.data.shape[0]:
         pts.tidx = 0
-    long, latg = np.meshgrid(pts.lon, pts.lat)
-    #clear frame
-    # ax[0].clear()
-    # ax[1].clear()
-    ax[0].pcolormesh(long, latg, pts.data[pts.tidx, ...],
-                     vmin=0, vmax=30)
-    ax[1].pcolormesh(lon, lat, pts.data_interp[pts.tidx, ...],
-                     vmin=0, vmax=30)
+    # this ":-1" indexing monstrosity is needed for "flat" shading
+    # (the pcolormesh default).  See
+    # [https://stackoverflow.com/questions/18797175/animation-with-pcolormesh-routine-in-matplotlib-how-do-i-initialize-the-data]
+    cs[0].set_array(pts.data[pts.tidx, :-1, :-1].ravel())
+    cs[1].set_array(pts.data_interp[pts.tidx, :-1, :-1].ravel())
     plt.draw() #redraw
 
 
@@ -45,17 +41,17 @@ def plot_interpolated(pts, lon, lat):
         this_ax.coastlines(resolution='50m', color='black', linewidth=1)
     # plot data
     long, latg = np.meshgrid(pts.lon, pts.lat)
-    cs = ax[0].pcolormesh(long, latg, pts.data[pts.tidx, ...],
+    cs1 = ax[0].pcolormesh(long, latg, pts.data[pts.tidx, ...],
                           vmin=0, vmax=30)
     ax[0].set_title('original PRISM')
-    cs = ax[1].pcolormesh(lon, lat, pts.data_interp[pts.tidx, ...],
+    cs2 = ax[1].pcolormesh(lon, lat, pts.data_interp[pts.tidx, ...],
                           vmin=0, vmax=30)
     ax[1].set_title('interpolated NN')
     # colorbar
     ax_cb = fig.add_subplot(gs[0, 2])
     ax_cb.set_title(pts.varname)
-    plt.colorbar(cs, cax=ax_cb)
-    return(fig, ax)
+    plt.colorbar(cs1, cax=ax_cb)
+    return(fig, (cs1, cs2))
 
 
 if __name__ == "__main__":
@@ -81,7 +77,7 @@ if __name__ == "__main__":
         os.path.join(prism_dir, 'WRF_d02_latlon.nc'))
     pts.interpolate(lon, lat, method='NN')
     pts.tidx = 0
-    fig, ax = plot_interpolated(pts, lon, lat)
+    fig, cs = plot_interpolated(pts, lon, lat)
     fig.canvas.mpl_connect('button_press_event',
-                           lambda event: update(1, pts, lon, lat, ax))
+                           lambda event: update(1, pts, cs))
     plt.show()
