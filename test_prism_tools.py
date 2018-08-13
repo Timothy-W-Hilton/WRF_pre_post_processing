@@ -10,10 +10,10 @@ import cartopy.crs as ccrs
 
 import interpolator
 
-parse_data = True
+parse_data = False
 
 
-def plot_interpolated(pts, lon, lat):
+def plot_interpolated(pts, lon, lat, tidx=0):
     """
     """
 
@@ -29,10 +29,10 @@ def plot_interpolated(pts, lon, lat):
         this_ax.coastlines(resolution='50m', color='black', linewidth=1)
     # plot data
     long, latg = np.meshgrid(pts.lon, pts.lat)
-    cs = ax[0].pcolormesh(long, latg, pts.data[0, ...],
+    cs = ax[0].pcolormesh(long, latg, pts.data[tidx, ...],
                           vmin=0, vmax=30)
     ax[0].set_title('original PRISM')
-    cs = ax[1].pcolormesh(lon, lat, pts.data_interp,
+    cs = ax[1].pcolormesh(lon, lat, pts.data_interp[tidx, ...],
                           vmin=0, vmax=30)
     ax[1].set_title('interpolated NN')
     # colorbar
@@ -64,4 +64,5 @@ if __name__ == "__main__":
     lon, lat = prism_tools.read_WRF_latlon(
         os.path.join(prism_dir, 'WRF_d02_latlon.nc'))
     pts.interpolate(lon, lat, method='NN')
-    plot_interpolated(pts, lon, lat)
+    for this_time in range(30):
+        plot_interpolated(pts, lon, lat, this_time)
