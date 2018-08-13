@@ -73,7 +73,7 @@ class cKDTreeInterpolator(object):
         # self.inds = np.unravel_index(inds, self.lon_out.shape)
         self.inds = inds
 
-    def interpolate(self, data, method='NN'):
+    def interpolate(self, data, method='NN', time_ax=0):
         """interpolate data
 
         Interpolate data using one of the supported methods.
@@ -84,6 +84,8 @@ class cKDTreeInterpolator(object):
         method (str): {"NN"}|"IDW" Interploation method to use.  Must
            be one of "NN" (default) or "IDW".
         data (array-like): data to interpolate
+        time_ax (int): axis (zero-based) containing the time dimension
+           (default is 0)
         """
         self.inds = None
         if method is "NN":
@@ -92,4 +94,5 @@ class cKDTreeInterpolator(object):
             raise NotImplementedError("IDW not yet implemented")
         else:
             raise ValueError("method argument must be one of ('NN', 'IWD')")
-        return(data.flatten()[self.inds])
+        idx2D = np.unravel_index(self.inds, dims=data[0, ...].shape)
+        return(data[:, idx2D[0], idx2D[1]])

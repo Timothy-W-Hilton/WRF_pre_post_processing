@@ -53,7 +53,7 @@ class PRISMTimeSeries(object):
         n_tstamps = self.data.shape[0]
         itp = interpolator.cKDTreeInterpolator(lon_grid, lat_grid,
                                                new_lon, new_lat)
-        self.data_interp = itp.interpolate(self.data[0, ...], method)
+        self.data_interp = itp.interpolate(self.data, method)
 
 
 class PRISMMonthlyParser(object):
