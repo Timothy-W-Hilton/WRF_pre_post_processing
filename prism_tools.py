@@ -50,10 +50,34 @@ class PRISMTimeSeries(object):
         """interpolate PRISM data to new grid
         """
         lon_grid, lat_grid = np.meshgrid(self.lon, self.lat)
-        n_tstamps = self.data.shape[0]
+        self.lon_interp = new_lon
+        self.lat_interp = new_lat
         itp = interpolator.cKDTreeInterpolator(lon_grid, lat_grid,
                                                new_lon, new_lat)
         self.data_interp = itp.interpolate(self.data, method)
+
+    def write_ncdf(self, fname):
+        """write interpolated data to a netcdf file
+
+        ARGS:
+        fname (str): full path to the file to be written.  Will be
+            overwritten if it exists.
+        """
+        nc = netCDF4.Dataset(fname, mode="w", format="NETCDF4")
+        nc.createDimension("time", self.data_interp.shape[0])
+        nc.createDimension("lon", self.data_interp.shape[1])
+        nc.createDimension("lat", self.data_interp.shape[2])
+        nc.createVariable("lon", "f8", ("lon", "lat"))
+        nc.createVariable("lat", "f8", ("lon", "lat"))
+        nc.createVariable(self.varname, "f8", ("time", "lon", "lat"))
+        nc.variables["lon"][...] = self.lon_interp
+        nc.variables["lon"].units = "degrees E"
+        nc.variables["lat"][...] = self.lat_interp
+        nc.variables["lat"].units = "degrees N"
+        nc.variables[self.varname][...] = self.data_interp
+        nc.variables[self.varname].units = self.varunits
+        nc.history = ("PRISM data interpolated to WRF grid using prism_tools.")
+        nc.close()
 
 
 class PRISMMonthlyParser(object):
