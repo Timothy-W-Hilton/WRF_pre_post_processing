@@ -54,4 +54,9 @@ nc_close(nc)
 
 dT <- Tmean_prism - Tmean_WRFNOAH
 fits <- raster::calc(dT, linear_fitter)
-names(fits) <- c('slope', 'intercept')
+names(fits) <- c('intercept', 'slope')
+
+plot(as.vector(dT[149, 113, ]),
+     xlab='days from 1 June 2009',
+     ylab='deg C')
+lines(fits[['slope']][149, 113, ] * 1:30 + fits[['intercept']][149, 113, ])
