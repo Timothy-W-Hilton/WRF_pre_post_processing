@@ -10,6 +10,7 @@ import numpy as np
 from datetime import datetime
 import netCDF4
 import interpolator
+import wrf
 
 fp_tol = 1e-6   # floating point tolerance
 
@@ -176,3 +177,16 @@ def read_WRF_latlon(fname):
     lat = nc.variables['XLAT'][0, ...].data
     lon = nc.variables['XLONG'][0, ...].data
     return(lon, lat)
+
+def get_WRF_proj4str(fname):
+    """get proj4 string from WRF datafile
+
+    A `proj4 <https://proj4.org>` `string
+    <https://proj4.org/usage/quickstart.html>` describes the map
+    projection that the data occupy.
+    """
+    nc = netCDF4.Dataset(fname)
+    proj4str = wrf.getvar(nc, 'XLAT').projection.proj4()
+    gb = wrf.geo_bounds(wrfin=nc)
+    nc.close()
+    return((proj4str, gb))

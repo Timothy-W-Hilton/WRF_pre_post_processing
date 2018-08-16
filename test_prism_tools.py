@@ -73,8 +73,9 @@ if __name__ == "__main__":
         pts = pickle.load(pfile)
         pfile.close()
 
-    lon, lat = prism_tools.read_WRF_latlon(
-        os.path.join(prism_dir, 'WRF_d02_latlon.nc'))
+    fname_wrf= os.path.join(prism_dir, 'WRF_d02_latlon.nc')
+    proj4str, gb = prism_tools.get_WRF_proj4str(fname_wrf)
+    lon, lat = prism_tools.read_WRF_latlon(fname_wrf)
     pts.interpolate(lon, lat, method='NN')
     pts.tidx = 0
     fig, cs = plot_interpolated(pts, lon, lat)
