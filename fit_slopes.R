@@ -1,5 +1,29 @@
 library(ncdf4)
 library(raster)
+library(rnaturalearth)
+library(sp)
+library(sf)
+library(tidyverse)
+
+map_setup <- function() {
+    ax_lim <- SpatialPoints(coords=data.frame(lon=c(-130, -120),
+                                              lat=c(30, 50)),
+                            proj4str=CRS("+proj=longlat +datum=WGS84")) %>%
+        spTransform(CRS("+proj=moll +datum=WGS84")) %>%
+        as.data.frame
+    na_sf <- rnaturalearth::ne_countries(country=c("United States of America", "Canada", "Mexico"),
+                                         scale=10,
+                                         returnclass = "sf")
+    na_sf %>%
+        dplyr::filter(continent == "North America") %>%
+        dplyr::select(name) %>%
+        st_transform(crs = "+proj=moll +datum=WGS84") %>%
+        plot(key.pos = NULL,
+             xlim=ax_lim[['lon']],
+             ylim=ax_lim[['lat']],
+             graticule = TRUE,
+             main = "U.S. West Coast")
+}
 
 ## convert Kelvins to centigrade
 ##
@@ -25,7 +49,9 @@ linear_fitter <- function(y) {
 }
 
 ## proj4str read from python packate prism_tools
-proj4_str <- '+proj=lcc +units=meters +a=6370000.0 +b=6370000.0 +lat_1=30.0 +lat_2=60.0 +lat_0=42.0 +lon_0=-127.5'
+## proj4_str <- '+proj=lcc +units=meters +a=6370000.0 +b=6370000.0 +lat_1=30.0 +lat_2=60.0 +lat_0=42.0 +lon_0=-127.5'
+## CRS() didn't like '+units = meters'
+proj4_str <- CRS('+proj=lcc +a=6370000.0 +b=6370000.0 +lat_1=30.0 +lat_2=60.0 +lat_0=42.0 +lon_0=-127.5')
 ## geobounds read from WRF output data by wrf-python
 gb <- list(xmn=-133.7434844970703, xmx=-116.14889526367188,
            ymn=33.550498962402344, ymx=49.80133819580078)
@@ -60,3 +86,8 @@ plot(as.vector(dT[149, 113, ]),
      xlab='days from 1 June 2009',
      ylab='deg C')
 lines(fits[['slope']][149, 113, ] * 1:30 + fits[['intercept']][149, 113, ])
+plot(fits, 2)
+
+plot.new()
+map_setup()
+plot(projectRaster(fits, crs="+proj=moll +datum=WGS84"), 2, add=TRUE)
