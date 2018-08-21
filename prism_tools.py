@@ -187,6 +187,6 @@ def get_WRF_proj4str(fname):
     """
     nc = netCDF4.Dataset(fname)
     proj4str = wrf.getvar(nc, 'XLAT').projection.proj4()
-    gb = wrf.geo_bounds(wrfin=nc)
+    gb = (wrf.cartopy_xlim(wrfin=nc), wrf.cartopy_ylim(wrfin=nc))
     nc.close()
     return((proj4str, gb))

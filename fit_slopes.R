@@ -5,24 +5,26 @@ library(sp)
 library(sf)
 library(tidyverse)
 
-map_setup <- function() {
+
+project_axlim <- function() {
     ax_lim <- SpatialPoints(coords=data.frame(lon=c(-130, -120),
                                               lat=c(30, 50)),
                             proj4str=CRS("+proj=longlat +datum=WGS84")) %>%
         spTransform(CRS("+proj=moll +datum=WGS84")) %>%
         as.data.frame
+    return(ax_lim)
+}
+
+map_setup <- function() {
+
     na_sf <- rnaturalearth::ne_countries(country=c("United States of America", "Canada", "Mexico"),
                                          scale=10,
                                          returnclass = "sf")
-    na_sf %>%
+    na_sf <- na_sf %>%
         dplyr::filter(continent == "North America") %>%
         dplyr::select(name) %>%
-        st_transform(crs = "+proj=moll +datum=WGS84") %>%
-        plot(key.pos = NULL,
-             xlim=ax_lim[['lon']],
-             ylim=ax_lim[['lat']],
-             graticule = TRUE,
-             main = "U.S. West Coast")
+        st_transform(crs = "+proj=moll +datum=WGS84")
+    return(na_sf)
 }
 
 ## convert Kelvins to centigrade
@@ -53,8 +55,8 @@ linear_fitter <- function(y) {
 ## CRS() didn't like '+units = meters'
 proj4_str <- CRS('+proj=lcc +a=6370000.0 +b=6370000.0 +lat_1=30.0 +lat_2=60.0 +lat_0=42.0 +lon_0=-127.5')
 ## geobounds read from WRF output data by wrf-python
-gb <- list(xmn=-133.7434844970703, xmx=-116.14889526367188,
-           ymn=33.550498962402344, ymx=49.80133819580078)
+gb <- list(xmn=-570000.3609862507, xmx=785999.295028379,
+           ymn=-893998.0207424405, ymx=894001.3626005002)
 
 nc <- nc_open('PRISM_tmean.nc')
 lon <- ncvar_get(nc, 'lon')
@@ -82,12 +84,24 @@ dT <- Tmean_prism - Tmean_WRFNOAH
 fits <- raster::calc(dT, linear_fitter)
 names(fits) <- c('intercept', 'slope')
 
-plot(as.vector(dT[149, 113, ]),
-     xlab='days from 1 June 2009',
-     ylab='deg C')
-lines(fits[['slope']][149, 113, ] * 1:30 + fits[['intercept']][149, 113, ])
-plot(fits, 2)
+## plot(as.vector(dT[149, 113, ]),
+##      xlab='days from 1 June 2009',
+##      ylab='deg C')
+## lines(fits[['slope']][149, 113, ] * 1:30 + fits[['intercept']][149, 113, ])
+## plot(fits, 2)
 
-plot.new()
-map_setup()
-plot(projectRaster(fits, crs="+proj=moll +datum=WGS84"), 2, add=TRUE)
+na_sf <- map_setup()
+ax_lim <- project_axlim()
+foo <- as.data.frame(as(projectRaster(fits[['slope']],
+                                      crs="+proj=moll +datum=WGS84"),
+                        "SpatialPixelsDataFrame"))
+
+my_map <- ggplot() +
+    geom_sf(data=na_sf) +
+    coord_sf(xlim=ax_lim[['lon']], ylim=ax_lim[['lat']]) +
+    geom_raster(data=as.data.frame(
+                    as(projectRaster(fits[['slope']],
+                                     crs="+proj=moll +datum=WGS84"),
+                       "SpatialPixelsDataFrame")),
+                mapping=aes(x=x, y=y, fill=slope))
+print(my_map)
