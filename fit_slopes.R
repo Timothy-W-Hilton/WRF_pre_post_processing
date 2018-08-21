@@ -97,11 +97,11 @@ foo <- as.data.frame(as(projectRaster(fits[['slope']],
                         "SpatialPixelsDataFrame"))
 
 my_map <- ggplot() +
-    geom_sf(data=na_sf) +
-    coord_sf(xlim=ax_lim[['lon']], ylim=ax_lim[['lat']]) +
     geom_raster(data=as.data.frame(
                     as(projectRaster(fits[['slope']],
                                      crs="+proj=moll +datum=WGS84"),
                        "SpatialPixelsDataFrame")),
-                mapping=aes(x=x, y=y, fill=slope))
+                mapping=aes(x=x, y=y, fill=slope)) +
+    geom_sf(data=na_sf, fill=NA) +
+    coord_sf(xlim=ax_lim[['lon']], ylim=ax_lim[['lat']])
 print(my_map)
