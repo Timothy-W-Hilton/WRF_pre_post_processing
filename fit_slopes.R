@@ -5,12 +5,14 @@ library(sp)
 library(sf)
 library(tidyverse)
 
+main_proj_str <- "+proj=lcc +lon_0=-120 +lat_0=40 +lon_1=-115 +lon_2=-125 +datum=WGS84"
+main_proj_str <- "+proj=ortho +lon_0=-120 +lat_0=40"
 
 project_axlim <- function() {
-    ax_lim <- SpatialPoints(coords=data.frame(lon=c(-130, -120),
+    ax_lim <- SpatialPoints(coords=data.frame(lon=c(-125, -115),
                                               lat=c(30, 50)),
                             proj4str=CRS("+proj=longlat +datum=WGS84")) %>%
-        spTransform(CRS("+proj=moll +datum=WGS84")) %>%
+        spTransform(CRS(main_proj_str)) %>%
         as.data.frame
     return(ax_lim)
 }
@@ -28,7 +30,7 @@ map_setup <- function() {
     namerica_sf <- namerica_sf %>%
         dplyr::filter(continent == "North America") %>%
         dplyr::select(name) %>%
-        st_transform(crs = "+proj=moll +datum=WGS84")
+        st_transform(crs = main_proj_str)
     return(namerica_sf)
 }
 
@@ -98,7 +100,7 @@ names(fits) <- c('intercept', 'slope')
 namerica_sf <- map_setup()
 ax_lim <- project_axlim()
 foo <- as.data.frame(as(projectRaster(fits[['slope']],
-                                      crs="+proj=moll +datum=WGS84"),
+                                      crs=main_proj_str),
                         "SpatialPixelsDataFrame"))
 
 water_blue <- "#D8F4FF"
@@ -111,7 +113,7 @@ my_map <- ggplot() +
     geom_sf(data=oceans50, fill=water_blue, alpha=0.8) +
     geom_raster(data=as.data.frame(
                     as(projectRaster(fits[['slope']],
-                                     crs="+proj=moll +datum=WGS84"),
+                                     crs=main_proj_str),
                        "SpatialPixelsDataFrame")),
                 mapping=aes(x=x, y=y, fill=slope)) +
     geom_sf(data=namerica_sf, fill=NA) +
@@ -122,7 +124,6 @@ my_map <- ggplot() +
     theme(axis.title.x=element_blank(),
           axis.title.y=element_blank(),
           plot.title=element_text(hjust=0.5),
-          ## panel.background=element_rect(fill = water_blue),
           panel.grid=element_line(color='black')) +
     labs(title=expression(Delta~'Tmean slopes, June 2009'))
 print(my_map)
