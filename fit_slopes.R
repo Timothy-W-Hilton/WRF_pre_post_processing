@@ -99,9 +99,11 @@ names(fits) <- c('intercept', 'slope')
 
 namerica_sf <- map_setup()
 ax_lim <- project_axlim()
-foo <- as.data.frame(as(projectRaster(fits[['slope']],
-                                      crs=main_proj_str),
-                        "SpatialPixelsDataFrame"))
+slopes_df <- as.data.frame(as(projectRaster(fits[['slope']],
+                                            crs=main_proj_str),
+                              "SpatialPixelsDataFrame"))
+slopes_df <- slopes_df %>%
+    mutate(binned=cut(slope, breaks=c(-0.4, -0.3, -0.2, -0.1, -0.03, 0.03, 0.1)))
 
 water_blue <- "#D8F4FF"
 oceans50 <- ne_load(scale = 50,
@@ -111,11 +113,8 @@ oceans50 <- ne_load(scale = 50,
 my_map <- ggplot() +
     geom_sf(data=namerica_sf, fill='gray', alpha=0.8) +
     geom_sf(data=oceans50, fill=water_blue, alpha=0.8) +
-    geom_raster(data=as.data.frame(
-                    as(projectRaster(fits[['slope']],
-                                     crs=main_proj_str),
-                       "SpatialPixelsDataFrame")),
-                mapping=aes(x=x, y=y, fill=slope)) +
+    geom_raster(data=slopes_df,
+                mapping=aes(x=x, y=y, fill=binned)) +
     geom_sf(data=namerica_sf, fill=NA) +
     geom_sf(data=rnaturalearth::ne_states(country="United States of America",
                                           returnclass = "sf"),
@@ -124,6 +123,9 @@ my_map <- ggplot() +
     theme(axis.title.x=element_blank(),
           axis.title.y=element_blank(),
           plot.title=element_text(hjust=0.5),
+          plot.subtitle=element_text(hjust=0.5),
           panel.grid=element_line(color='black')) +
-    labs(title=expression(Delta~'Tmean slopes, June 2009'))
+    ggtitle(expression(Delta*'T'['mean']~'slopes, June 2009'),
+            subtitle="urbanization removed, NOAH") +
+    scale_fill_discrete(name=expression(degree*'C / day' ))
 print(my_map)
