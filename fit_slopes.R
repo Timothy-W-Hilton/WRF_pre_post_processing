@@ -106,10 +106,14 @@ slopes_df <- slopes_df %>%
     mutate(binned=cut(slope, breaks=c(-0.4, -0.3, -0.2, -0.1, -0.03, 0.03, 0.1)))
 
 water_blue <- "#D8F4FF"
+## to download oceans data, call ne_download() with same parameters as
+## ne_load(), below
 oceans50 <- ne_load(scale = 50,
                     type = 'ocean',
                     category = 'physical',
-                    returnclass = 'sf')
+                    returnclass='sf',
+                    destdir = file.path('~', 'work', 'Data', 'RNaturalEarth'))
+
 my_map <- ggplot() +
     geom_sf(data=namerica_sf, fill='gray', alpha=0.8) +
     geom_sf(data=oceans50, fill=water_blue, alpha=0.8) +
