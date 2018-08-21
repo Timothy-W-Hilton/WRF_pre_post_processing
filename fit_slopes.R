@@ -17,9 +17,14 @@ project_axlim <- function() {
 
 map_setup <- function() {
 
-    namerica_sf <- rnaturalearth::ne_countries(country=c("United States of America", "Canada", "Mexico"),
-                                         scale=10,
-                                         returnclass = "sf")
+    namerica_sf <- rnaturalearth::ne_countries(
+                                      country=c("United States of America",
+                                                "Canada", "Mexico"),
+                                      scale=10,
+                                      returnclass = "sf")
+    usstates_sf <- rnaturalearth::ne_states(
+                                      country=c("United States of America"),
+                                      returnclass = "sf")
     namerica_sf <- namerica_sf %>%
         dplyr::filter(continent == "North America") %>%
         dplyr::select(name) %>%
@@ -96,16 +101,28 @@ foo <- as.data.frame(as(projectRaster(fits[['slope']],
                                       crs="+proj=moll +datum=WGS84"),
                         "SpatialPixelsDataFrame"))
 
+water_blue <- "#D8F4FF"
+oceans50 <- ne_load(scale = 50,
+                    type = 'ocean',
+                    category = 'physical',
+                    returnclass = 'sf')
 my_map <- ggplot() +
+    geom_sf(data=namerica_sf, fill='gray', alpha=0.8) +
+    geom_sf(data=oceans50, fill=water_blue, alpha=0.8) +
     geom_raster(data=as.data.frame(
                     as(projectRaster(fits[['slope']],
                                      crs="+proj=moll +datum=WGS84"),
                        "SpatialPixelsDataFrame")),
                 mapping=aes(x=x, y=y, fill=slope)) +
     geom_sf(data=namerica_sf, fill=NA) +
+    geom_sf(data=rnaturalearth::ne_states(country="United States of America",
+                                          returnclass = "sf"),
+            fill=NA) +
     coord_sf(xlim=ax_lim[['lon']], ylim=ax_lim[['lat']]) +
     theme(axis.title.x=element_blank(),
           axis.title.y=element_blank(),
-          plot.title=element_text(hjust=0.5)) +
+          plot.title=element_text(hjust=0.5),
+          ## panel.background=element_rect(fill = water_blue),
+          panel.grid=element_line(color='black')) +
     labs(title=expression(Delta~'Tmean slopes, June 2009'))
 print(my_map)
