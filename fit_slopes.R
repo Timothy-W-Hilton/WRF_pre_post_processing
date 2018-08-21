@@ -103,5 +103,7 @@ my_map <- ggplot() +
                        "SpatialPixelsDataFrame")),
                 mapping=aes(x=x, y=y, fill=slope)) +
     geom_sf(data=na_sf, fill=NA) +
-    coord_sf(xlim=ax_lim[['lon']], ylim=ax_lim[['lat']])
+    coord_sf(xlim=ax_lim[['lon']], ylim=ax_lim[['lat']]) +
+    theme(axis.title.x=element_blank(),
+          axis.title.y=element_blank())
 print(my_map)
