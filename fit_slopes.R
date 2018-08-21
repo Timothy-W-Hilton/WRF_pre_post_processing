@@ -17,14 +17,14 @@ project_axlim <- function() {
 
 map_setup <- function() {
 
-    na_sf <- rnaturalearth::ne_countries(country=c("United States of America", "Canada", "Mexico"),
+    namerica_sf <- rnaturalearth::ne_countries(country=c("United States of America", "Canada", "Mexico"),
                                          scale=10,
                                          returnclass = "sf")
-    na_sf <- na_sf %>%
+    namerica_sf <- namerica_sf %>%
         dplyr::filter(continent == "North America") %>%
         dplyr::select(name) %>%
         st_transform(crs = "+proj=moll +datum=WGS84")
-    return(na_sf)
+    return(namerica_sf)
 }
 
 ## convert Kelvins to centigrade
@@ -90,7 +90,7 @@ names(fits) <- c('intercept', 'slope')
 ## lines(fits[['slope']][149, 113, ] * 1:30 + fits[['intercept']][149, 113, ])
 ## plot(fits, 2)
 
-na_sf <- map_setup()
+namerica_sf <- map_setup()
 ax_lim <- project_axlim()
 foo <- as.data.frame(as(projectRaster(fits[['slope']],
                                       crs="+proj=moll +datum=WGS84"),
@@ -102,8 +102,10 @@ my_map <- ggplot() +
                                      crs="+proj=moll +datum=WGS84"),
                        "SpatialPixelsDataFrame")),
                 mapping=aes(x=x, y=y, fill=slope)) +
-    geom_sf(data=na_sf, fill=NA) +
+    geom_sf(data=namerica_sf, fill=NA) +
     coord_sf(xlim=ax_lim[['lon']], ylim=ax_lim[['lat']]) +
     theme(axis.title.x=element_blank(),
-          axis.title.y=element_blank())
+          axis.title.y=element_blank(),
+          plot.title=element_text(hjust=0.5)) +
+    labs(title=expression(Delta~'Tmean slopes, June 2009'))
 print(my_map)

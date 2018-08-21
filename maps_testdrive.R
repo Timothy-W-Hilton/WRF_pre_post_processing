@@ -18,7 +18,10 @@ if (FALSE) {
     spdf_can <- rnaturalearth::ne_countries(country=c('Canada'), scale=10, returnclass = "sf")
 }
 
-na_sf <- rnaturalearth::ne_countries(country=c("United States of America", "Canada", "Mexico"), scale=10, returnclass = "sf")
+na_sf <- rnaturalearth::ne_countries(country=c("United States of America",
+                                               "Canada",
+                                               "Mexico"),
+                                     scale=10, returnclass = "sf")
 
 # South American countries with new CRS
 ax_lim <- SpatialPoints(coords=data.frame(lon=c(-130, -120),
