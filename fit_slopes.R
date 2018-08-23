@@ -6,19 +6,40 @@ library(sf)
 library(tidyverse)
 
 ## define some constants
-main_proj_str <- "+proj=ortho +lon_0=-120 +lat_0=40"  ## projection for map
+map_projection <- "+proj=ortho +lon_0=-120 +lat_0=40"  ## projection for map
 water_blue <- "#D8F4FF"  ## color for water
 ax_lim <- list(lon=c(-125, -115), lat=c(30, 50))  ## lon, lat limits of map
 
-project_axlim <- function(lon, lat) {
+##' transform axis limits to arbitrary projection
+##'
+##' uses methods from sp, sf packages
+##' @project_axlim
+##' @param lon vector of two longitudes
+##' @param lat vector of two latitudes
+##' @param proj4str
+##' @return DataFrame containing limits in projected units
+##' @author Timothy W. Hilton
+##' @export
+project_axlim <- function(lon, lat, proj4str) {
     ax_lim <- SpatialPoints(coords=data.frame(lon, lat),
                             proj4str=CRS("+proj=longlat +datum=WGS84")) %>%
-        spTransform(CRS(main_proj_str)) %>%
+        spTransform(CRS(proj4str)) %>%
         as.data.frame
     return(ax_lim)
 }
 
-map_setup <- function() {
+##' get polygons for USA, Mexico, Canada
+##'
+##' Use rnaturalearth, sf packages to return simple features objects
+##' describing USA, Mexico, Canada
+##' @map_setup
+##' @param proj4_str proj4 string describing the map projection for
+##'     the polygons
+##' @return simple features object containing polygons describing USA,
+##'     Mexico, Canada in the requested projection
+##' @author Timothy W. Hilton
+##' @export
+map_setup <- function(proj4_str) {
     ## get spatial points data frame for USA, Mexico, Canada
     namerica_sf <- rnaturalearth::ne_countries(
                                       country=c("United States of America",
@@ -27,24 +48,32 @@ map_setup <- function() {
                                       returnclass = "sf") %>%
         dplyr::filter(continent == "North America") %>%
         dplyr::select(name) %>%
-        st_transform(crs = main_proj_str)
+        st_transform(crs = proj4_str)
     return(namerica_sf)
 }
 
-## convert Kelvins to centigrade
-##
+##' convert Kelvins to degrees C
+##'
+##' C = K + 273.15
+##' @K_to_C
+##' @param K floating point temperature in Kelvins
+##' @return floating point temperature in degrees C
+##' @author Timothy W. Hilton
+##' @export
 K_to_C <- function(K) {
     return(K - 273.15)
 }
 
-## helper function for raster::calc
-##
-## The main purpose is to handle (by ignoring them) NAs in the data to
-## be fit
-##
-## adapted from
-## https://stackoverflow.com/questions/32975210/linear-regression-on-raster-images-lm-complains-about-nas/
-## 15 Aug 2018
+##' fit linear regressions to each pixel in a raster::brick object
+##'
+##' Helper function for raster::calc.  The main purpose is to handle
+##' (by ignoring them) NAs in the data to be fit.  Adapted from
+##' https://stackoverflow.com/questions/32975210/linear-regression-on-raster-images-lm-complains-about-nas/
+##' @linear_fitter
+##' @param y the dependent variable in the regression
+##' @return lm object describing the linear fit
+##' @author Timothy W. Hilton
+##' @export
 linear_fitter <- function(y) {
     if(all(is.na(y))) {
         return(c(NA, NA))
@@ -54,7 +83,7 @@ linear_fitter <- function(y) {
     }
 }
 
-## proj4str read from python packate prism_tools
+## proj4str read from python package prism_tools
 ## proj4_str <- '+proj=lcc +units=meters +a=6370000.0 +b=6370000.0 +lat_1=30.0 +lat_2=60.0 +lat_0=42.0 +lon_0=-127.5'
 ## CRS() didn't like '+units = meters'
 proj4_str <- CRS('+proj=lcc +a=6370000.0 +b=6370000.0 +lat_1=30.0 +lat_2=60.0 +lat_0=42.0 +lon_0=-127.5')
@@ -88,16 +117,11 @@ dT <- Tmean_prism - Tmean_WRFNOAA_Urban2veg
 fits <- raster::calc(dT, linear_fitter)
 names(fits) <- c('intercept', 'slope')
 
-## plot(as.vector(dT[149, 113, ]),
-##      xlab='days from 1 June 2009',
-##      ylab='deg C')
-## lines(fits[['slope']][149, 113, ] * 1:30 + fits[['intercept']][149, 113, ])
-## plot(fits, 2)
 
-namerica_sf <- map_setup()
-ax_lim <- project_axlim(ax_lim[['lon']], ax_lim[['lat']])
+namerica_sf <- map_setup(map_projection)
+ax_lim <- project_axlim(ax_lim[['lon']], ax_lim[['lat']], map_projection)
 slopes_df <- as.data.frame(as(projectRaster(fits[['slope']],
-                                            crs=main_proj_str),
+                                            crs=map_projection),
                               "SpatialPixelsDataFrame")) %>%
     ## group the slopes into bins
     mutate(binned=cut(slope, breaks=c(-0.4, -0.3, -0.2, -0.1, -0.03, 0.03, 0.1)))
@@ -142,5 +166,5 @@ if (FALSE) {
     ggplot() +
         geom_sf(data=oceans110, fill='blue', alpha=0.8) +
         coord_sf(xlim=c(-140, -110), ylim=c(25, 50))
-    foo <- st_transform(oceans110, paste(main_proj_str, '+wktext'), check=TRUE)
+    foo <- st_transform(oceans110, paste(map_projection, '+wktext'), check=TRUE)
 }
