@@ -1,5 +1,4 @@
 ## TODO: better color scale for binned data
-## TODO: figure out how to pass dT as an argument to linear_fitter()
 
 library(ncdf4)
 library(raster)
@@ -91,7 +90,7 @@ linear_fitter <- function(y) {
     if(all(is.na(y))) {
         return(c(NA, NA))
     } else {
-        x <- 1:nlayers(dT)
+        x <- 1:length(y)
         return(lm(y ~ x)$coefficients)
     }
 }
@@ -243,7 +242,6 @@ Tmean_prism <- read_PRISM_Tmean(gb=gb)
 Tmean_WRFNOAA_Urban2veg <- read_WRF_Tmean(fname='nourbanNOAH_d02_T.nc', gb)
 Tmean_WRFNOAA_Ctl <- read_WRF_Tmean(fname='ctlNOAH_d02_T.nc', gb)
 
-dT <- Tmean_prism - Tmean_WRFNOAA_Urban2veg
 fits <- calc_PRISM_WRF_slopes(Tmean_prism, Tmean_WRFNOAA_Urban2veg)
 slopes <- bin_slopes(fits, map_projection)
 
