@@ -220,6 +220,8 @@ summen_draw_map <- function(df, t_exp, t_sub_exp, cbar_lab_exp, map_projection) 
         geom_sf(data=rnaturalearth::ne_states(country="United States of America",
                                               returnclass = "sf"),
                 fill=NA) +
+        scale_fill_brewer(type=div, palette='PRGn') +
+        ## scale_fill_manual(values = terrain.colors(6)) +
         coord_sf(xlim=ax_lim[['lon']], ylim=ax_lim[['lat']]) +
         theme(axis.title.x=element_blank(),
               axis.title.y=element_blank(),
@@ -229,8 +231,7 @@ summen_draw_map <- function(df, t_exp, t_sub_exp, cbar_lab_exp, map_projection) 
               panel.background=element_rect(colour='black', fill=NA),
               panel.ontop = TRUE) +
         ggtitle(t_exp,
-                subtitle=t_sub_exp) +
-        scale_fill_discrete(name=cbar_lab_exp)
+                subtitle=t_sub_exp)
     return(my_map)
 }
 
