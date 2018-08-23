@@ -5,12 +5,13 @@ library(sp)
 library(sf)
 library(tidyverse)
 
-main_proj_str <- "+proj=lcc +lon_0=-120 +lat_0=40 +lon_1=-115 +lon_2=-125 +datum=WGS84"
-main_proj_str <- "+proj=ortho +lon_0=-120 +lat_0=40"
+## define some constants
+main_proj_str <- "+proj=ortho +lon_0=-120 +lat_0=40"  ## projection for map
+water_blue <- "#D8F4FF"  ## color for water
+ax_lim <- list(lon=c(-125, -115), lat=c(30, 50))  ## lon, lat limits of map
 
-project_axlim <- function() {
-    ax_lim <- SpatialPoints(coords=data.frame(lon=c(-125, -115),
-                                              lat=c(30, 50)),
+project_axlim <- function(lon, lat) {
+    ax_lim <- SpatialPoints(coords=data.frame(lon, lat),
                             proj4str=CRS("+proj=longlat +datum=WGS84")) %>%
         spTransform(CRS(main_proj_str)) %>%
         as.data.frame
@@ -18,16 +19,12 @@ project_axlim <- function() {
 }
 
 map_setup <- function() {
-
+    ## get spatial points data frame for USA, Mexico, Canada
     namerica_sf <- rnaturalearth::ne_countries(
                                       country=c("United States of America",
                                                 "Canada", "Mexico"),
                                       scale=10,
-                                      returnclass = "sf")
-    usstates_sf <- rnaturalearth::ne_states(
-                                      country=c("United States of America"),
-                                      returnclass = "sf")
-    namerica_sf <- namerica_sf %>%
+                                      returnclass = "sf") %>%
         dplyr::filter(continent == "North America") %>%
         dplyr::select(name) %>%
         st_transform(crs = main_proj_str)
@@ -77,17 +74,17 @@ Tmean_prism  <- flip(brick(ncvar_get(nc, 'tmean'),
 nc_close(nc)
 
 nc <- nc_open('nourbanNOAH_d02_T.nc')
-Tmean_WRFNOAH  <- flip(brick(ncvar_get(nc, 'T2'),
+Tmean_WRFNOAA_Urban2veg  <- flip(brick(ncvar_get(nc, 'T2'),
                              crs=proj4_str,
                              xmn=gb[['xmn']], xmx=gb[['xmx']],
                              ymn=gb[['ymn']], ymx=gb[['ymx']],
                              transpose=TRUE),
                        direction='y')
 
-Tmean_WRFNOAH <- K_to_C(Tmean_WRFNOAH)
+Tmean_WRFNOAA_Urban2veg <- K_to_C(Tmean_WRFNOAA_Urban2veg)
 nc_close(nc)
 
-dT <- Tmean_prism - Tmean_WRFNOAH
+dT <- Tmean_prism - Tmean_WRFNOAA_Urban2veg
 fits <- raster::calc(dT, linear_fitter)
 names(fits) <- c('intercept', 'slope')
 
@@ -98,28 +95,17 @@ names(fits) <- c('intercept', 'slope')
 ## plot(fits, 2)
 
 namerica_sf <- map_setup()
-ax_lim <- project_axlim()
+ax_lim <- project_axlim(ax_lim[['lon']], ax_lim[['lat']])
 slopes_df <- as.data.frame(as(projectRaster(fits[['slope']],
                                             crs=main_proj_str),
-                              "SpatialPixelsDataFrame"))
-slopes_df <- slopes_df %>%
+                              "SpatialPixelsDataFrame")) %>%
+    ## group the slopes into bins
     mutate(binned=cut(slope, breaks=c(-0.4, -0.3, -0.2, -0.1, -0.03, 0.03, 0.1)))
 
-water_blue <- "#D8F4FF"
-## to download oceans data, call ne_download() with same parameters as
-## ne_load(), below
-oceans50 <- ne_load(scale = 50,
-                    type = 'ocean',
-                    category = 'physical',
-                    returnclass='sf',
-                    destdir = file.path('~', 'work', 'Data', 'RNaturalEarth'))
-
 my_map <- ggplot() +
-    geom_sf(data=namerica_sf, fill='gray', alpha=0.8) +
-    geom_sf(data=oceans50, fill=water_blue, alpha=0.8) +
+    geom_sf(data=namerica_sf, color='black', fill='gray') +
     geom_raster(data=slopes_df,
                 mapping=aes(x=x, y=y, fill=binned)) +
-    geom_sf(data=namerica_sf, fill=NA) +
     geom_sf(data=rnaturalearth::ne_states(country="United States of America",
                                           returnclass = "sf"),
             fill=NA) +
@@ -128,8 +114,33 @@ my_map <- ggplot() +
           axis.title.y=element_blank(),
           plot.title=element_text(hjust=0.5),
           plot.subtitle=element_text(hjust=0.5),
-          panel.grid=element_line(color='black')) +
+          panel.grid=element_line(color='black'),
+          panel.background=element_rect(colour='black', fill=NA),
+          panel.ontop = TRUE) +
     ggtitle(expression(Delta*'T'['mean']~'slopes, June 2009'),
             subtitle="urbanization removed, NOAH") +
     scale_fill_discrete(name=expression(degree*'C / day' ))
 print(my_map)
+
+## this gets the graticule
+graticule <- ggplot_build(my_map)[['layout']][['panel_params']][[1]][['graticule']]
+
+## this works
+## OK so I think the problem is that the ocean polygons are
+## not able, for some reason, to be transformed to the ortho
+## projection (or any other projection that I've tried).  The docs for
+## sf_transform says "Features that cannot be transformed are returned
+## as empty geometries.", and sf_transform() returns an empty.  Now,
+## as for why this is or what to about, I'm not sure...
+if (FALSE) {
+    oceans110 <- ne_download(scale = 110,
+                             type = 'ocean',
+                             category = 'physical',
+                             returnclass='sf',
+                             destdir = file.path('~', 'work',
+                                                 'Data', 'RNaturalEarth'))
+    ggplot() +
+        geom_sf(data=oceans110, fill='blue', alpha=0.8) +
+        coord_sf(xlim=c(-140, -110), ylim=c(25, 50))
+    foo <- st_transform(oceans110, paste(main_proj_str, '+wktext'), check=TRUE)
+}
