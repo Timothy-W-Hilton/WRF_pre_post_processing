@@ -244,10 +244,18 @@ Tmean_WRFNOAA_Ctl <- read_WRF_Tmean(fname='ctlNOAH_d02_T.nc', gb)
 
 fits <- calc_PRISM_WRF_slopes(Tmean_prism, Tmean_WRFNOAA_Urban2veg)
 slopes <- bin_slopes(fits, map_projection)
-
 map_dT_urbanveg <- summen_draw_map(
     slopes,
     t_exp=expression(Delta*'T'['mean']~'slopes, June 2009'),
     t_sub_exp=expression("urbanization removed, NOAH"),
+    cbar_lab_exp=expression(degree*'C / day' ), map_projection =
+    map_projection)
+
+fits <- calc_PRISM_WRF_slopes(Tmean_prism, Tmean_WRFNOAA_Ctl)
+slopes <- bin_slopes(fits, map_projection)
+map_dT_ctl <- summen_draw_map(
+    slopes,
+    t_exp=expression(Delta*'T'['mean']~'slopes, June 2009'),
+    t_sub_exp=expression("Control run, NOAH"),
     cbar_lab_exp=expression(degree*'C / day' ), map_projection =
     map_projection)
