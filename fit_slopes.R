@@ -1,5 +1,3 @@
-## TODO: better color scale for binned data
-
 library(ncdf4)
 library(raster)
 library(rnaturalearth)
@@ -215,12 +213,16 @@ summen_draw_map <- function(df, t_exp, t_sub_exp, cbar_lab_exp, map_projection) 
 
     my_map <- ggplot() +
         geom_sf(data=namerica_sf, color='black', fill='gray') +
-        geom_raster(data=df,
-                    mapping=aes(x=x, y=y, fill=binned)) +
+        geom_tile(data=df,
+                  mapping=aes(x=x, y=y, fill=binned)) +
         geom_sf(data=rnaturalearth::ne_states(country="United States of America",
                                               returnclass = "sf"),
                 fill=NA) +
-        scale_fill_brewer(type=div, palette='PRGn') +
+        ## scale_fill_brewer(type=div, palette='PRGn') +
+        scale_fill_manual(values=c('#762a83', '#9970ab', '#c2a5cf', '#e7d4e8',
+                                   '#c51b7d',
+                                   '#d9f0d3', '#a6dba0', '#5aae61', '#1b7837' ),
+                          name=cbar_lab_exp) +
         ## scale_fill_manual(values = terrain.colors(6)) +
         coord_sf(xlim=ax_lim[['lon']], ylim=ax_lim[['lat']]) +
         theme(axis.title.x=element_blank(),
