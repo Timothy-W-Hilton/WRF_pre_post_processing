@@ -11,6 +11,7 @@ library(tidyverse)
 map_projection <- "+proj=ortho +lon_0=-120 +lat_0=40"  ## projection for map
 water_blue <- "#D8F4FF"  ## color for water
 ax_lim <- list(lon=c(-125, -115), lat=c(30, 50))  ## lon, lat limits of map
+ax_lim <- list(lon=c(-125, -118), lat=c(33, 42.5))  ## lon, lat limits of map
 ## WRF domain geobounds in WRF projection read from WRF output data by
 ## wrf-python
 gb <- list(xmn=-570000.3609862507, xmx=785999.295028379,
@@ -19,6 +20,11 @@ gb <- list(xmn=-570000.3609862507, xmx=785999.295028379,
     ## CRS() didn't like '+units = meters'
 WRF_proj4_str <- CRS('+proj=lcc +a=6370000.0 +b=6370000.0 +lat_1=30.0 +lat_2=60.0 +lat_0=42.0 +lon_0=-127.5')
 ## --------------------------------------------------
+
+read_redwood_shapefile <- function() {
+    redwoods_shape <- read_sf(dsn = "/Users/tim/work/Data/Redwoods/Redwood_SequoiaSempervirens_extentNorthAmerica/data/commondata/data0/", layer="sequsemp")
+    return(redwoods_shape)
+}
 
 ##' transform axis limits to arbitrary projection
 ##'
@@ -210,7 +216,7 @@ bin_slopes <- function(fits, proj4_str) {
 summen_draw_map <- function(df, t_exp, t_sub_exp, cbar_lab_exp, map_projection) {
     namerica_sf <- map_setup(proj4_str = map_projection)
     ax_lim <- project_axlim(ax_lim[['lon']], ax_lim[['lat']], map_projection)
-
+    redwoods_range <- read_redwood_shapefile()
     my_map <- ggplot() +
         geom_sf(data=namerica_sf, color='black', fill='gray') +
         geom_tile(data=df,
@@ -218,12 +224,13 @@ summen_draw_map <- function(df, t_exp, t_sub_exp, cbar_lab_exp, map_projection) 
         geom_sf(data=rnaturalearth::ne_states(country="United States of America",
                                               returnclass = "sf"),
                 fill=NA) +
+        geom_sf(data=redwoods_range, aes(color="#fc8d62"), fill=NA) +
+        scale_color_manual(values="black", name="redwoods range") +
         ## scale_fill_brewer(type=div, palette='PRGn') +
         scale_fill_manual(values=c('#762a83', '#9970ab', '#c2a5cf', '#e7d4e8',
                                    '#c51b7d',
                                    '#d9f0d3', '#a6dba0', '#5aae61', '#1b7837' ),
                           name=cbar_lab_exp) +
-        ## scale_fill_manual(values = terrain.colors(6)) +
         coord_sf(xlim=ax_lim[['lon']], ylim=ax_lim[['lat']]) +
         theme(axis.title.x=element_blank(),
               axis.title.y=element_blank(),
@@ -231,9 +238,9 @@ summen_draw_map <- function(df, t_exp, t_sub_exp, cbar_lab_exp, map_projection) 
               plot.subtitle=element_text(hjust=0.5),
               panel.grid=element_line(color='black'),
               panel.background=element_rect(colour='black', fill=NA),
-              panel.ontop = TRUE) +
-        ggtitle(t_exp,
-                subtitle=t_sub_exp)
+              panel.ontop = TRUE)
+        ## ggtitle(t_exp,
+        ##         subtitle=t_sub_exp) +
     return(my_map)
 }
 
@@ -245,14 +252,16 @@ Tmean_prism <- read_PRISM_Tmean(gb=gb)
 Tmean_WRFNOAA_Urban2veg <- read_WRF_Tmean(fname='nourbanNOAH_d02_T.nc', gb)
 Tmean_WRFNOAA_Ctl <- read_WRF_Tmean(fname='ctlNOAH_d02_T.nc', gb)
 
-fits <- calc_PRISM_WRF_slopes(Tmean_prism, Tmean_WRFNOAA_Urban2veg)
-slopes <- bin_slopes(fits, map_projection)
-map_dT_urbanveg <- summen_draw_map(
-    slopes,
-    t_exp=expression(Delta*'T'['mean']~'slopes, June 2009'),
-    t_sub_exp=expression("urbanization removed, NOAH"),
-    cbar_lab_exp=expression(degree*'C / day' ), map_projection =
-    map_projection)
+if (FALSE) {
+    fits <- calc_PRISM_WRF_slopes(Tmean_prism, Tmean_WRFNOAA_Urban2veg)
+    slopes <- bin_slopes(fits, map_projection)
+    map_dT_urbanveg <- summen_draw_map(
+        slopes,
+        t_exp=expression(Delta*'T'['mean']~'slopes, June 2009'),
+        t_sub_exp=expression("urbanization removed, NOAH"),
+        cbar_lab_exp=expression(degree*'C / day' ),
+        map_projection = map_projection)
+}
 
 fits <- calc_PRISM_WRF_slopes(Tmean_prism, Tmean_WRFNOAA_Ctl)
 slopes <- bin_slopes(fits, map_projection)
@@ -260,5 +269,5 @@ map_dT_ctl <- summen_draw_map(
     slopes,
     t_exp=expression(Delta*'T'['mean']~'slopes, June 2009'),
     t_sub_exp=expression("Control run, NOAH"),
-    cbar_lab_exp=expression(degree*'C / day' ), map_projection =
-    map_projection)
+    cbar_lab_exp=expression(degree*'C / day' ),
+    map_projection = map_projection)
