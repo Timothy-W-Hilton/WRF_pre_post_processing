@@ -34,5 +34,7 @@ my_map <- summen_draw_map(projstr)
 my_map <- my_map +
     geom_sf(data=st_as_sf(sf::st_transform(st_as_sf(stations),
                                            projstr)),
-            aes(size=1)) +
+            shape=4,
+            size=1,
+            mapping=aes(shape='cross', size=1)) +
     coord_sf(xlim=ax_lim[['lon']], ylim=ax_lim[['lat']], crs=projstr)
