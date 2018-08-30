@@ -92,10 +92,14 @@ K_to_C <- function(K) {
 ##' @export
 linear_fitter <- function(y) {
     if(all(is.na(y))) {
-        return(c(NA, NA))
+        return(c(slope=NA, intercept=NA, pval=NA))
     } else {
         x <- 1:length(y)
-        return(lm(y ~ x)$coefficients)
+        coeffs <- as.data.frame(summary(lm(y ~ x))[['coefficients']])
+        result <- c(slope=coeffs[['Estimate']][[2]],
+                    intercept=coeffs[['Estimate']][[1]],
+                    pval=coeffs[['Pr(>|t|)']][[2]])
+        return(result)
     }
 }
 
@@ -167,7 +171,6 @@ read_WRF_Tmean <- function(fname='nourbanNOAH_d02_T.nc', gb) {
 calc_PRISM_WRF_slopes <- function(prism, wrf) {
     d <- prism - wrf
     fits <- raster::calc(d, linear_fitter)
-    names(fits) <- c('intercept', 'slope')
     return(fits)
 }
 
@@ -252,22 +255,37 @@ Tmean_prism <- read_PRISM_Tmean(gb=gb)
 Tmean_WRFNOAA_Urban2veg <- read_WRF_Tmean(fname='nourbanNOAH_d02_T.nc', gb)
 Tmean_WRFNOAA_Ctl <- read_WRF_Tmean(fname='ctlNOAH_d02_T.nc', gb)
 
-if (FALSE) {
-    fits <- calc_PRISM_WRF_slopes(Tmean_prism, Tmean_WRFNOAA_Urban2veg)
+if (TRUE) {
+    ## fits <- calc_PRISM_WRF_slopes(Tmean_prism, Tmean_WRFNOAA_Urban2veg)
+    ## slopes <- bin_slopes(fits, map_projection)
+    ## map_dT_urbanveg <- summen_draw_map(
+    ##     slopes,
+    ##     t_exp=expression(Delta*'T'['mean']~'slopes, June 2009'),
+    ##     t_sub_exp=expression("urbanization removed, NOAH"),
+    ##     cbar_lab_exp=expression(degree*'C / day' ),
+    ##     map_projection = map_projection)
+
+
+
+    fits <- calc_PRISM_WRF_slopes(Tmean_prism,
+                                  Tmean_WRFNOAA_Ctl)
     slopes <- bin_slopes(fits, map_projection)
-    map_dT_urbanveg <- summen_draw_map(
+    map_dT_ctl <- summen_draw_map(
         slopes,
         t_exp=expression(Delta*'T'['mean']~'slopes, June 2009'),
-        t_sub_exp=expression("urbanization removed, NOAH"),
+        t_sub_exp=expression("Control run, NOAH"),
         cbar_lab_exp=expression(degree*'C / day' ),
         map_projection = map_projection)
-}
 
-fits <- calc_PRISM_WRF_slopes(Tmean_prism, Tmean_WRFNOAA_Ctl)
-slopes <- bin_slopes(fits, map_projection)
-map_dT_ctl <- summen_draw_map(
-    slopes,
-    t_exp=expression(Delta*'T'['mean']~'slopes, June 2009'),
-    t_sub_exp=expression("Control run, NOAH"),
-    cbar_lab_exp=expression(degree*'C / day' ),
-    map_projection = map_projection)
+    pvals <- as.data.frame(as(projectRaster(fits[['pval']],
+                                            crs=map_projection),
+                              "SpatialPixelsDataFrame"))
+    map_dT_pvals_ctl <- summen_draw_map(
+        pvals,
+        t_exp=expression(Delta*'T'['mean']~'slopes p values, June 2009'),
+        t_sub_exp=expression("Control run, NOAH"),
+        cbar_lab_exp=expression('p' ),
+        map_projection = map_projection)
+
+
+}
