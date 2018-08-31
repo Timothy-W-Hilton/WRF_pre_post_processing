@@ -217,6 +217,7 @@ bin_slopes <- function(fits, proj4_str) {
 ##' @author Timothy W. Hilton
 ##' @export
 summen_draw_map <- function(df, field, t_exp, t_sub_exp, cbar_lab_exp, map_projection) {
+    field <- enquo(field)
     namerica_sf <- map_setup(proj4_str = map_projection)
     ax_lim <- project_axlim(ax_lim[['lon']], ax_lim[['lat']], map_projection)
     redwoods_range <- read_redwood_shapefile()
@@ -272,7 +273,7 @@ if (TRUE) {
     slopes <- bin_slopes(fits, map_projection)
     map_dT_ctl <- summen_draw_map(
         slopes,
-        field=quo(binned),
+        field=binned,
         t_exp=expression(Delta*'T'['mean']~'slopes, June 2009'),
         t_sub_exp=expression("Control run, NOAH"),
         cbar_lab_exp=expression(degree*'C / day' ),
@@ -283,7 +284,7 @@ if (TRUE) {
                               "SpatialPixelsDataFrame"))
     map_dT_pvals_ctl <- summen_draw_map(
         pvals,
-        field=quo(pval),
+        field=pval,
         t_exp=expression(Delta*'T'['mean']~'slopes p values, June 2009'),
         t_sub_exp=expression("Control run, NOAH"),
         cbar_lab_exp=expression('p' ),
