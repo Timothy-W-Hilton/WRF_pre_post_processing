@@ -237,7 +237,7 @@ summen_draw_map <- function(df, field,
         ##                            '#c51b7d',
         ##                            '#d9f0d3', '#a6dba0', '#5aae61', '#1b7837' ),
         ##                   name=cbar_lab_exp) +
-        fill_color_fun(name=cbar_lab_exp) +
+        ## fill_color_fun(name=cbar_lab_exp) +
         coord_sf(xlim=ax_lim[['lon']], ylim=ax_lim[['lat']]) +
         theme(axis.title.x=element_blank(),
               axis.title.y=element_blank(),
@@ -277,23 +277,40 @@ if (TRUE) {
     map_dT_ctl <- summen_draw_map(
         slopes,
         field=binned,
-        fill_color_fun=scale_fill_discrete,
+        fill_color_fun=NA,
         t_exp=expression(Delta*'T'['mean']~'slopes, June 2009'),
         t_sub_exp=expression("Control run, NOAH"),
         cbar_lab_exp=expression(degree*'C / day' ),
-        map_projection = map_projection)
+        map_projection = map_projection) +
+        scale_fill_manual(values=c('#762a83',
+                                   '#9970ab',
+                                   '#c2a5cf',
+                                   '#e7d4e8',
+                                   '#c51b7d',
+                                   '#d9f0d3',
+                                   '#a6dba0',
+                                   '#5aae61',
+                                   '#1b7837' ),
+                          name=expression(degree*'C / day' ))
 
     pvals <- as.data.frame(as(projectRaster(fits[['pval']],
                                             crs=map_projection),
-                              "SpatialPixelsDataFrame"))
+                              "SpatialPixelsDataFrame")) %>%
+        mutate(binned=cut(pval, breaks=c(0.0, 0.01, 0.05, 0.1, 1.0)))
+
     map_dT_pvals_ctl <- summen_draw_map(
         pvals,
-        field=pval,
+        field=binned,
         fill_color_fun=scale_fill_gradient,
         t_exp=expression(Delta*'T'['mean']~'slopes p values, June 2009'),
         t_sub_exp=expression("Control run, NOAH"),
-        cbar_lab_exp=expression('p' ),
-        map_projection = map_projection)
+        cbar_lab_exp=expression('p'),
+        map_projection = map_projection) +
+        scale_fill_manual(values=c("#762a83",
+                                   "#af8dc3",
+                                   "#7fbf7b",
+                                   "#1b7837"),
+                              name=expression('p'))
 
 
 }
