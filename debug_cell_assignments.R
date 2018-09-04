@@ -20,7 +20,7 @@ get_all_prism_coords <- function(Tmean_prism) {
     return(prism_all_coords)
 }
 
-get_all_ushcn_lonlat <- function(ushcn) {
+get_all_ushcn_lonlat <- function(ushcn, prism) {
     ## ==================================================
     ## calculate PRISM x/y, row/col from USHCN lon, lat
     ushcndf <- TOBS_data_to_SPDF(ushcn)
@@ -30,8 +30,8 @@ get_all_ushcn_lonlat <- function(ushcn) {
     ushcn_xy <- as.data.frame(coordinates(spTransform(stations,
                                                       CRSobj=WRF_proj4_str)))
     names(ushcn_xy) <- c('x', 'y')
-    ushcn_rowcol <- rowColFromCell(Tmean_prism,
-                                   cellFromXY(Tmean_prism, ushcn_xy))
+    ushcn_rowcol <- rowColFromCell(prism,
+                                   cellFromXY(prism, ushcn_xy))
     ushcn_all_coords <- cbind(ushcn_xy, ushcn_lonlat, ushcn_rowcol)
     return(ushcn_all_coords)
 }
@@ -42,7 +42,9 @@ Tmean_WRFNOAA_Ctl <- read_WRF_Tmean(fname='ctlNOAH_d02_T.nc', gb)
 ushcn <- parse_ushcn(file.path('~', 'work', 'Data', 'PRISM',
                                '2009_06_Cal_USHCN_data.csv'))
 prism_all_coords <- get_all_prism_coords(Tmean_prism)
-ushcn_all_coords <- get_all_ushcn_lonlat(ushcn)
+ushcn_all_coords <- get_all_ushcn_lonlat(ushcn, Tmean_prism)
+
+stations <- stations_to_SPDF(ushcn)
 
 ## ==================================================
 
