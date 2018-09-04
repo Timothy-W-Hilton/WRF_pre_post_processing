@@ -216,9 +216,7 @@ bin_slopes <- function(fits, proj4_str) {
 ##' @return
 ##' @author Timothy W. Hilton
 ##' @export
-summen_draw_map <- function(df, field,
-                            fill_color_fun,
-                            t_exp, t_sub_exp, cbar_lab_exp, map_projection) {
+summen_draw_map <- function(df, field, map_projection) {
     field <- enquo(field)
     namerica_sf <- map_setup(proj4_str = map_projection)
     ax_lim <- project_axlim(ax_lim[['lon']], ax_lim[['lat']], map_projection)
@@ -227,17 +225,12 @@ summen_draw_map <- function(df, field,
         geom_sf(data=namerica_sf, color='black', fill='gray') +
         geom_tile(data=df,
                   mapping=aes(x=x, y=y, fill=!!field)) +
-        geom_sf(data=rnaturalearth::ne_states(country="United States of America",
-                                              returnclass = "sf"),
+        geom_sf(data=rnaturalearth::ne_states(
+                                        country="United States of America",
+                                        returnclass = "sf"),
                 fill=NA) +
         ## geom_sf(data=redwoods_range, aes(color="#fc8d62"), fill=NA) +
         ## scale_color_manual(values="black", name="redwoods range") +
-        ## ## scale_fill_brewer(type=div, palette='PRGn') +
-        ## scale_fill_manual(values=c('#762a83', '#9970ab', '#c2a5cf', '#e7d4e8',
-        ##                            '#c51b7d',
-        ##                            '#d9f0d3', '#a6dba0', '#5aae61', '#1b7837' ),
-        ##                   name=cbar_lab_exp) +
-        ## fill_color_fun(name=cbar_lab_exp) +
         coord_sf(xlim=ax_lim[['lon']], ylim=ax_lim[['lat']]) +
         theme(axis.title.x=element_blank(),
               axis.title.y=element_blank(),
@@ -246,8 +239,6 @@ summen_draw_map <- function(df, field,
               panel.grid=element_line(color='black'),
               panel.background=element_rect(colour='black', fill=NA),
               panel.ontop = TRUE)
-        ## ggtitle(t_exp,
-        ##         subtitle=t_sub_exp) +
     return(my_map)
 }
 
@@ -277,21 +268,22 @@ if (TRUE) {
     map_dT_ctl <- summen_draw_map(
         slopes,
         field=binned,
-        fill_color_fun=NA,
-        t_exp=expression(Delta*'T'['mean']~'slopes, June 2009'),
-        t_sub_exp=expression("Control run, NOAH"),
-        cbar_lab_exp=expression(degree*'C / day' ),
-        map_projection = map_projection) +
-        scale_fill_manual(values=c('#762a83',
-                                   '#9970ab',
-                                   '#c2a5cf',
-                                   '#e7d4e8',
-                                   '#c51b7d',
-                                   '#d9f0d3',
-                                   '#a6dba0',
-                                   '#5aae61',
-                                   '#1b7837' ),
-                          name=expression(degree*'C / day' ))
+        map_projection = map_projection
+    ) +
+        scale_fill_manual(
+            values=c('#762a83',
+                     '#9970ab',
+                     '#c2a5cf',
+                     '#e7d4e8',
+                     '#c51b7d',
+                     '#d9f0d3',
+                     '#a6dba0',
+                     '#5aae61',
+                     '#1b7837' ),
+            name=expression(degree*'C / day' )
+        ) +
+        ggtitle(expression(Delta*'T'['mean']~'slopes, June 2009'),
+                subtitle="Control run, NOAH")
 
     pvals <- as.data.frame(as(projectRaster(fits[['pval']],
                                             crs=map_projection),
@@ -301,16 +293,15 @@ if (TRUE) {
     map_dT_pvals_ctl <- summen_draw_map(
         pvals,
         field=binned,
-        fill_color_fun=scale_fill_gradient,
-        t_exp=expression(Delta*'T'['mean']~'slopes p values, June 2009'),
-        t_sub_exp=expression("Control run, NOAH"),
-        cbar_lab_exp=expression('p'),
-        map_projection = map_projection) +
+        map_projection = map_projection
+    ) +
         scale_fill_manual(values=c("#762a83",
                                    "#af8dc3",
                                    "#7fbf7b",
                                    "#1b7837"),
-                              name=expression('p'))
+                              name=expression('p')) +
+        ggtitle(expression(Delta*'T'['mean']~'slopes p values, June 2009'),
+                subtitle="Control run, NOAH")
 
 
 }
