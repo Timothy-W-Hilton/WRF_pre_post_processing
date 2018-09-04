@@ -337,31 +337,19 @@ Tmean_WRFNOAA_Ctl <- read_WRF_Tmean(fname='ctlNOAH_d02_T.nc', gb)
 fits <- calc_PRISM_WRF_slopes(Tmean_prism,
                               Tmean_WRFNOAA_Ctl)
 
-if (TRUE) {
-    ## fits <- calc_PRISM_WRF_slopes(Tmean_prism, Tmean_WRFNOAA_Urban2veg)
-    ## slopes <- bin_slopes(fits, map_projection)
-    ## map_dT_urbanveg <- summen_draw_map(
-    ##     slopes,
-    ##     t_exp=expression(Delta*'T'['mean']~'slopes, June 2009'),
-    ##     t_sub_exp=expression("urbanization removed, NOAH"),
-    ##     cbar_lab_exp=expression(degree*'C / day' ),
-    ##     map_projection = map_projection)
+map_dT_ctl <- map_dT_ctl_wrapper(fits, map_projection)
+map_dT_pvals_ctl <- map_dT_pvals_ctl_wrapper(fits, map_projection)
+map_T_SSE_ctl <- map_dT_SSE_ctl_wrapper(Tmean_prism, Tmean_WRFNOAA_Ctl,
+                                        map_projection)
 
-    map_dT_ctl <- map_dT_ctl_wrapper(fits, map_projection)
-    map_dT_pvals_ctl <- map_dT_pvals_ctl_wrapper(fits, map_projection)
-    map_T_SSE_ctl <- map_dT_SSE_ctl_wrapper(Tmean_prism, Tmean_WRFNOAA_Ctl,
-                                            map_projection)
-
-    savedir <- file.path('/', 'Users', 'tim', 'work', 'Plots', 'Summen',
-                         'SpinUpTests')
-    ggsave(filename=file.path(savedir, 'dTmean_ctl_slopes.pdf'),
-           plot=map_dT_ctl,
-           device='pdf')
-    ggsave(filename=file.path(savedir, 'dTmean_ctl_pvals.pdf'),
-           plot=map_dT_pvals_ctl,
-           device='pdf')
-    ggsave(filename=file.path(savedir, 'dTmean_ctl_SSE.pdf'),
-           plot=map_T_SSE_ctl,
-           device='pdf')
-
-}
+savedir <- file.path('/', 'Users', 'tim', 'work', 'Plots', 'Summen',
+                     'SpinUpTests')
+ggsave(filename=file.path(savedir, 'dTmean_ctl_slopes.pdf'),
+       plot=map_dT_ctl,
+       device='pdf')
+ggsave(filename=file.path(savedir, 'dTmean_ctl_pvals.pdf'),
+       plot=map_dT_pvals_ctl,
+       device='pdf')
+ggsave(filename=file.path(savedir, 'dTmean_ctl_SSE.pdf'),
+       plot=map_T_SSE_ctl,
+       device='pdf')
