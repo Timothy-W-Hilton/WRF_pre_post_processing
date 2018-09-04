@@ -216,7 +216,17 @@ bin_slopes <- function(fits, proj4_str) {
 ##' @return
 ##' @author Timothy W. Hilton
 ##' @export
-summen_draw_map <- function(df, field, map_projection) {
+summen_draw_map <- function(x, field, map_projection) {
+
+    if (inherits(x, "Raster")) {
+        df <- as.data.frame(as(object=projectRaster(x,
+                                                    crs=map_projection),
+                               Class='SpatialPixelsDataFrame'))
+    }
+    else if (inherits(x, 'data.frame')) {
+        df <- x
+    }
+
     field <- enquo(field)
     namerica_sf <- map_setup(proj4_str = map_projection)
     ax_lim <- project_axlim(ax_lim[['lon']], ax_lim[['lat']], map_projection)
@@ -304,4 +314,12 @@ if (TRUE) {
                 subtitle="Control run, NOAH")
 
 
+    T_sse <- (Tmean_prism - Tmean_WRFNOAA_Ctl) %>%
+        (function(x) {return(sum(x^2))}) %>%
+        setNames(., 'SSE')
+    map_T_SSE_ctl <- summen_draw_map(
+        T_sse,
+        field=SSE,
+        map_projection = map_projection
+    )
 }
