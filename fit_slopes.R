@@ -299,7 +299,12 @@ if (TRUE) {
                                             crs=map_projection),
                               "SpatialPixelsDataFrame")) %>%
         mutate(binned=cut(pval, breaks=c(0.0, 0.01, 0.05, 0.1, 1.0)))
-
+    ## TODO: raster cut method (below) doesn't seem to work - the
+    ## factor labels in the resulting raster object aren't right, and
+    ## the plotting code interprets the values as continuous, not
+    ## discrete.
+    ## pvals <- cut(x=fits[['pval']], breaks=c(0.0, 0.01, 0.05, 0.1, 1.0)) %>%
+    ##     setNames(., 'p')
     map_dT_pvals_ctl <- summen_draw_map(
         pvals,
         field=binned,
@@ -313,13 +318,30 @@ if (TRUE) {
         ggtitle(expression(Delta*'T'['mean']~'slopes p values, June 2009'),
                 subtitle="Control run, NOAH")
 
-
     T_sse <- (Tmean_prism - Tmean_WRFNOAA_Ctl) %>%
         (function(x) {return(sum(x^2))}) %>%
         setNames(., 'SSE')
+    T_sse <- as.data.frame(as(projectRaster(T_sse[['SSE']],
+                                            crs=map_projection),
+                              "SpatialPixelsDataFrame")) %>%
+        mutate(binned=cut(SSE, breaks=seq(0, 1000, length.out=6)))
     map_T_SSE_ctl <- summen_draw_map(
         T_sse,
-        field=SSE,
+        field=binned,
         map_projection = map_projection
-    )
+    ) +
+        ggtitle(expression('T'['mean']~'SSE, June 2009'),
+                subtitle="Control run, PRISM vs. WRF-NOAH") +
+        scale_fill_brewer(type='seq', palette='Blues',
+                          name=expression('SSE ('*degree*'C)'))
+
+    savedir <- file.path('/', 'Users', 'tim', 'work', 'Plots', 'Summen',
+                         'SpinUpTests')
+    ggsave(filename=file.path(savedir, 'dTmean_ctl_slopes.pdf'),
+           plot=map_dT_ctl)
+    ggsave(filename=file.path(savedir, 'dTmean_ctl_pvals.pdf'),
+           plot=map_dT_pvals_ctl)
+    ggsave(filename=file.path(savedir, 'dTmean_ctl_SSE.pdf'),
+           plot=map_T_SSE_ctl)
+
 }
