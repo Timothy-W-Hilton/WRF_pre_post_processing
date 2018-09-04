@@ -27,13 +27,19 @@ get_all_ushcn_lonlat <- function(ushcn, prism) {
     stations <- stations_to_SPDF(ushcn)
     ushcn_lonlat <- as.data.frame(coordinates(stations))
     names(ushcn_lonlat) <- c('lon', 'lat')
+    stations[['lon']] <- ushcn_lonlat[['lon']]
+    stations[['lat']] <- ushcn_lonlat[['lat']]
     ushcn_xy <- as.data.frame(coordinates(spTransform(stations,
                                                       CRSobj=WRF_proj4_str)))
     names(ushcn_xy) <- c('x', 'y')
+    stations[['x']] <- ushcn_xy[['x']]
+    stations[['y']] <- ushcn_xy[['y']]
     ushcn_rowcol <- rowColFromCell(prism,
                                    cellFromXY(prism, ushcn_xy))
     ushcn_all_coords <- cbind(ushcn_xy, ushcn_lonlat, ushcn_rowcol)
-    return(ushcn_all_coords)
+    stations[['row']] <- ushcn_rowcol[, 1]
+    stations[['col']] <- ushcn_rowcol[, 2]
+    return(st_as_sf(stations))
 }
 
 proj4_str_lonlat <- "+proj=longlat +datum=WGS84"
@@ -42,26 +48,26 @@ Tmean_WRFNOAA_Ctl <- read_WRF_Tmean(fname='ctlNOAH_d02_T.nc', gb)
 ushcn <- parse_ushcn(file.path('~', 'work', 'Data', 'PRISM',
                                '2009_06_Cal_USHCN_data.csv'))
 prism_all_coords <- get_all_prism_coords(Tmean_prism)
-ushcn_all_coords <- get_all_ushcn_lonlat(ushcn, Tmean_prism)
-
-stations <- stations_to_SPDF(ushcn)
+ushcn_stations <- get_all_ushcn_lonlat(ushcn, Tmean_prism)
 
 ## ==================================================
 
 ## this looks pretty good
 with(prism_all_coords, plot(x, y))
-with(ushcn_all_coords, points(x, y, col='red'))
+with(ushcn_stations, points(x, y, col='red'))
 title('X, Y')
 
 ## this looks pretty good too
 x11()
 with(prism_all_coords, plot(lon, lat))
-with(ushcn_all_coords, points(lon, lat, col='red'))
+with(ushcn_stations, points(lon, lat, col='red'))
 title('lon, lat')
 
-## now try it on a map  --  HUZZAH!
+## try to isolate stations outside of the WRF domain -- HUZZAH!
+ushcn_stations[['in_WRF_domain']] <- !(is.na(ushcn_stations[['row']]))
 debug_map <- ggplot() +
     geom_sf(data=map_setup(proj4string(Tmean_prism)), color='black', fill='gray') +
-    coord_sf(xlim=range(prism_all_coords[['x']]),
+    coord_sf(xlim=range(prism_all_coords[['x']] * 1.4),
              ylim=range(prism_all_coords[['y']])) +
-    geom_point(mapping=aes(x=x, y=y), data=ushcn_all_coords)
+    geom_point(mapping=aes(x=x, y=y, color=in_WRF_domain), data=ushcn_stations) +
+    ggtitle(label='California USHCN stations')
