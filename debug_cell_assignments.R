@@ -71,3 +71,21 @@ debug_map <- ggplot() +
              ylim=range(prism_all_coords[['y']])) +
     geom_point(mapping=aes(x=x, y=y, color=in_WRF_domain), data=ushcn_stations) +
     ggtitle(label='California USHCN stations')
+
+
+santacruz <- ushcn_stations[ushcn_stations[['NAME']]=="SANTA CRUZ, CA US",
+                            c('row', 'col')]
+df <- rbind(
+    data.frame(T=as.numeric(getValuesBlock(Tmean_WRFNOAA_Ctl,
+                                           row=santacruz[['row']], nrows=1,
+                                           col=santacruz[['col']], ncols=1)),
+               days_from_1Jun2009=seq(1, 30),
+               model="WRFNOAA"),
+    data.frame(T=as.numeric(getValuesBlock(Tmean_prism,
+                                           row=santacruz[['row']], nrows=1,
+                                           col=santacruz[['col']], ncols=1)),
+               days_from_1Jun2009=seq(1, 30),
+               model="PRISM"))
+ggplot(df, aes(x=days_from_1Jun2009, y=T, color=model)) +
+    geom_line() +
+    ggtitle(label=df[['NAME']], subtitle="June 2009")
