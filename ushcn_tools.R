@@ -1,6 +1,7 @@
 library(rgeos)
 library(sf)
 library(sp)
+library(data.table)  ## for %like%
 
 source('summen_map_tools.R')
 
@@ -52,30 +53,82 @@ stations_to_SPDF <- function(ushcn) {
     return(stations)
 }
 
+TOBS_data_to_SPDF <- function(ushcn) {
+    stations <- SpatialPointsDataFrame(
+        coords=ushcn[, c('LONGITUDE', 'LATITUDE')],
+        data=ushcn[, c('STATION', 'NAME', 'DATE', 'TOBS')],
+        proj4string = CRS("+proj=longlat +datum=WGS84"))
+    return(stations)
+}
 ## ==================================================
 ## main
 
-ushcn <- parse_ushcn(file.path('~', 'work', 'Data', 'PRISM',
-                               '2009_06_Cal_USHCN_data.csv'))
-stations <- stations_to_SPDF(ushcn)
+main <- function() {
+    ushcn <- parse_ushcn(file.path('~', 'work', 'Data', 'PRISM',
+                                   '2009_06_Cal_USHCN_data.csv'))
+    stations <- stations_to_SPDF(ushcn)
 
-ax_lim <- structure(list(lon = c(-468833.939880169, 494672.962721779),
-                         lat = c(-819356.24604003, 250382.677621733)),
-                    class = "data.frame", row.names = c(NA, -2L))
-my_map <- summen_draw_map(projstr)
+    ushcndf <- TOBS_data_to_SPDF(ushcn) %>%
+        aggregate(by=list('NAME', 'DATE'), FUN=mean)
 
-coast <- ne_coastline(scale=50)
-cal_coast <- gIntersection(coast,
-                           do.call(bbox_2_WKT, eps3310_bounds))
-stations[['d_coast']] <- as.vector(gDistance(spTransform(stations, projstr),
-                                             spTransform(cal_coast, projstr),
-                                             byid=TRUE))
-coastal_stations <- stations[stations[['d_coast']] <= 5000, ]
-my_map <- my_map +
-    geom_sf(data=st_as_sf(sf::st_transform(st_as_sf(coastal_stations),
-                                           projstr)),
-            shape=4,
-            size=1,
-            color='red',
-            mapping=aes(shape='cross', size=1)) +
-    coord_sf(xlim=ax_lim[['lon']], ylim=ax_lim[['lat']], crs=projstr)
+
+    ax_lim <- structure(list(lon = c(-468833.939880169, 494672.962721779),
+                             lat = c(-819356.24604003, 950382.677621733)),
+                        class = "data.frame", row.names = c(NA, -2L))
+    my_map <- summen_draw_map(projstr)
+
+    coast <- ne_coastline(scale=50)
+    cal_coast <- gIntersection(coast,
+                               do.call(bbox_2_WKT, eps3310_bounds))
+    stations[['d_coast']] <- as.vector(gDistance(spTransform(stations, projstr),
+                                                 spTransform(cal_coast, projstr),
+                                                 byid=TRUE))
+    coastal_stations <- stations[stations[['d_coast']] <= 5000, ]
+
+    cellsdf <- raster::extract(Tmean_prism[[1]], stations, cellnumbers=TRUE) %>%
+        as.data.frame()
+    rc <- raster::rowColFromCell(object=Tmean_prism[[1]], cell=cellsdf[['cells']])
+    stations <- cbind(stations, rc)
+
+    my_map <- my_map +
+        geom_sf(data=st_as_sf(sf::st_transform(st_as_sf(coastal_stations),
+                                               projstr)),
+                shape=4,
+                size=1,
+                color='red',
+                mapping=aes(shape='cross', size=1)) +
+        coord_sf(xlim=ax_lim[['lon']], ylim=ax_lim[['lat']], crs=projstr)
+
+
+    sb <- stations[stations[['NAME']] %like% "BARBARA", ]
+    this_station <- stations[6, ]
+    xy <- xyFromCell(Tmean_prism[[1]], cellFromRowCol(Tmean_prism[[1]],
+                                                      this_station[['row']],
+                                                      this_station[['col']]),
+                     spatial=TRUE)
+
+    ## this plots Santa Barbara in the right place
+    image(Tmean_prism[[1]])
+    plot(spTransform(sb[1, ], CRSobj=CRS(proj4string(Tmean_prism))), add=TRUE)
+
+    ## transforming Santa Barbara lat, lon into Tmean_prism coords should get the same x, y as extracting the cell for Santa Barbara lat, lon and then converting the cell number to xy
+    sbt <- spTransform(sb[1, ], CRSobj=CRS(proj4string(Tmean_prism)))
+    sbcell <- raster::extract(Tmean_prism, sbt, sp=TRUE, cellnumbers=TRUE)
+    ## but this xy does not match
+    print(xyFromCell(Tmean_prism, cell=sbcell[['cells']]))
+
+
+
+    ## foo <- map_dT_ctl + geom_sf(data=st_as_sf(sf::st_transform(st_as_sf(this_station),
+    ##                                            projstr)),
+    ##                             shape=4,
+    ##                             size=3,
+    ##                             color='blue',
+    ##                             mapping=aes(shape='cross', size=1)) +
+    ##     coord_sf(xlim=ax_lim[['lon']], ylim=ax_lim[['lat']], crs=projstr)
+    ## foo <- foo + geom_point(data=as.data.frame(xy),
+    ##                         shape=19,
+    ##                         size=3,
+    ##                         color='green',
+    ##                         mapping=aes(x=x, y=y))
+}
