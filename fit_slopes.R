@@ -329,27 +329,48 @@ map_dT_SSE_ctl_wrapper <- function(Tmean_prism, Tmean_WRFNOAA_Ctl,
 ## main
 ## --------------------------------------------------
 
-Tmean_prism <- read_PRISM_Tmean(gb=gb)
-Tmean_WRFNOAA_Urban2veg <- read_WRF_Tmean(fname='nourbanNOAH_d02_T.nc', gb)
-Tmean_WRFNOAA_Ctl <- read_WRF_Tmean(fname='ctlNOAH_d02_T.nc', gb)
+main <- function() {
+
+    Tmean_prism <- read_PRISM_Tmean(gb=gb)
+    Tmean_WRFNOAA_Urban2veg <- read_WRF_Tmean(fname='nourbanNOAH_d02_T.nc', gb)
+    Tmean_WRFNOAA_Ctl <- read_WRF_Tmean(fname='ctlNOAH_d02_T.nc', gb)
 
 
-fits <- calc_PRISM_WRF_slopes(Tmean_prism,
-                              Tmean_WRFNOAA_Ctl)
+    fits <- calc_PRISM_WRF_slopes(Tmean_prism,
+                                  Tmean_WRFNOAA_Ctl)
 
-map_dT_ctl <- map_dT_ctl_wrapper(fits, map_projection)
-map_dT_pvals_ctl <- map_dT_pvals_ctl_wrapper(fits, map_projection)
-map_T_SSE_ctl <- map_dT_SSE_ctl_wrapper(Tmean_prism, Tmean_WRFNOAA_Ctl,
-                                        map_projection)
+    map_dT_ctl <- map_dT_ctl_wrapper(fits, map_projection)
+    map_dT_pvals_ctl <- map_dT_pvals_ctl_wrapper(fits, map_projection)
+    map_T_SSE_ctl <- map_dT_SSE_ctl_wrapper(Tmean_prism, Tmean_WRFNOAA_Ctl,
+                                            map_projection)
 
-savedir <- file.path('/', 'Users', 'tim', 'work', 'Plots', 'Summen',
-                     'SpinUpTests')
-ggsave(filename=file.path(savedir, 'dTmean_ctl_slopes.pdf'),
-       plot=map_dT_ctl,
-       device='pdf')
-ggsave(filename=file.path(savedir, 'dTmean_ctl_pvals.pdf'),
-       plot=map_dT_pvals_ctl,
-       device='pdf')
-ggsave(filename=file.path(savedir, 'dTmean_ctl_SSE.pdf'),
-       plot=map_T_SSE_ctl,
-       device='pdf')
+    savedir <- file.path('/', 'Users', 'tim', 'work', 'Plots', 'Summen',
+                         'SpinUpTests')
+    ggsave(filename=file.path(savedir, 'dTmean_ctl_slopes.pdf'),
+           plot=map_dT_ctl,
+           device='pdf')
+    ggsave(filename=file.path(savedir, 'dTmean_ctl_pvals.pdf'),
+           plot=map_dT_pvals_ctl,
+           device='pdf')
+    ggsave(filename=file.path(savedir, 'dTmean_ctl_SSE.pdf'),
+           plot=map_T_SSE_ctl,
+           device='pdf')
+
+}
+
+## Tdf  <- data.frame(WRFNOAA=as.numeric(getValuesBlock(Tmean_WRFNOAA_Ctl, row=149, nrows=1, col=113, ncols=1)),
+##                    PRISM=as.numeric(getValuesBlock(Tmean_prism, row=149, nrows=1, col=113, ncols=1)),
+##                    days_from_1Jun2009=seq(1, 30))
+## foo <- ggplot(Tdf, aes(x=days_from_1Jun2009, y=WRFNOAA)) + geom_point() + geom_point(data=Tdf, mapping=aes(x=days_from_1Jun2009, y=PRISM, color='red'))
+
+## Tdf_wrf  <- data.frame(T=as.numeric(getValuesBlock(Tmean_WRFNOAA_Ctl, row=149, nrows=1, col=113, ncols=1)),
+##                        days_from_1Jun2009=seq(1, 30), model="WRFNOAA")
+## Tdf_prism  <- data.frame(T=as.numeric(getValuesBlock(Tmean_prism, row=149, nrows=1, col=113, ncols=1)),
+##                          days_from_1Jun2009=seq(1, 30),
+##                          model="PRISM")
+## df <- rbind(Tdf_wrf, Tdf_prism)
+## foo <- ggplot(df, aes(x=days_from_1Jun2009, y=T, color=model)) + geom_point()
+
+
+## plot(Tdf[['days_from_1Jun2009']], Tdf[['WRFNOAA']], lty=2)
+## lines(Tdf[['days_from_1Jun2009']], Tdf[['PRISM']], color='red', pch='*', add=TRUE)
