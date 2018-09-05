@@ -2,25 +2,25 @@ source('fit_slopes.R')
 source('ushcn_tools.R')
 
 
-get_all_prism_coords <- function(Tmean_prism) {
+get_all_prism_coords <- function(PRISM_raster) {
     ## ==================================================
     ## calculate PRISM lon/lat, x/y, row/col
-    prism_xy <- coordinates(Tmean_prism)
+    prism_xy <- coordinates(PRISM_raster)
     ## this method adds some rows and columns to the raster???
-    ## prism_lonlat <- coordinates(projectRaster(Tmean_prism,
+    ## prism_lonlat <- coordinates(projectRaster(PRISM_raster,
     ##                                           crs=CRS(proj4_str_lonlat)))
     prism_lonlat <- coordinates(
-        spTransform(SpatialPoints(coords=coordinates(Tmean_prism),
-                                  proj4string=CRS(proj4string(Tmean_prism))),
+        spTransform(SpatialPoints(coords=coordinates(PRISM_raster),
+                                  proj4string=CRS(proj4string(PRISM_raster))),
                     CRSobj=proj4_str_lonlat))
     prism_lonlat <- as.data.frame(prism_lonlat)
     names(prism_lonlat) <- c('lon', 'lat')
-    prism_rowcol <- rowColFromCell(Tmean_prism, cellFromXY(Tmean_prism, prism_xy))
+    prism_rowcol <- rowColFromCell(PRISM_raster, cellFromXY(PRISM_raster, prism_xy))
     prism_all_coords <- cbind(prism_xy, prism_lonlat, prism_rowcol)
     return(prism_all_coords)
 }
 
-get_all_ushcn_lonlat <- function(ushcn, prism) {
+get_all_ushcn_coords <- function(ushcn, PRISM_raster) {
     ## ==================================================
     ## calculate PRISM x/y, row/col from USHCN lon, lat
     ushcndf <- TOBS_data_to_SPDF(ushcn)
@@ -34,12 +34,26 @@ get_all_ushcn_lonlat <- function(ushcn, prism) {
     names(ushcn_xy) <- c('x', 'y')
     stations[['x']] <- ushcn_xy[['x']]
     stations[['y']] <- ushcn_xy[['y']]
-    ushcn_rowcol <- rowColFromCell(prism,
-                                   cellFromXY(prism, ushcn_xy))
+    ushcn_rowcol <- rowColFromCell(PRISM_raster,
+                                   cellFromXY(PRISM_raster, ushcn_xy))
     ushcn_all_coords <- cbind(ushcn_xy, ushcn_lonlat, ushcn_rowcol)
     stations[['row']] <- ushcn_rowcol[, 1]
     stations[['col']] <- ushcn_rowcol[, 2]
+    stations[['d_coast']] <- calc_ushcn_dist_to_coast(stations)
     return(st_as_sf(stations))
+}
+
+calc_ushcn_dist_to_coast <- function(ushcn) {
+    ## important caveat: the distance calculation is subject to the
+    ## projection in use.  I don't think the distortion is large
+    ## enough to sabotage my purpose of figuring out which USHCN
+    ## stations are kind of near the coast, but it's worth noting.
+    coast <- ne_coastline(scale=50)
+    cal_coast <- gIntersection(coast,
+                               do.call(bbox_2_WKT, eps3310_bounds))
+    ushcn[['d_coast']] <- as.vector(gDistance(spTransform(ushcn, projstr),
+                                              spTransform(cal_coast, projstr),
+                                              byid=TRUE))
 }
 
 proj4_str_lonlat <- "+proj=longlat +datum=WGS84"
@@ -48,7 +62,7 @@ Tmean_WRFNOAA_Ctl <- read_WRF_Tmean(fname='ctlNOAH_d02_T.nc', gb)
 ushcn <- parse_ushcn(file.path('~', 'work', 'Data', 'PRISM',
                                '2009_06_Cal_USHCN_data.csv'))
 prism_all_coords <- get_all_prism_coords(Tmean_prism)
-ushcn_stations <- get_all_ushcn_lonlat(ushcn, Tmean_prism)
+ushcn_stations <- get_all_ushcn_coords(ushcn, Tmean_prism)
 
 ## ==================================================
 
