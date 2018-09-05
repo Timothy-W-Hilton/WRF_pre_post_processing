@@ -3,6 +3,7 @@ library(sf)
 library(sp)
 library(data.table)  ## for %like%
 
+source('fit_slopes.R')
 source('summen_map_tools.R')
 
 projstr <- "+proj=ortho +lon_0=-120 +lat_0=40"
@@ -60,75 +61,81 @@ TOBS_data_to_SPDF <- function(ushcn) {
         proj4string = CRS("+proj=longlat +datum=WGS84"))
     return(stations)
 }
-## ==================================================
-## main
 
-main <- function() {
-    ushcn <- parse_ushcn(file.path('~', 'work', 'Data', 'PRISM',
-                                   '2009_06_Cal_USHCN_data.csv'))
+
+get_all_ushcn_coords <- function(ushcn, PRISM_raster) {
+    ## ==================================================
+    ## calculate PRISM x/y, row/col from USHCN lon, lat
+    ushcndf <- TOBS_data_to_SPDF(ushcn)
     stations <- stations_to_SPDF(ushcn)
+    ushcn_lonlat <- as.data.frame(coordinates(stations))
+    names(ushcn_lonlat) <- c('lon', 'lat')
+    stations[['lon']] <- ushcn_lonlat[['lon']]
+    stations[['lat']] <- ushcn_lonlat[['lat']]
+    ushcn_xy <- as.data.frame(coordinates(spTransform(stations,
+                                                      CRSobj=WRF_proj4_str)))
+    names(ushcn_xy) <- c('x', 'y')
+    stations[['x']] <- ushcn_xy[['x']]
+    stations[['y']] <- ushcn_xy[['y']]
+    ushcn_rowcol <- rowColFromCell(PRISM_raster,
+                                   cellFromXY(PRISM_raster, ushcn_xy))
+    ushcn_all_coords <- cbind(ushcn_xy, ushcn_lonlat, ushcn_rowcol)
+    stations[['row']] <- ushcn_rowcol[, 1]
+    stations[['col']] <- ushcn_rowcol[, 2]
+    stations[['d_coast']] <- calc_ushcn_dist_to_coast(stations)
+    return(st_as_sf(stations))
+}
 
-    ushcndf <- TOBS_data_to_SPDF(ushcn) %>%
-        aggregate(by=list('NAME', 'DATE'), FUN=mean)
-
-
-    ax_lim <- structure(list(lon = c(-468833.939880169, 494672.962721779),
-                             lat = c(-819356.24604003, 950382.677621733)),
-                        class = "data.frame", row.names = c(NA, -2L))
-    my_map <- summen_draw_map(projstr)
-
+calc_ushcn_dist_to_coast <- function(ushcn) {
+    ## important caveat: the distance calculation is subject to the
+    ## projection in use.  I don't think the distortion is large
+    ## enough to sabotage my purpose of figuring out which USHCN
+    ## stations are kind of near the coast, but it's worth noting.
     coast <- ne_coastline(scale=50)
     cal_coast <- gIntersection(coast,
                                do.call(bbox_2_WKT, eps3310_bounds))
-    stations[['d_coast']] <- as.vector(gDistance(spTransform(stations, projstr),
-                                                 spTransform(cal_coast, projstr),
-                                                 byid=TRUE))
-    coastal_stations <- stations[stations[['d_coast']] <= 5000, ]
-
-    cellsdf <- raster::extract(Tmean_prism[[1]], stations, cellnumbers=TRUE) %>%
-        as.data.frame()
-    rc <- raster::rowColFromCell(object=Tmean_prism[[1]], cell=cellsdf[['cells']])
-    stations <- cbind(stations, rc)
-
-    my_map <- my_map +
-        geom_sf(data=st_as_sf(sf::st_transform(st_as_sf(coastal_stations),
-                                               projstr)),
-                shape=4,
-                size=1,
-                color='red',
-                mapping=aes(shape='cross', size=1)) +
-        coord_sf(xlim=ax_lim[['lon']], ylim=ax_lim[['lat']], crs=projstr)
-
-
-    sb <- stations[stations[['NAME']] %like% "BARBARA", ]
-    this_station <- stations[6, ]
-    xy <- xyFromCell(Tmean_prism[[1]], cellFromRowCol(Tmean_prism[[1]],
-                                                      this_station[['row']],
-                                                      this_station[['col']]),
-                     spatial=TRUE)
-
-    ## this plots Santa Barbara in the right place
-    image(Tmean_prism[[1]])
-    plot(spTransform(sb[1, ], CRSobj=CRS(proj4string(Tmean_prism))), add=TRUE)
-
-    ## transforming Santa Barbara lat, lon into Tmean_prism coords should get the same x, y as extracting the cell for Santa Barbara lat, lon and then converting the cell number to xy
-    sbt <- spTransform(sb[1, ], CRSobj=CRS(proj4string(Tmean_prism)))
-    sbcell <- raster::extract(Tmean_prism, sbt, sp=TRUE, cellnumbers=TRUE)
-    ## but this xy does not match
-    print(xyFromCell(Tmean_prism, cell=sbcell[['cells']]))
-
-
-
-    ## foo <- map_dT_ctl + geom_sf(data=st_as_sf(sf::st_transform(st_as_sf(this_station),
-    ##                                            projstr)),
-    ##                             shape=4,
-    ##                             size=3,
-    ##                             color='blue',
-    ##                             mapping=aes(shape='cross', size=1)) +
-    ##     coord_sf(xlim=ax_lim[['lon']], ylim=ax_lim[['lat']], crs=projstr)
-    ## foo <- foo + geom_point(data=as.data.frame(xy),
-    ##                         shape=19,
-    ##                         size=3,
-    ##                         color='green',
-    ##                         mapping=aes(x=x, y=y))
+    ushcn[['d_coast']] <- as.vector(gDistance(spTransform(ushcn, projstr),
+                                              spTransform(cal_coast, projstr),
+                                              byid=TRUE))
 }
+
+
+## ==================================================
+## main
+
+proj4_str_lonlat <- "+proj=longlat +datum=WGS84"
+Tmean_prism <- read_PRISM_Tmean(gb=gb)
+Tmean_WRFNOAA_Ctl <- read_WRF_Tmean(fname='ctlNOAH_d02_T.nc', gb)
+ushcn <- parse_ushcn(file.path('~', 'work', 'Data', 'PRISM',
+                               '2009_06_Cal_USHCN_data.csv'))
+ushcn_stations <- get_all_ushcn_coords(ushcn, Tmean_prism)
+
+
+## try to isolate stations outside of the WRF domain -- HUZZAH!
+ushcn_stations[['in_WRF_domain']] <- !(is.na(ushcn_stations[['row']]))
+bb <- extent(Tmean_prism) * 1.4
+map_cal_stations <- ggplot() +
+    geom_sf(data=map_setup(proj4string(Tmean_prism)), color='black', fill='gray') +
+    coord_sf(xlim=c(bb@xmin, bb@xmax),
+             ylim=c(bb@xmin, bb@xmax)) +
+    geom_point(mapping=aes(x=x, y=y, color=in_WRF_domain), data=ushcn_stations) +
+    ggtitle(label='California USHCN stations')
+
+
+santacruz <- ushcn_stations[ushcn_stations[['NAME']]=="SANTA CRUZ, CA US",
+                            c('row', 'col')]
+df <- rbind(
+    data.frame(T=as.numeric(getValuesBlock(Tmean_WRFNOAA_Ctl,
+                                           row=santacruz[['row']], nrows=1,
+                                           col=santacruz[['col']], ncols=1)),
+               days_from_1Jun2009=seq(1, 30),
+               model="WRFNOAA"),
+    data.frame(T=as.numeric(getValuesBlock(Tmean_prism,
+                                           row=santacruz[['row']], nrows=1,
+                                           col=santacruz[['col']], ncols=1)),
+               days_from_1Jun2009=seq(1, 30),
+               model="PRISM"))
+
+timeseries_santacruz <- ggplot(df, aes(x=days_from_1Jun2009, y=T, color=model)) +
+    geom_line() +
+    ggtitle(label=df[['NAME']], subtitle="June 2009")
