@@ -102,6 +102,44 @@ calc_ushcn_dist_to_coast <- function(ushcn) {
                                               byid=TRUE))
 }
 
+get_point_timeseries <- function(data_WRF, data_PRISM, data_USHCN,
+                                 stations_USHCN,
+                                 point_name=NULL,
+                                 row=NULL,
+                                 col=NULL) {
+    if (is.null(point_name)) {
+        if (is.null(row) && is.null(col)) {
+            stop("Must specify either point_name or both row and col")
+        }
+    } else {
+        station <- ushcn_stations[ushcn_stations[['NAME']]=="NAME",
+                                  c('row', 'col')]
+        row <- station[['row']]
+        col <- station[['col']]
+    }
+    df <- rbind(
+        data.frame(T=as.numeric(
+                       getValuesBlock(data_WRF,
+                                      row=row, nrows=1,
+                                      col=col, ncols=1)),
+                   days_from_1Jun2009=seq(1, 30),
+                   source="WRF"),
+        data.frame(T=as.numeric(
+                       getValuesBlock(data_PRISM,
+                                      row=row, nrows=1,
+                                      col=col, ncols=1)),
+                   days_from_1Jun2009=seq(1, 30),
+                   source="PRISM"))
+        ## data.frame(T=data_USHCN[data_USHCN[['NAME']] == point_name, 'TOBS'],
+        ##            days_from_1Jun2009=seq(1, 30),
+        ##            source='USHCN')
+    delta_df <- data.frame(dT=as.numeric(
+                               getValuesBlock(data_PRISM - data_WRF,
+                                              row=station[['row']], nrows=1,
+                                              col=station[['col']], ncols=1)),
+                           days_from_1Jun2009=seq(1, 30))
+    return(list(data=df, delta_data=delta_df))
+}
 
 ## ==================================================
 ## main
@@ -125,20 +163,14 @@ map_cal_stations <- ggplot() +
     ggtitle(label='California USHCN stations')
 
 
-santacruz <- ushcn_stations[ushcn_stations[['NAME']]=="SANTA CRUZ, CA US",
-                            c('row', 'col')]
-df <- rbind(
-    data.frame(T=as.numeric(getValuesBlock(Tmean_WRFNOAA_Ctl,
-                                           row=santacruz[['row']], nrows=1,
-                                           col=santacruz[['col']], ncols=1)),
-               days_from_1Jun2009=seq(1, 30),
-               model="WRFNOAA"),
-    data.frame(T=as.numeric(getValuesBlock(Tmean_prism,
-                                           row=santacruz[['row']], nrows=1,
-                                           col=santacruz[['col']], ncols=1)),
-               days_from_1Jun2009=seq(1, 30),
-               model="PRISM"))
+this_station_name <- "MONTEREY, CA US"
+this_station <- get_point_timeseries(data_WRF=Tmean_WRFNOAA_Ctl,
+                                  data_PRISM=Tmean_prism,
+                                  data_USHCN=data_ushcn,
+                                  point_name="MONTEREY, CA US")
 
-timeseries_santacruz <- ggplot(df, aes(x=days_from_1Jun2009, y=T, color=model)) +
+timeseries_this_station <- ggplot(this_station[['data']],
+                                  aes(x=days_from_1Jun2009,
+                                      y=T, color=source)) +
     geom_line() +
-    ggtitle(label=df[['NAME']], subtitle="June 2009")
+    ggtitle(label=this_station_name, subtitle="June 2009")
