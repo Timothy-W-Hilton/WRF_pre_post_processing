@@ -54,11 +54,14 @@ stations_to_SPDF <- function(ushcn) {
     return(stations)
 }
 
-TOBS_data_to_SPDF <- function(ushcn) {
-    stations <- SpatialPointsDataFrame(
+TOBS_data_to_SF <- function(ushcn) {
+    stations <- st_as_sf(SpatialPointsDataFrame(
         coords=ushcn[, c('LONGITUDE', 'LATITUDE')],
         data=ushcn[, c('STATION', 'NAME', 'DATE', 'TOBS')],
-        proj4string = CRS("+proj=longlat +datum=WGS84"))
+        proj4string = CRS("+proj=longlat +datum=WGS84"))) %>%
+        mutate(DATE = as.Date(DATE)) %>%
+        filter(DATE < as.Date('2009-07-01'))
+    ## stations[['DATE']] <- as.Date(stations[['DATE']])
     return(stations)
 }
 
@@ -66,7 +69,7 @@ TOBS_data_to_SPDF <- function(ushcn) {
 get_all_ushcn_coords <- function(ushcn, PRISM_raster) {
     ## ==================================================
     ## calculate PRISM x/y, row/col from USHCN lon, lat
-    ushcndf <- TOBS_data_to_SPDF(ushcn)
+    ushcndf <- TOBS_data_to_SF(ushcn)
     stations <- stations_to_SPDF(ushcn)
     ushcn_lonlat <- as.data.frame(coordinates(stations))
     names(ushcn_lonlat) <- c('lon', 'lat')
@@ -109,7 +112,7 @@ Tmean_WRFNOAA_Ctl <- read_WRF_Tmean(fname='ctlNOAH_d02_T.nc', gb)
 ushcn <- parse_ushcn(file.path('~', 'work', 'Data', 'PRISM',
                                '2009_06_Cal_USHCN_data.csv'))
 ushcn_stations <- get_all_ushcn_coords(ushcn, Tmean_prism)
-
+data_ushcn <- TOBS_data_to_SF(ushcn)
 
 ## try to isolate stations outside of the WRF domain -- HUZZAH!
 ushcn_stations[['in_WRF_domain']] <- !(is.na(ushcn_stations[['row']]))
