@@ -136,16 +136,30 @@ get_point_timeseries <- function(data_WRF, data_PRISM, data_USHCN,
         data.frame(T=filter(data_USHCN, NAME==point_name)[['TOBS']],
                    days_from_1Jun2009=seq(0, 29),
                    source='USHCN'))
-    delta_df <- data.frame(PRISM.WRF=as.numeric(
-                               getValuesBlock(data_PRISM - data_WRF,
-                                              row=station[['row']], nrows=1,
-                                              col=station[['col']], ncols=1)),
-                           days_from_1Jun2009=seq(0, 29))
-    fit <- lm(PRISM.WRF~days_from_1Jun2009, data=delta_df)
+    WRF_vals <- as.numeric(getValuesBlock(data_WRF,
+                                          row=station[['row']], nrows=1,
+                                          col=station[['col']], ncols=1))
+    delta_df <- rbind(
+        data.frame(
+            dT=as.numeric(getValuesBlock(data_PRISM - data_WRF,
+                                            row=station[['row']], nrows=1,
+                                            col=station[['col']], ncols=1)),
+            source='PRISM',
+            days_from_1Jun2009=seq(0, 29)
+        ),
+        data.frame(
+            dT= filter(data_USHCN, NAME==point_name)[['TOBS']] - WRF_vals,
+            source='USHCN',
+            days_from_1Jun2009=seq(0, 29)
+        )
+    )
+    fits <- lm(dT~days_from_1Jun2009*source, data=delta_df)
     delta_df <- delta_df %>%
-        mutate(fit=predict.lm(fit, delta_df))
+        mutate(fit=predict.lm(fits, delta_df))
 
-    return(list(data=data_sources, delta_data=delta_df))
+    return(merge(data_sources, delta_df,
+                 by=c('source', 'days_from_1Jun2009'),
+                 all=TRUE))
 }
 
 map_one_USHCN_station <- function(ushcn_stations, station_name) {
@@ -200,33 +214,36 @@ this_station <- get_point_timeseries(data_WRF=Tmean_WRFNOAA_Ctl,
                                   data_USHCN=data_ushcn,
                                   point_name=this_station_name)
 
-timeseries_data_plot <- ggplot(this_station[['data']],
-                          aes(x=days_from_1Jun2009,
-                              y=T, color=source)) +
+timeseries_data_plot <- ggplot(this_station,
+                               aes(x=days_from_1Jun2009,
+                                   y=T, color=source)) +
     geom_line() +
     ggtitle(label=this_station_name, subtitle="June 2009") +
     labs(x="days from 1 June 2009",
-         y=expression('T ('*degree*'C)')) +
+         y=expression('T'[mean]*' ('*degree*'C)')) +
     scale_color_brewer(type=qual, palette='Dark2') +
     theme_classic()
 
-dT <- gather(this_station[['delta_data']], key='source', value='dT',
-             PRISM.WRF, fit, -days_from_1Jun2009)
-
-timeseries_delta_data_plot <- ggplot(dT,
-                                     aes(x=days_from_1Jun2009,
-                                         y=dT,
-                                         color=source)) +
-    geom_line() +
+timeseries_delta_data_plot <- ggplot() +
+    geom_line(data=filter(this_station, !is.na(dT)),
+              mapping=aes(x=days_from_1Jun2009,
+                  y=dT,
+                  color=source)) +
+    geom_line(data=filter(this_station, !is.na(dT)),
+              mapping=aes(x=days_from_1Jun2009,
+                  y=fit,
+                  color=source),
+              linetype=2) +
     labs(x="days from 1 June 2009",
-         y=expression(Delta*'T PRISM-WRFNOAH ('*degree*'C)')) +
-    scale_color_brewer(type=qual, palette='Dark2') +
+         y=expression(Delta*'T'[mean]*' ('*degree*'C)')) +
+    scale_color_brewer(type=qual, palette='Dark2',
+                       labels=c('PRISM-WRF', 'USHCN-WRF')) +
     theme_classic()
+
 
 station_map <- map_one_USHCN_station(ushcn_stations, this_station_name)
 
 g1 <- ggplotGrob(timeseries_data_plot)
-## g1 <- gtable_add_cols(g1, unit(0,"mm")) # add a column for missing legend
 g2 <- ggplotGrob(timeseries_delta_data_plot)
 g3 <- ggplotGrob(map_one_USHCN_station(ushcn_stations, this_station_name))
 colnames(g1) <- paste0(seq_len(ncol(g1)))
