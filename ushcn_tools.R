@@ -112,7 +112,7 @@ get_point_timeseries <- function(data_WRF, data_PRISM, data_USHCN,
             stop("Must specify either point_name or both row and col")
         }
     } else {
-        station <- ushcn_stations[ushcn_stations[['NAME']]=="NAME",
+        station <- ushcn_stations[ushcn_stations[['NAME']]==point_name,
                                   c('row', 'col')]
         row <- station[['row']]
         col <- station[['col']]
