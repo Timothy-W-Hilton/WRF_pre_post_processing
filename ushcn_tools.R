@@ -140,6 +140,21 @@ get_point_timeseries <- function(data_WRF, data_PRISM, data_USHCN,
                            days_from_1Jun2009=seq(1, 30))
     return(list(data=data_sources, delta_data=delta_df))
 }
+
+map_one_USHCN_station <- function(ushcn_stations, station_name) {
+    bb <- extent(Tmean_prism) * 1.4
+    mapfig <- ggplot() +
+        geom_sf(
+            data=map_setup(proj4string(Tmean_prism)),
+            color='black',
+            fill='gray') +
+        coord_sf(xlim=c(bb@xmin, bb@xmax),
+                 ylim=c(bb@xmin, bb@xmax)) +
+        geom_point(mapping=aes(x=x, y=y, color="station"),
+                   data=filter(ushcn_stations, NAME==station_name)) +
+        scale_colour_manual(name="",
+                      values = c(station='blue'))
+    return(mapfig)
 }
 
 ## ==================================================
