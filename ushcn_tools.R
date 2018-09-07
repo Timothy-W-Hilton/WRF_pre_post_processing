@@ -157,7 +157,9 @@ map_one_USHCN_station <- function(ushcn_stations, station_name) {
         geom_point(mapping=aes(x=x, y=y, color="station"),
                    data=filter(ushcn_stations, NAME==station_name)) +
         scale_colour_manual(name="",
-                      values = c(station='blue'))
+                            values = c(station='blue')) +
+        theme(axis.title.x=element_blank(),
+              axis.title.y=element_blank())
     return(mapfig)
 }
 
