@@ -5,7 +5,6 @@ library(data.table)  ## for %like%
 
 source('fit_slopes.R')
 source('summen_map_tools.R')
-source('multiplot.R')
 
 projstr <- "+proj=ortho +lon_0=-120 +lat_0=40"
 eps3310 <- CRS("+init=epsg:3310")  ## Albers Equal Area projection for state of california, see http://spatialreference.org/ref/epsg/3310/
@@ -186,7 +185,7 @@ map_cal_stations <- ggplot() +
 
 this_station_name <- "MONTEREY WEATHER FORECAST OFFICE, CA US"
 ## this_station_name <- "SANTA CRUZ, CA US"
-this_station_name <- "ARCATA EUREKA AIRPORT, CA US"
+## this_station_name <- "ARCATA EUREKA AIRPORT, CA US"
 this_station <- get_point_timeseries(data_WRF=Tmean_WRFNOAA_Ctl,
                                   data_PRISM=Tmean_prism,
                                   data_USHCN=data_ushcn,
@@ -203,9 +202,19 @@ timeseries_data_plot <- ggplot(this_station[['data']],
 
 timeseries_delta_data_plot <- ggplot(this_station[['delta_data']],
                                      aes(x=days_from_1Jun2009,
-                                         y=dT)) +
+                                         y=dT,
+                                         color='delta')) +
     geom_line() +
     labs(x="days from 1 June 2009",
          y=expression(Delta*'T PRISM-WRFNOAH ('*degree*'C)'))
 
-p <- multiplot(timeseries_data_plot, timeseries_delta_data_plot, rows=2)
+library(gtable)
+g1 <- ggplotGrob(timeseries_data_plot)
+## g1 <- gtable_add_cols(g1, unit(0,"mm")) # add a column for missing legend
+g2 <- ggplotGrob(timeseries_delta_data_plot)
+g <- rbind(g1, g2, size="first") # stack the two plots
+## g$widths <- unit.pmax(g1$widths, g2$widths) # use the largest widths
+## # center the legend vertically
+## g$layout[grepl("guide", g$layout$name),c("t","b")] <- c(1,nrow(g))
+grid.newpage()
+grid.draw(g)
