@@ -180,6 +180,25 @@ map_one_USHCN_station <- function(ushcn_stations, station_name) {
     return(mapfig)
 }
 
+find_coastal_stations_with_USHCN_data <- function(ushcn_stations, data_ushcn) {
+    ## pull out USHCN stations that are (1) within 5KM of coast and (2) in
+    ## WRF domain
+    coastal_stations <- filter(ushcn_stations, d_coast <= 5000) %>%
+        filter(in_WRF_domain) %>%
+        mutate(STATION=droplevels(STATION),
+               NAME=droplevels(NAME))
+    ##get data from these stations
+    data_ushcn <- merge(as.data.frame(coastal_stations), as.data.frame(data_ushcn))
+    ## remove stations with no USHCN obs in June 2009
+    data_ushcn <- data_ushcn %>%
+        group_by(STATION) %>%
+        filter(!all(is.na(TOBS))) %>%
+        as.data.frame() %>%
+        mutate(STATION=droplevels(STATION),
+               NAME=droplevels(NAME))
+    return(data_ushcn)
+}
+
 ## ==================================================
 ## main
 
