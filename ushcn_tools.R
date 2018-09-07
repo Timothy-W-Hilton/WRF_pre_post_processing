@@ -117,7 +117,7 @@ get_point_timeseries <- function(data_WRF, data_PRISM, data_USHCN,
         row <- station[['row']]
         col <- station[['col']]
     }
-    df <- rbind(
+    data_sources <- rbind(
         data.frame(T=as.numeric(
                        getValuesBlock(data_WRF,
                                       row=row, nrows=1,
@@ -129,16 +129,17 @@ get_point_timeseries <- function(data_WRF, data_PRISM, data_USHCN,
                                       row=row, nrows=1,
                                       col=col, ncols=1)),
                    days_from_1Jun2009=seq(1, 30),
-                   source="PRISM"))
-        ## data.frame(T=data_USHCN[data_USHCN[['NAME']] == point_name, 'TOBS'],
-        ##            days_from_1Jun2009=seq(1, 30),
-        ##            source='USHCN')
+                   source="PRISM"),
+        data.frame(T=filter(data_USHCN, NAME==point_name)[['TOBS']],
+                   days_from_1Jun2009=seq(1, 30),
+                   source='USHCN'))
     delta_df <- data.frame(dT=as.numeric(
                                getValuesBlock(data_PRISM - data_WRF,
                                               row=station[['row']], nrows=1,
                                               col=station[['col']], ncols=1)),
                            days_from_1Jun2009=seq(1, 30))
-    return(list(data=df, delta_data=delta_df))
+    return(list(data=data_sources, delta_data=delta_df))
+}
 }
 
 ## ==================================================
@@ -156,21 +157,30 @@ data_ushcn <- TOBS_data_to_SF(ushcn)
 ushcn_stations[['in_WRF_domain']] <- !(is.na(ushcn_stations[['row']]))
 bb <- extent(Tmean_prism) * 1.4
 map_cal_stations <- ggplot() +
-    geom_sf(data=map_setup(proj4string(Tmean_prism)), color='black', fill='gray') +
+    geom_sf(data=map_setup(proj4string(Tmean_prism)),
+            color='black',
+            fill='gray') +
     coord_sf(xlim=c(bb@xmin, bb@xmax),
              ylim=c(bb@xmin, bb@xmax)) +
-    geom_point(mapping=aes(x=x, y=y, color=in_WRF_domain), data=ushcn_stations) +
+    geom_point(mapping=aes(x=x, y=y,
+                           color=in_WRF_domain),
+               data=ushcn_stations) +
     ggtitle(label='California USHCN stations')
 
 
-this_station_name <- "MONTEREY, CA US"
+this_station_name <- "MONTEREY WEATHER FORECAST OFFICE, CA US"
+## this_station_name <- "SANTA CRUZ, CA US"
+this_station_name <- "ARCATA EUREKA AIRPORT, CA US"
 this_station <- get_point_timeseries(data_WRF=Tmean_WRFNOAA_Ctl,
                                   data_PRISM=Tmean_prism,
                                   data_USHCN=data_ushcn,
-                                  point_name="MONTEREY, CA US")
+                                  point_name=this_station_name)
 
 timeseries_this_station <- ggplot(this_station[['data']],
                                   aes(x=days_from_1Jun2009,
                                       y=T, color=source)) +
     geom_line() +
-    ggtitle(label=this_station_name, subtitle="June 2009")
+    ggtitle(label=this_station_name, subtitle="June 2009") +
+    labs(x="days from 1 June 2009",
+         y=expression('T ('*degree*'C)')) +
+    scale_color_brewer(type=qual, palette='Dark2')
