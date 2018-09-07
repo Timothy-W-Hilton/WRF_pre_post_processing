@@ -122,22 +122,23 @@ get_point_timeseries <- function(data_WRF, data_PRISM, data_USHCN,
                        getValuesBlock(data_WRF,
                                       row=row, nrows=1,
                                       col=col, ncols=1)),
-                   days_from_1Jun2009=seq(1, 30),
+                   days_from_1Jun2009=seq(0, 29),
                    source="WRF"),
         data.frame(T=as.numeric(
                        getValuesBlock(data_PRISM,
                                       row=row, nrows=1,
                                       col=col, ncols=1)),
-                   days_from_1Jun2009=seq(1, 30),
+                   days_from_1Jun2009=seq(0, 29),
                    source="PRISM"),
         data.frame(T=filter(data_USHCN, NAME==point_name)[['TOBS']],
-                   days_from_1Jun2009=seq(1, 30),
+                   days_from_1Jun2009=seq(0, 29),
                    source='USHCN'))
     delta_df <- data.frame(dT=as.numeric(
                                getValuesBlock(data_PRISM - data_WRF,
                                               row=station[['row']], nrows=1,
                                               col=station[['col']], ncols=1)),
-                           days_from_1Jun2009=seq(1, 30))
+                           days_from_1Jun2009=seq(0, 29))
+
     return(list(data=data_sources, delta_data=delta_df))
 }
 
