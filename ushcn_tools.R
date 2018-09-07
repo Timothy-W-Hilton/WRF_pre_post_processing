@@ -2,6 +2,9 @@ library(rgeos)
 library(sf)
 library(sp)
 library(data.table)  ## for %like%
+library(gridExtra)
+library(grid)
+library(gtable)
 
 source('fit_slopes.R')
 source('summen_map_tools.R')
@@ -203,19 +206,32 @@ timeseries_data_plot <- ggplot(this_station[['data']],
 
 timeseries_delta_data_plot <- ggplot(this_station[['delta_data']],
                                      aes(x=days_from_1Jun2009,
-                                         y=dT,
-                                         color='delta')) +
+                                         y=dT),
+                                     color='fit') +
     geom_line() +
+    geom_smooth(method=lm,
+                mapping=aes(x=days_from_1Jun2009, y=dT),
+                show.legend = TRUE) +
     labs(x="days from 1 June 2009",
          y=expression(Delta*'T PRISM-WRFNOAH ('*degree*'C)'))
+
+station_map <- map_one_USHCN_station(ushcn_stations, this_station_name)
 
 library(gtable)
 g1 <- ggplotGrob(timeseries_data_plot)
 ## g1 <- gtable_add_cols(g1, unit(0,"mm")) # add a column for missing legend
 g2 <- ggplotGrob(timeseries_delta_data_plot)
-g <- rbind(g1, g2, size="first") # stack the two plots
-## g$widths <- unit.pmax(g1$widths, g2$widths) # use the largest widths
-## # center the legend vertically
-## g$layout[grepl("guide", g$layout$name),c("t","b")] <- c(1,nrow(g))
-grid.newpage()
-grid.draw(g)
+g3 <- ggplotGrob(map_one_USHCN_station(ushcn_stations, this_station_name))
+colnames(g1) <- paste0(seq_len(ncol(g1)))
+colnames(g2) <- paste0(seq_len(ncol(g2)))
+colnames(g3) <- paste0(seq_len(ncol(g3)))
+grid.draw(gridExtra::gtable_combine(g1, g2, along=2))
+
+## lay <- rbind(c(1,1,1,1,3,3),
+##              c(1,1,1,1,3,3),
+##              c(2,2,2,2,3,3),
+##              c(2,2,2,2,NA,NA))
+## grid.arrange(timeseries_data_plot,
+##              timeseries_delta_data_plot,
+##              station_map,
+##              layout_matrix=lay)
