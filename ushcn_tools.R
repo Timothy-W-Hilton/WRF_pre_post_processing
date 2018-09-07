@@ -5,6 +5,7 @@ library(data.table)  ## for %like%
 
 source('fit_slopes.R')
 source('summen_map_tools.R')
+source('multiplot.R')
 
 projstr <- "+proj=ortho +lon_0=-120 +lat_0=40"
 eps3310 <- CRS("+init=epsg:3310")  ## Albers Equal Area projection for state of california, see http://spatialreference.org/ref/epsg/3310/
@@ -191,11 +192,20 @@ this_station <- get_point_timeseries(data_WRF=Tmean_WRFNOAA_Ctl,
                                   data_USHCN=data_ushcn,
                                   point_name=this_station_name)
 
-timeseries_this_station <- ggplot(this_station[['data']],
-                                  aes(x=days_from_1Jun2009,
-                                      y=T, color=source)) +
+timeseries_data_plot <- ggplot(this_station[['data']],
+                          aes(x=days_from_1Jun2009,
+                              y=T, color=source)) +
     geom_line() +
     ggtitle(label=this_station_name, subtitle="June 2009") +
     labs(x="days from 1 June 2009",
          y=expression('T ('*degree*'C)')) +
     scale_color_brewer(type=qual, palette='Dark2')
+
+timeseries_delta_data_plot <- ggplot(this_station[['delta_data']],
+                                     aes(x=days_from_1Jun2009,
+                                         y=dT)) +
+    geom_line() +
+    labs(x="days from 1 June 2009",
+         y=expression(Delta*'T PRISM-WRFNOAH ('*degree*'C)'))
+
+p <- multiplot(timeseries_data_plot, timeseries_delta_data_plot, rows=2)
