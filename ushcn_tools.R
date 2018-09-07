@@ -199,6 +199,54 @@ find_coastal_stations_with_USHCN_data <- function(ushcn_stations, data_ushcn) {
     return(data_ushcn)
 }
 
+plot_station_time_series <- function(this_station_name) {
+    ## this_station_name <- "SANTA CRUZ, CA US"
+    ## this_station_name <- "ARCATA EUREKA AIRPORT, CA US"
+    this_station <- get_point_timeseries(data_WRF=Tmean_WRFNOAA_Ctl,
+                                         data_PRISM=Tmean_prism,
+                                         data_USHCN=data_ushcn,
+                                         point_name=this_station_name)
+
+    timeseries_data_plot <- ggplot(this_station,
+                                   aes(x=days_from_1Jun2009,
+                                       y=T, color=source)) +
+        geom_line() +
+        ggtitle(label=this_station_name, subtitle="June 2009") +
+        labs(x="days from 1 June 2009",
+             y=expression('T'[mean]*' ('*degree*'C)')) +
+        scale_color_brewer(type=qual, palette='Dark2') +
+        theme_classic()
+
+    timeseries_delta_data_plot <- ggplot() +
+        geom_line(data=filter(this_station, !is.na(dT)),
+                  mapping=aes(x=days_from_1Jun2009,
+                              y=dT,
+                              color=source)) +
+        geom_line(data=filter(this_station, !is.na(dT)),
+                  mapping=aes(x=days_from_1Jun2009,
+                              y=fit,
+                              color=source),
+                  linetype=2) +
+        labs(x="days from 1 June 2009",
+             y=expression(Delta*'T'[mean]*' ('*degree*'C)')) +
+        scale_color_brewer(type=qual, palette='Dark2',
+                           labels=c('PRISM-WRF', 'USHCN-WRF')) +
+        theme_classic()
+
+
+    station_map <- map_one_USHCN_station(ushcn_stations, this_station_name)
+
+    g1 <- ggplotGrob(timeseries_data_plot)
+    g2 <- ggplotGrob(timeseries_delta_data_plot)
+    g3 <- ggplotGrob(map_one_USHCN_station(ushcn_stations, this_station_name))
+    colnames(g1) <- paste0(seq_len(ncol(g1)))
+    colnames(g2) <- paste0(seq_len(ncol(g2)))
+    colnames(g3) <- paste0(seq_len(ncol(g3)))
+    fig <- grid.draw(gridExtra::gtable_combine(g1, g2, along=2))
+    return(fig)
+}
+
+
 ## ==================================================
 ## main
 
@@ -225,47 +273,9 @@ map_cal_stations <- ggplot() +
     ggtitle(label='California USHCN stations')
 
 
+coastal_stations <- find_coastal_stations_with_USHCN_data(ushcn_stations, data_ushcn)
 this_station_name <- "MONTEREY WEATHER FORECAST OFFICE, CA US"
-## this_station_name <- "SANTA CRUZ, CA US"
-## this_station_name <- "ARCATA EUREKA AIRPORT, CA US"
-this_station <- get_point_timeseries(data_WRF=Tmean_WRFNOAA_Ctl,
-                                  data_PRISM=Tmean_prism,
-                                  data_USHCN=data_ushcn,
-                                  point_name=this_station_name)
-
-timeseries_data_plot <- ggplot(this_station,
-                               aes(x=days_from_1Jun2009,
-                                   y=T, color=source)) +
-    geom_line() +
-    ggtitle(label=this_station_name, subtitle="June 2009") +
-    labs(x="days from 1 June 2009",
-         y=expression('T'[mean]*' ('*degree*'C)')) +
-    scale_color_brewer(type=qual, palette='Dark2') +
-    theme_classic()
-
-timeseries_delta_data_plot <- ggplot() +
-    geom_line(data=filter(this_station, !is.na(dT)),
-              mapping=aes(x=days_from_1Jun2009,
-                  y=dT,
-                  color=source)) +
-    geom_line(data=filter(this_station, !is.na(dT)),
-              mapping=aes(x=days_from_1Jun2009,
-                  y=fit,
-                  color=source),
-              linetype=2) +
-    labs(x="days from 1 June 2009",
-         y=expression(Delta*'T'[mean]*' ('*degree*'C)')) +
-    scale_color_brewer(type=qual, palette='Dark2',
-                       labels=c('PRISM-WRF', 'USHCN-WRF')) +
-    theme_classic()
-
-
-station_map <- map_one_USHCN_station(ushcn_stations, this_station_name)
-
-g1 <- ggplotGrob(timeseries_data_plot)
-g2 <- ggplotGrob(timeseries_delta_data_plot)
-g3 <- ggplotGrob(map_one_USHCN_station(ushcn_stations, this_station_name))
-colnames(g1) <- paste0(seq_len(ncol(g1)))
-colnames(g2) <- paste0(seq_len(ncol(g2)))
-colnames(g3) <- paste0(seq_len(ncol(g3)))
-grid.draw(gridExtra::gtable_combine(g1, g2, along=2))
+fig <- plot_station_time_series(this_station_name)
+## for (this_station in (levels(coastal_stations[['NAME']])[1:5]) {
+##     fig <- plot_station_time_series(this_station)
+## }
