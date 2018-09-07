@@ -136,11 +136,14 @@ get_point_timeseries <- function(data_WRF, data_PRISM, data_USHCN,
         data.frame(T=filter(data_USHCN, NAME==point_name)[['TOBS']],
                    days_from_1Jun2009=seq(0, 29),
                    source='USHCN'))
-    delta_df <- data.frame(dT=as.numeric(
+    delta_df <- data.frame(PRISM.WRF=as.numeric(
                                getValuesBlock(data_PRISM - data_WRF,
                                               row=station[['row']], nrows=1,
                                               col=station[['col']], ncols=1)),
                            days_from_1Jun2009=seq(0, 29))
+    fit <- lm(PRISM.WRF~days_from_1Jun2009, data=delta_df)
+    delta_df <- delta_df %>%
+        mutate(fit=predict.lm(fit, delta_df))
 
     return(list(data=data_sources, delta_data=delta_df))
 }
@@ -204,22 +207,24 @@ timeseries_data_plot <- ggplot(this_station[['data']],
     ggtitle(label=this_station_name, subtitle="June 2009") +
     labs(x="days from 1 June 2009",
          y=expression('T ('*degree*'C)')) +
-    scale_color_brewer(type=qual, palette='Dark2')
+    scale_color_brewer(type=qual, palette='Dark2') +
+    theme_classic()
 
-timeseries_delta_data_plot <- ggplot(this_station[['delta_data']],
+dT <- gather(this_station[['delta_data']], key='source', value='dT',
+             PRISM.WRF, fit, -days_from_1Jun2009)
+
+timeseries_delta_data_plot <- ggplot(dT,
                                      aes(x=days_from_1Jun2009,
-                                         y=dT),
-                                     color='fit') +
+                                         y=dT,
+                                         color=source)) +
     geom_line() +
-    geom_smooth(method=lm,
-                mapping=aes(x=days_from_1Jun2009, y=dT),
-                show.legend = TRUE) +
     labs(x="days from 1 June 2009",
-         y=expression(Delta*'T PRISM-WRFNOAH ('*degree*'C)'))
+         y=expression(Delta*'T PRISM-WRFNOAH ('*degree*'C)')) +
+    scale_color_brewer(type=qual, palette='Dark2') +
+    theme_classic()
 
 station_map <- map_one_USHCN_station(ushcn_stations, this_station_name)
 
-library(gtable)
 g1 <- ggplotGrob(timeseries_data_plot)
 ## g1 <- gtable_add_cols(g1, unit(0,"mm")) # add a column for missing legend
 g2 <- ggplotGrob(timeseries_delta_data_plot)
@@ -228,12 +233,3 @@ colnames(g1) <- paste0(seq_len(ncol(g1)))
 colnames(g2) <- paste0(seq_len(ncol(g2)))
 colnames(g3) <- paste0(seq_len(ncol(g3)))
 grid.draw(gridExtra::gtable_combine(g1, g2, along=2))
-
-## lay <- rbind(c(1,1,1,1,3,3),
-##              c(1,1,1,1,3,3),
-##              c(2,2,2,2,3,3),
-##              c(2,2,2,2,NA,NA))
-## grid.arrange(timeseries_data_plot,
-##              timeseries_delta_data_plot,
-##              station_map,
-##              layout_matrix=lay)
