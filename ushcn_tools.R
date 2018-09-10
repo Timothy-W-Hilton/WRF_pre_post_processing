@@ -274,14 +274,75 @@ map_cal_stations <- ggplot() +
     ggtitle(label='California USHCN stations')
 
 
-## coastal_stations <- find_coastal_stations_with_USHCN_data(ushcn_stations, data_ushcn)
+coastal_stations <- find_coastal_stations_with_USHCN_data(ushcn_stations, data_ushcn)
 ## this_station_name <- "MONTEREY WEATHER FORECAST OFFICE, CA US"
 ## fig <- plot_station_time_series(this_station_name)
 
 pdf(file='./station_time_series.pdf', onefile=TRUE)
 for (this_station in (levels(coastal_stations[['NAME']]))) {
-    print(paste("plotting", this_station))
-    this_fig <- plot_station_time_series(this_station)
-    plot(this_fig)
+    cat(paste("plotting", this_station))
+    tryCatch( {
+        this_fig <- plot_station_time_series(this_station)
+        plot(this_fig)
+        cat(' -- success\n')
+    }, warning = function(w) {
+        cat('\n')
+        print(w)
+    }, error = function(e) {
+        cat('\n')
+        print(e)
+    }
+    ) ## tryCatch
 }
 dev.off()
+
+
+station_list <- c("BIG SUR STATION, CA US", "CRESCENT CITY, CA US", "FORT BRAGG 5 N, CA US",
+                  "FORT ROSS, CA US", "HALF MOON BAY, CA US", "KENTFIELD, CA US",
+                  "MARTINEZ WATER PLANT, CA US", "MONTEREY WEATHER FORECAST OFFICE, CA US",
+                  "MONTEREY, CA US", "NEWARK, CA US", "OAKLAND MUSEUM, CA US",
+                  "ORICK PRAIRIE, CA US", "PALO ALTO, CA US",
+                  "SAN FRANCISCO OCEANSIDE, CA US", "SAN RAFAEL CIVIC CEN, CA US")
+coastal_time_series_list <- lapply(X=station_list,
+                                   FUN=function(x) get_point_timeseries(
+                                                       point_name=x,
+                                                       data_WRF=Tmean_WRFNOAA_Ctl,
+                                                       data_PRISM=Tmean_prism,
+                                                       data_USHCN=data_ushcn))
+coastal_time_series <- do.call(rbind, coastal_time_series_list)
+
+timeseries_data_plot <- ggplot(coastal_time_series,
+                               aes(x=days_from_1Jun2009,
+                                   y=T, color=source)) +
+    geom_point() +
+    geom_smooth() +
+    ggtitle(label=expression("All USHCN stations" <= "5km from coast"),
+            subtitle="June 2009") +
+    labs(x="days from 1 June 2009",
+         y=expression('T'[mean]*' ('*degree*'C)')) +
+    scale_color_brewer(type=qual, palette='Dark2') +
+    theme_classic()
+
+timeseries_delta_data_plot <- ggplot() +
+    geom_point(data=filter(coastal_time_series, !is.na(dT)),
+              mapping=aes(x=days_from_1Jun2009,
+                          y=dT,
+                          color=source)) +
+    geom_smooth(data=filter(coastal_time_series, !is.na(dT)),
+              mapping=aes(x=days_from_1Jun2009,
+                          y=fit,
+                          color=source),
+              linetype=2) +
+    labs(x="days from 1 June 2009",
+         y=expression(Delta*'T'[mean]*' ('*degree*'C)')) +
+    scale_color_brewer(type=qual, palette='Dark2',
+                       labels=c('PRISM-WRF', 'USHCN-WRF')) +
+    theme_classic()
+
+g1 <- ggplotGrob(timeseries_data_plot)
+g2 <- ggplotGrob(timeseries_delta_data_plot)
+colnames(g1) <- paste0(seq_len(ncol(g1)))
+colnames(g2) <- paste0(seq_len(ncol(g2)))
+fig <- gridExtra::gtable_combine(g1, g2, along=2)
+ggsave(filename = 'all_coastal_stations_timeseries.pdf', device=pdf(), plot=fig)
+grid.draw(fig)
