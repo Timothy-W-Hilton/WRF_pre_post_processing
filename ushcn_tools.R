@@ -211,6 +211,7 @@ plot_station_time_series <- function(this_station_name) {
                                    aes(x=days_from_1Jun2009,
                                        y=T, color=source)) +
         geom_line() +
+        scale_y_continuous(limits = c(0, 40)) +
         ggtitle(label=this_station_name, subtitle="June 2009") +
         labs(x="days from 1 June 2009",
              y=expression('T'[mean]*' ('*degree*'C)')) +
@@ -222,6 +223,7 @@ plot_station_time_series <- function(this_station_name) {
                   mapping=aes(x=days_from_1Jun2009,
                               y=dT,
                               color=source)) +
+        scale_y_continuous(limits = c(-15, 20)) +
         geom_line(data=filter(this_station, !is.na(dT)),
                   mapping=aes(x=days_from_1Jun2009,
                               y=fit,
