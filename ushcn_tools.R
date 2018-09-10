@@ -242,7 +242,8 @@ plot_station_time_series <- function(this_station_name) {
     colnames(g1) <- paste0(seq_len(ncol(g1)))
     colnames(g2) <- paste0(seq_len(ncol(g2)))
     colnames(g3) <- paste0(seq_len(ncol(g3)))
-    fig <- grid.draw(gridExtra::gtable_combine(g1, g2, along=2))
+    fig <- gridExtra::gtable_combine(g1, g2, along=2)
+    grid.draw(fig)
     return(fig)
 }
 
@@ -273,9 +274,14 @@ map_cal_stations <- ggplot() +
     ggtitle(label='California USHCN stations')
 
 
-coastal_stations <- find_coastal_stations_with_USHCN_data(ushcn_stations, data_ushcn)
-this_station_name <- "MONTEREY WEATHER FORECAST OFFICE, CA US"
-fig <- plot_station_time_series(this_station_name)
-## for (this_station in (levels(coastal_stations[['NAME']])[1:5]) {
-##     fig <- plot_station_time_series(this_station)
-## }
+## coastal_stations <- find_coastal_stations_with_USHCN_data(ushcn_stations, data_ushcn)
+## this_station_name <- "MONTEREY WEATHER FORECAST OFFICE, CA US"
+## fig <- plot_station_time_series(this_station_name)
+
+pdf(file='./station_time_series.pdf', onefile=TRUE)
+for (this_station in (levels(coastal_stations[['NAME']]))) {
+    print(paste("plotting", this_station))
+    this_fig <- plot_station_time_series(this_station)
+    plot(this_fig)
+}
+dev.off()
