@@ -322,7 +322,7 @@ timeseries_data_plot <- ggplot(coastal_time_series,
             subtitle="June 2009") +
     labs(x="days from 1 June 2009",
          y=expression('T'[mean]*' ('*degree*'C)')) +
-    scale_color_brewer(type=qual, palette='Dark2') +
+    scale_color_brewer(type=qual, palette='Dark2', name="") +
     theme_classic()
 
 timeseries_delta_data_plot <- ggplot() +
@@ -331,13 +331,16 @@ timeseries_delta_data_plot <- ggplot() +
                           y=dT,
                           color=source)) +
     geom_smooth(data=filter(coastal_time_series, !is.na(dT)),
-              mapping=aes(x=days_from_1Jun2009,
-                          y=fit,
-                          color=source),
-              linetype=2) +
+                mapping=aes(x=days_from_1Jun2009,
+                            y=fit,
+                            color=source),
+                linetype=2,
+                method=lm,
+                show.legend = TRUE) +
     labs(x="days from 1 June 2009",
          y=expression(Delta*'T'[mean]*' ('*degree*'C)')) +
     scale_color_brewer(type=qual, palette='Dark2',
+                       name=expression(Delta*'T, linear fits'),
                        labels=c('PRISM-WRF', 'USHCN-WRF')) +
     theme_classic()
 
