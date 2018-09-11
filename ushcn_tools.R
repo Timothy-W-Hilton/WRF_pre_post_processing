@@ -162,7 +162,8 @@ get_point_timeseries <- function(data_WRF, data_PRISM, data_USHCN,
                  all=TRUE))
 }
 
-map_one_USHCN_station <- function(ushcn_stations, station_name) {
+map_one_USHCN_station <- function(ushcn_stations, station_name,
+                                  label_grid=FALSE) {
     us <- ne_states(country = 'United States of America', returnclass='sf')
     cal <- filter(us, name_en=="California")
     bb <- st_bbox(cal)
@@ -182,6 +183,12 @@ map_one_USHCN_station <- function(ushcn_stations, station_name) {
                             values = c(station='blue')) +
         theme(axis.title.x=element_blank(),
               axis.title.y=element_blank())
+    if (label_grid == FALSE) {
+        mapfig <- mapfig +
+            theme(axis.text=element_blank(),
+                  axis.ticks=element_blank(),
+                  panel.background=element_blank())
+    }
     return(mapfig)
 }
 
