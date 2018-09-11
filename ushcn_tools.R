@@ -238,29 +238,19 @@ plot_station_time_series <- function(this_station_name) {
              y=expression(Delta*'T'[mean]*' ('*degree*'C)')) +
         scale_color_brewer(type=qual, palette='Dark2',
                            labels=c('PRISM-WRF', 'USHCN-WRF')) +
-        theme_classic()
-
-
-    station_map <- map_one_USHCN_station(ushcn_stations, this_station_name)
+        theme_classic() +
+        annotation_custom(grob=ggplotGrob(
+                              map_one_USHCN_station(ushcn_stations,
+                                                    this_station_name)),
+                          xmin=31, xmax=40,
+                          ymin=20, ymax=35)
 
     g1 <- ggplotGrob(timeseries_data_plot)
     g2 <- ggplotGrob(timeseries_delta_data_plot)
-    g3 <- ggplotGrob(map_one_USHCN_station(ushcn_stations, this_station_name))
     colnames(g1) <- paste0(seq_len(ncol(g1)))
     colnames(g2) <- paste0(seq_len(ncol(g2)))
-    colnames(g3) <- paste0(seq_len(ncol(g3)))
     fig <- gridExtra::gtable_combine(g1, g2, along=2)
     grid.draw(fig)
-    grid.arrange(
-        grobs = list(g1, g2, g3),
-        ## widths = c(3, 3, 1)
-        layout_matrix = rbind(c(1, 1, 1, 3),
-                              c(1, 1, 1, NA),
-                              c(1, 1, 1, NA),
-                              c(2, 2, 2, NA),
-                              c(2, 2, 2, NA),
-                              c(2, 2, 2, NA))
-    )
     return(fig)
 }
 
