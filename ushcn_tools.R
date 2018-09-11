@@ -163,16 +163,21 @@ get_point_timeseries <- function(data_WRF, data_PRISM, data_USHCN,
 }
 
 map_one_USHCN_station <- function(ushcn_stations, station_name) {
-    bb <- extent(Tmean_prism) * 1.4
-    mapfig <- ggplot() +
+    us <- ne_states(country = 'United States of America', returnclass='sf')
+    cal <- filter(us, name_en=="California")
+    bb <- st_bbox(cal)
+    pt <- st_transform(filter(ushcn_stations, NAME==station_name),
+                       crs(eps3310, asText=TRUE))
+    mapfig <- ggplot(mapping=aes(height=0.5, width=0.5)) +
         geom_sf(
-            data=map_setup(proj4string(Tmean_prism)),
+            data=st_transform(cal, crs(eps3310, asText=TRUE)),
             color='black',
             fill='gray') +
-        coord_sf(xlim=c(bb@xmin, bb@xmax),
-                 ylim=c(bb@xmin, bb@xmax)) +
-        geom_point(mapping=aes(x=x, y=y, color="station"),
-                   data=filter(ushcn_stations, NAME==station_name)) +
+        geom_sf(data = pt[1, ],
+                mapping=aes(color="station"),
+                size=10,
+                shape='*',
+                show.legend=FALSE) +
         scale_colour_manual(name="",
                             values = c(station='blue')) +
         theme(axis.title.x=element_blank(),
@@ -246,6 +251,16 @@ plot_station_time_series <- function(this_station_name) {
     colnames(g3) <- paste0(seq_len(ncol(g3)))
     fig <- gridExtra::gtable_combine(g1, g2, along=2)
     grid.draw(fig)
+    grid.arrange(
+        grobs = list(g1, g2, g3),
+        ## widths = c(3, 3, 1)
+        layout_matrix = rbind(c(1, 1, 1, 3),
+                              c(1, 1, 1, NA),
+                              c(1, 1, 1, NA),
+                              c(2, 2, 2, NA),
+                              c(2, 2, 2, NA),
+                              c(2, 2, 2, NA))
+    )
     return(fig)
 }
 
