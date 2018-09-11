@@ -4,6 +4,7 @@ library(rnaturalearth)
 library(sp)
 library(sf)
 library(tidyverse)
+library(latex2exp)
 
 ## --------------------------------------------------
 ## define some constants
@@ -169,7 +170,7 @@ read_WRF_Tmean <- function(fname='nourbanNOAH_d02_T.nc', gb) {
 ##' @author Timothy W. Hilton
 ##' @export
 calc_PRISM_WRF_slopes <- function(prism, wrf) {
-    d <- prism - wrf
+    d <- abs(prism - wrf)
     fits <- raster::calc(d, linear_fitter)
     return(fits)
 }
@@ -262,18 +263,14 @@ map_dT_ctl_wrapper <- function(fits,
         map_projection = map_projection
     ) +
         scale_fill_manual(
-            values=c('#762a83',
-                     '#9970ab',
-                     '#c2a5cf',
+            values=c('#c2a5cf',
                      '#e7d4e8',
                      '#c51b7d',
                      '#d9f0d3',
-                     '#a6dba0',
-                     '#5aae61',
-                     '#1b7837' ),
+                     '#a6dba0'),
             name=expression(degree*'C / day' )
         ) +
-        ggtitle(expression(Delta*'T'['mean']~'slopes, June 2009'),
+        ggtitle(TeX('$|\\Delta T_{mean}|$ slopes, June 2009'),
                 subtitle="Control run, NOAH")
     return(map_dT_ctl)
 }
@@ -299,7 +296,7 @@ map_dT_pvals_ctl_wrapper <- function(fits, map_projection) {
                                    "#7fbf7b",
                                    "#1b7837"),
                           name=expression('p')) +
-        ggtitle(expression(Delta*'T'['mean']~'slopes p values, June 2009'),
+        ggtitle(TeX('$|\\Delta T_{mean}|$ slopes \\textit{p} values, June 2009|'),
                 subtitle="Control run, NOAH")
     return(map_dT_pvals_ctl)
 }
@@ -318,7 +315,7 @@ map_dT_SSE_ctl_wrapper <- function(Tmean_prism, Tmean_WRFNOAA_Ctl,
         field=binned,
         map_projection = map_projection
     ) +
-        ggtitle(expression('T'['mean']~'SSE, June 2009'),
+        ggtitle(TeX('$T_{mean}$ SSE, June 2009|'),
                 subtitle="Control run, PRISM vs. WRF-NOAH") +
         scale_fill_brewer(type='seq', palette='Blues',
                           name=expression('SSE ('*degree*'C)'))
