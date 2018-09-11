@@ -5,6 +5,7 @@ library(data.table)  ## for %like%
 library(gridExtra)
 library(grid)
 library(gtable)
+library(RColorBrewer)
 
 source('fit_slopes.R')
 source('summen_map_tools.R')
@@ -243,7 +244,7 @@ plot_station_time_series <- function(this_station_name) {
                   linetype=2) +
         labs(x="days from 1 June 2009",
              y=expression(Delta*'T'[mean]*' ('*degree*'C)')) +
-        scale_color_brewer(type=qual, palette='Dark2',
+        scale_color_manual(values=brewer.pal(3, "Dark2")[2:3],
                            labels=c('PRISM-WRF', 'USHCN-WRF')) +
         theme_classic() +
         annotation_custom(grob=ggplotGrob(
