@@ -203,26 +203,33 @@ bin_slopes <- function(fits, proj4_str) {
 ##'
 ##' draw a map of the U.S. West coast with a raster field overlaid
 ##' @title
-##' @param df (DataFrame): the raster data to overlay on the map.
-##'     Should contain coloumns 'x', 'y', and 'binned'.  x and y
-##'     contain the coordinates in projected units.  binned contains
-##'     the values to plot.
-##' @param t_exp (expression): expression for the main title
-##' @param t_sub_exp (expression): expression for the subtitle
-##' @param cbar_lab_exp (expression): expression for the colorbar
-##'     label
+##' @param x (DataFrame or Raster*): the raster data to overlay on the
+##'     map.  If x is a DataFrame it should contain coloumns 'x', 'y',
+##'     and the value of field.  x and y contain the coordinates in
+##'     projected units.  field contains the values to plot.  If x is
+##'     a RasterBrick it should contain the layer whose name is the
+##'     value of field.
+##' @param field (string): Name of the DataFrame column or raster
+##'     layer containing the data to be plotted.
 ##' @param map_projection (string): proj4 string describing the map
 ##'     projection to use
-##' @param t_sub (expression): expression for the subtitle
-##' @return
+##' @param method (string): {'bilinear'} or 'ngb'.  Method to use to
+##'     project the data to to the projection specified by
+##'     map_projection.  Default is "bilinear"; "ngb" is nearest
+##'     neighbor.  bilinear is better for continuous data; ngb is
+##'     better for categorical data.  See help for "projectRaster"
+##' @return ggplot object containing a map of the data on the Summen
+##'     domain
 ##' @author Timothy W. Hilton
 ##' @export
-summen_draw_map <- function(x, field, map_projection) {
+summen_draw_map <- function(x, field, map_projection, method='bilinear') {
 
     if (inherits(x, "Raster")) {
         df <- as.data.frame(as(object=projectRaster(x,
-                                                    crs=map_projection),
+                                                    crs=map_projection,
+                                                    method=method),
                                Class='SpatialPixelsDataFrame'))
+        print(paste("reprojected raster using ", method))
     }
     else if (inherits(x, 'data.frame')) {
         df <- x
@@ -256,20 +263,28 @@ summen_draw_map <- function(x, field, map_projection) {
 
 map_dT_ctl_wrapper <- function(fits,
                                map_projection) {
-    slopes <- bin_slopes(fits, map_projection)
+    slopes_signif <- mask(x=fits[['slope']],
+                          mask=Which(fits[['pval']] > 0.05),
+                          updatevalue=NA,
+                          maskvalue=TRUE)
+    br <- c(-0.4, -0.3, -0.2, -0.1, -0.03, 0.03, 0.1, 0.2, 0.3)
+    slopes <- as.factor(cut(slopes_signif, breaks=br))
     map_dT_ctl <- summen_draw_map(
         slopes,
-        field=binned,
-        map_projection = map_projection
+        field=layer,
+        map_projection = proj4string(fits),
+        method='ngb'
     ) +
-        scale_fill_manual(
-            values=c('#c2a5cf',
-                     '#e7d4e8',
-                     '#c51b7d',
-                     '#d9f0d3',
-                     '#a6dba0'),
-            name=expression(degree*'C / day' )
-        ) +
+        ## scale_fill_manual(
+        ##     values=c('#9970ab',
+        ##              '#c2a5cf',
+        ##              '#e7d4e8',
+        ##              '#c51b7d',
+        ##              '#d9f0d3',
+        ##              '#a6dba0'),
+        ##     name=expression(degree*'C / day' )
+        ##     ## breaks=br
+        ## ) +
         ggtitle(TeX('$|\\Delta T_{mean}|$ slopes, June 2009'),
                 subtitle="Control run, NOAH")
     return(map_dT_ctl)
@@ -277,7 +292,8 @@ map_dT_ctl_wrapper <- function(fits,
 
 map_dT_pvals_ctl_wrapper <- function(fits, map_projection) {
     pvals <- as.data.frame(as(projectRaster(fits[['pval']],
-                                            crs=map_projection),
+                                            crs=map_projection,
+                                            method='ngb'),
                               "SpatialPixelsDataFrame")) %>%
         mutate(binned=cut(pval, breaks=c(0.0, 0.01, 0.05, 0.1, 1.0)))
     ## TODO: raster cut method (below) doesn't seem to work - the
@@ -289,7 +305,7 @@ map_dT_pvals_ctl_wrapper <- function(fits, map_projection) {
     map_dT_pvals_ctl <- summen_draw_map(
         pvals,
         field=binned,
-        map_projection = map_projection
+        map_projection = proj4string(fits)
     ) +
         scale_fill_manual(values=c("#762a83",
                                    "#af8dc3",
@@ -313,7 +329,7 @@ map_dT_SSE_ctl_wrapper <- function(Tmean_prism, Tmean_WRFNOAA_Ctl,
     map_T_SSE_ctl <- summen_draw_map(
         T_sse,
         field=binned,
-        map_projection = map_projection
+        map_projection = proj4string(Tmean_WRFNOAA_Ctl)
     ) +
         ggtitle(TeX('$T_{mean}$ SSE, June 2009|'),
                 subtitle="Control run, PRISM vs. WRF-NOAH") +
@@ -335,6 +351,7 @@ main <- function() {
 
     fits <- calc_PRISM_WRF_slopes(Tmean_prism,
                                   Tmean_WRFNOAA_Ctl)
+    fits <- projectRaster(from=fits, crs=map_projection, method='ngb')
 
     map_dT_ctl <- map_dT_ctl_wrapper(fits, map_projection)
     map_dT_pvals_ctl <- map_dT_pvals_ctl_wrapper(fits, map_projection)
