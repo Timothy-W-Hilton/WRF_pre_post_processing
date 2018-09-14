@@ -273,7 +273,7 @@ map_dT_ctl_wrapper <- function(fits,
                           mask=Which(fits[['pval']] > 0.05),
                           updatevalue=NA,
                           maskvalue=TRUE)
-    br <- c(-0.4, -0.3, -0.2, -0.1, -0.03, 0.03, 0.1, 0.2, 0.3)
+    br <- c(-0.4, -0.3, -0.2, -0.1, -0.01, 0.01, 0.1, 0.2, 0.3)
     slopes <- as.data.frame(as(projectRaster(fits[['pval']],
                                             crs=map_projection,
                                             method='ngb'),
@@ -286,17 +286,19 @@ map_dT_ctl_wrapper <- function(fits,
         method='ngb'
     ) +
         scale_fill_manual(
-            values=c('#762a83',
+            values=c('#40004b',
+                     '#762a83',
                      '#9970ab',
                      '#c2a5cf',
-                     '#e7d4e8',
                      '#c51b7d',
                      '#d9f0d3',
                      '#a6dba0',
                      '#5aae61',
                      '#1b7837'),
             name=expression(degree*'C / day' ),
-            labels=levels(slopes[['binned']])
+            labels=c(levels(slopes[['binned']]),
+                     "insignificant (p > 0.05)"),
+            drop=FALSE  ## include unused levels in legend
         ) +
         ggtitle(TeX('$|\\Delta T_{mean}|$ slopes, June 2009'),
                 subtitle="Control run, NOAH")
