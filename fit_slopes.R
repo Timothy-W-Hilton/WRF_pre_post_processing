@@ -266,6 +266,10 @@ summen_draw_map <- function(x, field, map_projection, method='bilinear') {
     return(my_map)
 }
 
+get_colorbar_labels <- function(br) {
+    br[is.na(br)] <- "insignificant(p > 0.05)"
+    return(br)
+}
 
 map_dT_ctl_wrapper <- function(fits,
                                map_projection) {
