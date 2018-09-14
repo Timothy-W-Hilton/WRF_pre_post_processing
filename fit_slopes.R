@@ -246,7 +246,7 @@ summen_draw_map <- function(x, field, map_projection, method='bilinear') {
     ax_lim <- project_axlim(ax_lim[['lon']], ax_lim[['lat']], map_projection)
     redwoods_range <- read_redwood_shapefile()
     my_map <- ggplot() +
-        geom_sf(data=namerica_sf, color='black', fill='gray') +
+        geom_sf(data=namerica_sf, color='black', fill='#FAFAFA') +
         geom_tile(data=df,
                   mapping=aes(x=x, y=y, fill=!!field)) +
         geom_sf(data=rnaturalearth::ne_states(
@@ -322,10 +322,10 @@ map_dT_pvals_ctl_wrapper <- function(fits, map_projection) {
         field=binned,
         map_projection = proj4string(fits)
     ) +
-        scale_fill_manual(values=c("#762a83",
-                                   "#af8dc3",
-                                   "#7fbf7b",
-                                   "#1b7837"),
+        scale_fill_manual(values=c("#ca0020",
+                                   "#f4a582",
+                                   "#bababa",
+                                   "#404040"),
                           name=expression('p')) +
         ggtitle(TeX('$|\\Delta T_{mean}|$ slopes \\textit{p} values, June 2009|'),
                 subtitle="Control run, NOAH")
