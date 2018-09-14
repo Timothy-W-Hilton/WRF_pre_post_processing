@@ -274,30 +274,29 @@ map_dT_ctl_wrapper <- function(fits,
                           updatevalue=NA,
                           maskvalue=TRUE)
     br <- c(-0.4, -0.3, -0.2, -0.1, -0.03, 0.03, 0.1, 0.2, 0.3)
-    slopes <- raster::as.factor(cut(slopes_signif, breaks=br))
-    ## raster package support for factors is, as yet, fairly limited
-    ## (see documentation for raster::factor).  raster::factor records
-    ## the levels as integers, not the more descriptive strings in the
-    ## form '[min, max)' returned by cut().  To get descriptive labels
-    ## on the color legend, create a dummy factor to harvest the level
-    ## labels.
-    dummy <- cut(seq(from=min(br), to=max(br), by=0.01), breaks=br)
+    slopes <- as.data.frame(as(projectRaster(fits[['pval']],
+                                            crs=map_projection,
+                                            method='ngb'),
+                              "SpatialPixelsDataFrame")) %>%
+        mutate(binned=cut(pval, breaks=br))
     map_dT_ctl <- summen_draw_map(
         slopes,
-        field=layer,
+        field=binned,
         map_projection = proj4string(fits),
         method='ngb'
     ) +
         scale_fill_manual(
-            values=c('#9970ab',
+            values=c('#762a83',
+                     '#9970ab',
                      '#c2a5cf',
                      '#e7d4e8',
                      '#c51b7d',
                      '#d9f0d3',
-                     '#a6dba0'),
+                     '#a6dba0',
+                     '#5aae61',
+                     '#1b7837'),
             name=expression(degree*'C / day' ),
-            breaks=levels(dummy),
-            labels=levels(dummy)
+            labels=levels(slopes[['binned']])
         ) +
         ggtitle(TeX('$|\\Delta T_{mean}|$ slopes, June 2009'),
                 subtitle="Control run, NOAH")
