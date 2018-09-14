@@ -230,6 +230,12 @@ summen_draw_map <- function(x, field, map_projection, method='bilinear') {
                                                     method=method),
                                Class='SpatialPixelsDataFrame'))
         print(paste("reprojected raster using ", method))
+        ## if the values in x are a factor, restore the data frame
+        ## values to a factor also
+        is_factor <- !(is.null(levels(x)))
+        if(is_factor) {
+            df[['layer']] <- factor(df[['layer']], levels=unlist(levels(x)))
+        }
     }
     else if (inherits(x, 'data.frame')) {
         df <- x
@@ -268,23 +274,31 @@ map_dT_ctl_wrapper <- function(fits,
                           updatevalue=NA,
                           maskvalue=TRUE)
     br <- c(-0.4, -0.3, -0.2, -0.1, -0.03, 0.03, 0.1, 0.2, 0.3)
-    slopes <- as.factor(cut(slopes_signif, breaks=br))
+    slopes <- raster::as.factor(cut(slopes_signif, breaks=br))
+    ## raster package support for factors is, as yet, fairly limited
+    ## (see documentation for raster::factor).  raster::factor records
+    ## the levels as integers, not the more descriptive strings in the
+    ## form '[min, max)' returned by cut().  To get descriptive labels
+    ## on the color legend, create a dummy factor to harvest the level
+    ## labels.
+    dummy <- cut(seq(from=min(br), to=max(br), by=0.01), breaks=br)
     map_dT_ctl <- summen_draw_map(
         slopes,
         field=layer,
         map_projection = proj4string(fits),
         method='ngb'
     ) +
-        ## scale_fill_manual(
-        ##     values=c('#9970ab',
-        ##              '#c2a5cf',
-        ##              '#e7d4e8',
-        ##              '#c51b7d',
-        ##              '#d9f0d3',
-        ##              '#a6dba0'),
-        ##     name=expression(degree*'C / day' )
-        ##     ## breaks=br
-        ## ) +
+        scale_fill_manual(
+            values=c('#9970ab',
+                     '#c2a5cf',
+                     '#e7d4e8',
+                     '#c51b7d',
+                     '#d9f0d3',
+                     '#a6dba0'),
+            name=expression(degree*'C / day' ),
+            breaks=levels(dummy),
+            labels=levels(dummy)
+        ) +
         ggtitle(TeX('$|\\Delta T_{mean}|$ slopes, June 2009'),
                 subtitle="Control run, NOAH")
     return(map_dT_ctl)
