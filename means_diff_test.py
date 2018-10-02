@@ -23,9 +23,9 @@ def main(significance=None):
     cscratchdir = os.path.join('/', 'global', 'cscratch1', 'sd',
                                'twhilton')
     rootdir = os.path.join(cscratchdir, 'WRFv3.9_Sensitivity')
-    ctl_dir = os.path.join(rootdir, 'FromScratch', 'WRFV3_Ctl',
+    ctl_dir = os.path.join(rootdir, 'WRFV3_Ctl',
                            'run', 'summen_sensitivity_ctl')
-    urb_dir = os.path.join(rootdir, 'FromScratch', 'WRFV3_redwoodsurban',
+    urb_dir = os.path.join(rootdir, 'WRFV3_redwoodsurban',
                            'run', 'summen_redwoodsurban')
     # urb_dir = os.path.join('/', 'global', 'cscratch1', 'sd',
     #                        'twhilton', 'WRFv3.9_Sensitivity',
