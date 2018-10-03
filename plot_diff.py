@@ -830,12 +830,19 @@ class VarDiffPlotter(object):
         this_map.colorbar()
         fig.savefig(fname='height_lay{:02d}.png'.format(layer))
 
-    def plot(self, cb_orientation='vertical', vmin=None, vmax=None):
+    def plot(self, cb_orientation='vertical', vmin=None, vmax=None, mask=None):
         """plot contour plots for both variables, diff, pct diff
 
         ARGS
         cb_orientation ({"vertical"} | "horizontal"): orientation for
             the colorbars
+        vmin (float): minimum value for color scale.  If unspecified
+            defaults to 0.0.
+        vmax (float): maximum value for color scale.  If unspecified
+            defaults to the maximum value in the difference data.
+        mask (array-like): array of True/False values.  If specified,
+            True values will be masked in the plot.  Useful for, for
+            example, masking out statistically insignificant pixels.
         """
         t0 = datetime.datetime.now()
 
@@ -852,6 +859,9 @@ class VarDiffPlotter(object):
                                         projection=CoastalSEES_WRF_prj())
             ax[axidx].set_extent((self.vd.lon.min(), self.vd.lon.max(),
                                   self.vd.lat.min(), self.vd.lat.max()))
+        if mask is not None:
+            self.vd.data.update({k: ma.masked_where(mask[np.newaxis, ...], v)
+                                 for k, v in self.vd.data.items()})
         if vmin is None:
             dmin = 0.0  # min(all_data)
         else:
@@ -895,6 +905,8 @@ class VarDiffPlotter(object):
                                                   midpoint=0.0,
                                                   this_cmap=get_cmap('cool'))
         d_map = CoastalSEES_WRF_Mapper(ax=ax[2], domain=self.domain)
+        if mask is not None:
+            self.vd.d = ma.masked_where(mask, self.vd.d)
         d_map.pcolormesh(self.vd.lon, self.vd.lat, self.vd.d,
                          cmap=cmap, norm=norm)
         d_map.colorbar(orientation=cb_orientation)

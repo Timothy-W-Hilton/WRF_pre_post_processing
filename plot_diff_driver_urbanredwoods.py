@@ -1,6 +1,8 @@
 import datetime
 import os
+import numpy.ma as ma
 from plot_diff import var_diff, VarDiffPlotter
+import means_diff_test
 
 DOMAIN = 2
 
@@ -15,6 +17,8 @@ if __name__ == "__main__":
     urb_dir = os.path.join(rootdir, 'WRFV3_redwoodsurban',
                            'run', 'summen_redwoodsurban')
     out_dir = os.path.join(cscratchdir, 'plots_temporary')
+
+    insignificant_pixels = ma.masked_invalid(means_diff_test.main(0.95)).mask
 
     read_data = True
     if read_data:
@@ -60,7 +64,8 @@ if __name__ == "__main__":
                 cb_orientation = 'horizontal'
             else:
                 cb_orientation = 'vertical'
-            fig = plotter.plot(cb_orientation=cb_orientation)
+            fig = plotter.plot(cb_orientation=cb_orientation,
+                               mask=insignificant_pixels)
                                # vmin=-0.0000001,
                                # vmax=1.0000001)
 
