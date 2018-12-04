@@ -8,7 +8,7 @@ arbitrary constant factor.
 The motiviation behind this is testing WRF sensitivity to soil
 moisture.
 
-Timothy W. Hilton <thilton@ucmerced.edu>
+Timothy W. Hilton <twhilton@ucsc.edu>
 12 Oct 2017
 """
 
@@ -17,6 +17,64 @@ import numpy as np
 import numpy.ma as ma
 import glob
 import os
+
+
+def remove_urban(fname_wrf):
+    """remove urban landuse from WRF input files
+
+    Set urban landuse fraction to 0.0, increase non-water land uses
+    such that the sum of all land uses remains 1.0 and the relative
+    proportions of non-water landuses are unchanged, and reset the
+    land-use index to the highest-fraction remaining landuse in teh
+    gridcell.
+    """
+    nc = netCDF4.Dataset(fname_wrf, 'a')  # open in append mode
+    landusef = np.nan_to_num(np.copy(nc.variables['LANDUSEF'][...]))
+    # this algorithm will fail for grid cells where f_urban is 1.0,
+    # because the denominator in the adjustment factor will be zero.
+    # Conceptually, these cells will need user intervention to decide
+    # what to do, because there are no non-urban land covers to scale
+    # up.
+    f_urban = np.copy(landusef[:, nc.ISURBAN - 1, ...])
+    if (np.isclose(f_urban, 1.0).any()):
+        import pdb; pdb.set_trace()
+        raise ValueError('Some cells are 100% urban; dealing '
+                         'with these is not implemented.')
+    lu_axis = 1  # axes of landusef are [time, landuse, x, y]
+    nPFT = landusef.shape[lu_axis]
+    # remove all urban land
+    landusef[:, (nc.ISURBAN - 1), ...] = 0.0
+    # calculate the constant factor to multiply into non-water,
+    # non-urban land use fractions to fill in the vacated urban areas
+    # without changing the relative proportions of non-urban land
+    # covers.
+    idx_not_urban = np.setdiff1d(np.arange(nPFT), [nc.ISURBAN - 1])
+    sum_non_urban = np.sum(landusef[:, idx_not_urban, ...], axis=lu_axis)
+    if np.isnan(sum_non_urban).any():
+        raise ValueError('NaNs in land use fraction sums')
+    if np.isclose(sum_non_urban, 0.0).any():
+        raise ValueError('Some cells are 100% urban; dealing '
+                         'with these is not implemented.')
+    c_adj = 1.0 + (f_urban / sum_non_urban)
+    landusef *= c_adj
+    # make sure LANDUSEF sums to 1.0 for all pixels
+    try:
+        assert(np.allclose(np.nansum(landusef, axis=lu_axis), 1.0))
+    except AssertionError as e:
+        print('LANDUSEF does not sum to 1.0 for all pixels')
+        return()
+    nc.variables['LANDUSEF'][...] = landusef
+
+    # now reset LU_INDEX to largest remaining land use
+    lu_index = landusef.argmax(axis=lu_axis) + 1
+    nc.variables['LU_INDEX'][...] = lu_index
+
+    nc.history = ("created by metgrid_exe.  Urban land use fraction set "
+                  "to 0.0 and all other non-water land covers increased "
+                  "proportionally.")
+    nc.close()
+    print('reduced urban fraction to 0.0 in {}'.format(fname_wrf))
+
 
 def make_redwood_range_urban(redwoods_mask, fname_wrf):
     """make redwood range urban using digital redwoods data
