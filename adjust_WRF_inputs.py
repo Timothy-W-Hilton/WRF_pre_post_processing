@@ -37,8 +37,9 @@ def remove_urban(fname_wrf):
     # up.
     f_urban = np.copy(landusef[:, nc.ISURBAN - 1, ...])
     if (np.isclose(f_urban, 1.0).any()):
-        raise ValueError(('Some cells are 100% urban; dealing with '
-                          'these is not implemented.'))
+        raise ValueError(('{ncells} cells are 100% urban; dealing with '
+                          'these is not implemented.'.format(
+                              ncells=np.isclose(f_urban, 1.0).sum())))
     lu_axis = 1  # axes of landusef are [time, landuse, x, y]
     nPFT = landusef.shape[lu_axis]
     # remove all urban land
