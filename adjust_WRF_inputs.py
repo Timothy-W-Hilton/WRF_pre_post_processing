@@ -18,6 +18,35 @@ import numpy.ma as ma
 import glob
 import os
 
+def deal_with_100pct_urban(landusef, f_urban):
+    """replace urban land use in cells that are 100% urban
+
+    These require a decision, because these cells have no non-urban
+    land use to scale up.  The decision I am making is to find the
+    nearest neighbor to the east with some non-urban land use, and use
+    that cell.  I am using the nearest neighbor to the East because
+    all of the 100% urban cells in California are in LA near the
+    coast, so moving inland to search for a replacement seems
+    reasonable.  I'm aware moving inland could introduce topography
+    effects; hopefully these are minor.
+
+    Another possible approach is to use the outer domain cell that
+    contains the current inner domain cell.  That's a more complex
+    calculation, so punting for now.
+    """
+    idx_all_urban = zip(*np.where(np.isclose(f_urban, 1.0)))
+    for t, y, x in idx_all_urban:
+        found_replacement = False
+        xeast = x
+        while not(found_replacement):
+            xeast = xeast + 1 # try the next cell to the east by
+                              # incrementing x index
+            if (f_urban[0, y, xeast] < 0.99):
+                found_replacement = True
+        landusef[0, :, y, x] = landusef[0, :, y, xeast]
+        f_urban[0, y, x] = f_urban[0, y, xeast]
+        print("    replaced {} land use with {}".format((y, x), (y, xeast)))
+    return(landusef, f_urban)
 
 def remove_urban(fname_wrf):
     """remove urban landuse from WRF input files
@@ -37,9 +66,9 @@ def remove_urban(fname_wrf):
     # up.
     f_urban = np.copy(landusef[:, nc.ISURBAN - 1, ...])
     if (np.isclose(f_urban, 1.0).any()):
-        raise ValueError(('{ncells} cells are 100% urban; dealing with '
-                          'these is not implemented.'.format(
+        print(('{ncells} cells are 100% urban.'.format(
                               ncells=np.isclose(f_urban, 1.0).sum())))
+        (landusef, f_urban) = deal_with_100pct_urban(landusef, f_urban)
     lu_axis = 1  # axes of landusef are [time, landuse, x, y]
     nPFT = landusef.shape[lu_axis]
     # remove all urban land
