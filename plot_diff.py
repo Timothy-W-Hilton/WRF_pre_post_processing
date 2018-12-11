@@ -416,8 +416,20 @@ class var_diff(object):
             self.units = nc.units
             self.lat = nc.variables['lat'][...]
             self.lon = nc.variables['lon'][...]
-            self.data = {self.label_A: nc.groups[self.label_A].variables[self.varname][...],
-                         self.label_B: nc.groups[self.label_B].variables[self.varname][...]}
+            self.longname = nc.varname
+            self.time = (
+                pd.TimedeltaIndex(nc.variables['time'][...], unit='s') +
+                pd.Timestamp('1970-01-01 00:00:00')
+            )
+            self.is_land = None
+            self.z = None
+            self.data = {
+                self.label_A: nc.groups[self.label_A].variables[
+                    self.varname][...],
+                self.label_B: nc.groups[self.label_B].variables[
+                    self.varname][...]
+            }
+            nc.close()
 
         else:
             if None in [fname_A, fname_B, label_A, label_B, varname]:
@@ -487,13 +499,14 @@ class var_diff(object):
 
         for k, v in self.data.items():
             t0 = datetime.datetime.now()
-            nf = netCDF4.MFDataset(self.fnames[k])
-            # TODO: decide whether to keep or get rid of nf.
+            print('starting to read {}'.format(self.varname))
             wv = wrf_var(sorted(glob.glob(self.fnames[k])),
                          label=self.label_A,
                          varname=self.varname,
                          is_atm=False)
             wv.read_files()
+            print('done reading {} ({})'.format(self.varname,
+                                                datetime.datetime.now() - t0))
             self.data[k] = to_np(wv.data)
             t0 = datetime.datetime.now()
             print('done {} to_np ({})'.format(
@@ -699,8 +712,15 @@ class var_diff(object):
         nc.createDimension('y', self.data['ctl'].shape[2])
         nc.createVariable('lat', np.float, ('x', 'y'))
         nc.createVariable('lon', np.float, ('x', 'y'))
+        nc.createVariable('time', np.float, ('time'))
         nc.variables['lat'][...] = self.lat
         nc.variables['lon'][...] = self.lon
+        # use unix convention of seconds since 1 Jan 1970 00:00 as
+        # recommended by Unidata for storing time in netCDF files
+        # (https://www.unidata.ucar.edu/software/netcdf/time/recs.html)
+        nc.variables['time'][...] = np.array(
+            (self.time - pd.Timestamp('1970-01-01 00:00:00')).total_seconds())
+        nc.variables['time'].units = 'seconds since 1970-1-1'
         grpA = nc.createGroup(self.label_A)
         grpB = nc.createGroup(self.label_B)
         var_dtype = self.data[self.label_A].dtype
