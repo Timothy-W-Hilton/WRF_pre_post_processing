@@ -310,9 +310,17 @@ class wrf_var(object):
         if self.units is None:
             self.units = self.data.units
         if self.lat is None:
+            try:
             self.lat = self.data.coords['XLAT'].values
+            except KeyError as e:
+                print('XLAT not present, using XLAT_M')
+                self.lat = self.data.coords['XLAT_M'].values
         if self.lon is None:
+            try:
             self.lon = self.data.coords['XLONG'].values
+            except KeyError as e:
+                print('XLONG not present, using XLONG_M')
+                self.lat = self.data.coords['XLONG_M'].values
         # read time
         xtime = extract_times(nclist, ALL_TIMES)
         self.time = pd.DatetimeIndex(xtime)
