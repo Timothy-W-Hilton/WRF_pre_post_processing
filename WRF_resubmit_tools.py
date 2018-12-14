@@ -15,7 +15,16 @@ wrf_run_dir = os.path.join('/', 'global', 'cscratch1', 'sd', 'twhilton',
 fname = "namelist.input"
 
 
-def get_restart_file_tstamp(fname):
+class WRF_restart_files(object):
+    """tools to work with WRF restart files
+
+    ARGS:
+    fname (str): full path to WRF restart file
+    """
+    def __init__(self, run_dir):
+        self.run_dir = run_dir
+
+    def get_tstamp(self, fname):
     """read the timestamp from a WRF restart file
 
     assumes that the restart file contains a single timestamp in the
@@ -29,20 +38,17 @@ def get_restart_file_tstamp(fname):
     numpy.Datetime64 object containing the restart file timestamp
     """
     nc = netCDF4.Dataset(fname, 'r')
-    tstamp = wrf.extract_times(nc, 0)
+        self.tstamp = pd.to_datetime(wrf.extract_times(nc, 0))
     nc.close()
-    return(tstamp)
+        return(self.tstamp)
 
-
-def get_last_restart_file(wrf_run_dir, ndom, wildcard_str="wrfrst_d*"):
+    def get_last_restart_file(self, ndom, wildcard_str="wrfrst_d*"):
     """search a directory for most recent WRF restart file
 
     return the last time stamp that has a restart file for all
     domains.
 
     ARGS:
-    wrf_run_dir (str): full path to the WRF run directory to be
-       searched for restart files
     ndom (int > 0): number of domains to search
     wildcard_str (str): wild card string matching restart file names
        (default "wrfrst_d*")
@@ -51,15 +57,45 @@ def get_last_restart_file(wrf_run_dir, ndom, wildcard_str="wrfrst_d*"):
     numpy.Datetime64 object containing timestamp of last restart file
     """
     restart_files = {}
+        # create a dict containing a list of WRF restart files present
+        # for every WRF domain
     for this_domain in range(1, ndom + 1):
         restart_files['d{:02}'.format(this_domain)] = (
-            sorted(glob.glob(os.path.join(wrf_run_dir, wildcard_str))))
+                sorted(glob.glob(os.path.join(self.run_dir,
+                                              wildcard_str))))
     n_last_rst = min(map(len, restart_files.values()))
     last_restart_file = restart_files['d01'][n_last_rst - 1]
-    return(get_restart_file_tstamp(last_restart_file))
+        return(self.get_tstamp(last_restart_file))
 
 
-def update_namelist_start_time(namelist_file, new_start_time):
+class WRF_namelist_file_tools(object):
+    """tools for reading, updating WRF namelist files
+    """
+    def __init__(self, fname):
+        """construct a WRF_namelist_file_tools object
+
+        ARGS:
+        fname: full path to the WRF namelist file
+        """
+        self.fname = fname
+        self.nml = f90nml.read(fname)
+
+    def get_end_time(self):
+        """parse the WRF run end time to a pandas.Timestamp object
+
+        RETURNS:
+        pandas.Timestamp object containing the WRF run end time
+        """
+        end_time = map(pd.Timestamp,
+                       self.nml['time_control']['end_year'],
+                       self.nml['time_control']['end_month'],
+                       self.nml['time_control']['end_day'],
+                       self.nml['time_control']['end_hour'],
+                       self.nml['time_control']['end_minute'],
+                       self.nml['time_control']['end_second'])
+        return(end_time)
+
+    def update_namelist_start_time(self, new_start_time):
     """update the start time in a WRF namelist to a new value
 
     ARGS:
@@ -73,18 +109,23 @@ def update_namelist_start_time(namelist_file, new_start_time):
                         'start_hour': [new_start_time.hour] * ndom,
                         'start_minute': [new_start_time.minute] * ndom,
                         'start_second': [new_start_time.second] * ndom}}
-    f90nml.patch(namelist_file, namelist_update, namelist_file + ".new")
+        f90nml.patch(self.fname, namelist_update, self.fname + ".new")
+
+    def get_ndomains(self):
+        """return number of domains
+        """
+        return(self.nml['domains']['max_dom'])
 
 
 if __name__ == "__main__":
-    nml = f90nml.read(os.path.join(wrf_run_dir, fname))
-    ndom = nml['domains']['max_dom']
+    nml = WRF_namelist_file_tools(os.path.join(wrf_run_dir, fname))
+    ndom = nml.get_ndomains()
+    end_time = max(nml.get_end_time())
 
-    # f90nml.patch(os.path.join(wrf_run_dir, fname),
-    #              new_start_time,
-    #              os.path.join(wrf_run_dir, "namelist_test.input"))
-    new_start_time = get_last_restart_file(wrf_run_dir, ndom)
+    rst = WRF_restart_files(wrf_run_dir)
+    new_start_time = rst.get_last_restart_file(ndom)
+    if (new_start_time < end_time):
+
     print("updating {file} to start at {time}".format(
         file=fname, time=new_start_time))
-    update_namelist_start_time(os.path.join(wrf_run_dir, fname),
-                               str(new_start_time))
+    nml.update_namelist_start_time(new_start_time)
