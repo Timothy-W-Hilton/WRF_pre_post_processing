@@ -8,10 +8,10 @@ import f90nml
 wrf_run_dir = os.path.join('/', 'global', 'cscratch1', 'sd', 'twhilton',
                            'WRFv4.0_Sensitivity', 'WRFCLMv4.0_wrfpy_test',
                            'WRFV4', 'run')
-# wrf_run_dir = os.path.join('/', 'global', 'cscratch1', 'sd',
-#                            'twhilton', 'WRFv4.0_Sensitivity',
-#                            'WRFCLMv4.0_NCEPDOEp2_deurbanized',
-#                            'WRFV4', 'run', '')
+fname_wrf_slurm = os.path.join('/', 'global', 'cscratch1', 'sd',
+                               'twhilton', 'WRFv4.0_Sensitivity',
+                               'WRFCLMv4.0_wrfpy_test', 'WRFV4',
+                               'run', 'WRF_Ctl_wrf.slurm')
 fname = "namelist.input"
 
 
@@ -127,5 +127,7 @@ if __name__ == "__main__":
     if (new_start_time < end_time):
 
     print("updating {file} to start at {time}".format(
-        file=fname, time=new_start_time))
+            file=os.path.join(wrf_run_dir, fname), time=new_start_time))
     nml.update_namelist_start_time(new_start_time)
+        print('would run `sbatch {slurm_script}` now'.format(
+            slurm_script=fname_wrf_slurm))
