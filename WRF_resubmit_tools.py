@@ -4,6 +4,7 @@ import netCDF4
 import glob
 import os
 import f90nml
+import subprocess
 
 wrf_run_dir = os.path.join('/', 'global', 'cscratch1', 'sd', 'twhilton',
                            'WRFv4.0_Sensitivity', 'WRFCLMv4.0_wrfpy_test',
@@ -109,7 +110,7 @@ class WRF_namelist_file_tools(object):
                         'start_hour': [new_start_time.hour] * ndom,
                         'start_minute': [new_start_time.minute] * ndom,
                         'start_second': [new_start_time.second] * ndom}}
-        f90nml.patch(self.fname, namelist_update, self.fname + ".new")
+        f90nml.patch(self.fname, namelist_update, self.fname)
 
     def get_ndomains(self):
         """return number of domains
@@ -129,5 +130,6 @@ if __name__ == "__main__":
     print("updating {file} to start at {time}".format(
             file=os.path.join(wrf_run_dir, fname), time=new_start_time))
     nml.update_namelist_start_time(new_start_time)
-        print('would run `sbatch {slurm_script}` now'.format(
+        print('running `sbatch {slurm_script}` now'.format(
             slurm_script=fname_wrf_slurm))
+        subprocess.run(["sbatch", fname_wrf_slurm], stdout=subprocess.PIPE)
