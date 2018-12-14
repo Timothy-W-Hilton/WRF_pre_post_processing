@@ -39,6 +39,7 @@ from matplotlib.figure import Figure
 
 from map_tools_twh.map_tools_twh import CoastalSEES_WRF_prj
 from map_tools_twh.map_tools_twh import CoastalSEES_WRF_Mapper
+from map_tools_twh.map_tools_twh import get_IGBP_modMODIS_21Category_PFTs_table
 
 from timutils.midpt_norm import get_discrete_midpt_cmap_norm
 from timutils.colormap_nlevs import setup_colormap
@@ -304,20 +305,23 @@ class wrf_var(object):
             datetime.datetime.now() - t0_Dataset))
         print('start getvar()', end='')
         t0_getvar = datetime.datetime.now()
-        self.data = getvar(nclist, varname=self.varname, timeidx=ALL_TIMES)
+        self.data = getvar(nclist,
+                           varname=self.varname,
+                           timeidx=ALL_TIMES,
+                           squeeze=False)
         print('done getvar() ({})'.format(
             datetime.datetime.now() - t0_getvar))
         if self.units is None:
             self.units = self.data.units
         if self.lat is None:
             try:
-            self.lat = self.data.coords['XLAT'].values
+                self.lat = self.data.coords['XLAT'].values
             except KeyError as e:
                 print('XLAT not present, using XLAT_M')
                 self.lat = self.data.coords['XLAT_M'].values
         if self.lon is None:
             try:
-            self.lon = self.data.coords['XLONG'].values
+                self.lon = self.data.coords['XLONG'].values
             except KeyError as e:
                 print('XLONG not present, using XLONG_M')
                 self.lat = self.data.coords['XLONG_M'].values
@@ -542,10 +546,6 @@ class var_diff(object):
                     raise RuntimeError(error_str.format(labA=self.label_A,
                                                         labB=self.label_B,
                                                         var='longitude'))
-            # read land/water mask
-            if self.is_land is None:
-                self.is_land = np.isclose(to_np(getvar(nf, 'XLAND')), 1.0)
-
             # read units
             if self.units is None:
                 self.units = wv.units
@@ -558,12 +558,18 @@ class var_diff(object):
             # set time
             self.time[k] = pd.DatetimeIndex(np.array(wv.data.Time.values,
                                                      ndmin=1))
+            # maybe read land/sea mask from a single file instead of
+            # from the multifile dataset?  It should not change
+            # timestep to timestep
+            # self.is_land = np.isclose(to_np(nf.variables['XLAND']), 1.0)
+
             # read model heights
-            try:
-                self.z = getvar(nf, 'z')
-            except ValueError as e:
-                print('unable to read Z from input file: ' + str(e))
-            nf.close()
+            # try:
+            #     # maybe put multidataset read here?
+            #     self.z = getvar(nf, 'z')
+            # except ValueError as e:
+            #     print('unable to read Z from input file: ' + str(e))
+            # nf.close()
         t0 = datetime.datetime.now()
         print('start _match_tstamps... ', end='')
         self._match_tstamps()
@@ -880,7 +886,7 @@ class VarDiffPlotter(object):
 
         # initialize figure, axes
         nplots = 4
-        fig = MyFig(figsize=(8, 8))
+        fig = MyFig(figsize=(16, 16))
         ax = [None] * nplots
         for axidx, axspec in enumerate(range(221, 225)):
             ax[axidx] = fig.add_subplot(axspec,
@@ -898,8 +904,12 @@ class VarDiffPlotter(object):
             dmax = np.max(list(map(np.max, self.vd.data.values())))
         else:
             dmax = vmax
-        cmap, norm = setup_colormap(dmin, dmax, nlevs=10,
-                                    cmap=get_cmap('YlGnBu'))
+        cmap, norm = setup_colormap(
+            dmin,
+            dmax,
+            nlevs=21,
+            cmap=get_IGBP_modMODIS_21Category_PFTs_table())
+                                    # cmap=get_cmap('YlGnBu'))
 
         for axidx, k in enumerate(self.vd.data.keys()):
             print("    plot {} data - {}".format(
