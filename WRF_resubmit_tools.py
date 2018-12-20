@@ -1,3 +1,9 @@
+# TODO:
+# 1) make wrf_run_dir a command line argument
+# 2) investigate why the previous job failed.  If timeout, use current approach (adjust start time, resubmit).  If seg fault, lower timestep and resubmit.
+# 3) check last restart file to make sure it is complete.  If not,
+# delete it and rerun get_last_restart_file()
+
 import shutil
 import wrf
 import pandas as pd
