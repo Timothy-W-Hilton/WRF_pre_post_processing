@@ -1,3 +1,4 @@
+import shutil
 import wrf
 import pandas as pd
 import netCDF4
@@ -7,7 +8,7 @@ import f90nml
 import subprocess
 
 wrf_run_dir = os.path.join('/', 'global', 'cscratch1', 'sd', 'twhilton',
-                           'WRFv4.0_Sensitivity', 'WRFCLMv4.0_wrfpy_test',
+                           'WRFv4.0_Sensitivity', 'WRFCLMv4.0_NCEPDOEp2_deurbanized',
                            'WRFV4', 'run')
 fname_wrf_slurm = os.path.join('/', 'global', 'cscratch1', 'sd',
                                'twhilton', 'WRFv4.0_Sensitivity',
@@ -110,7 +111,9 @@ class WRF_namelist_file_tools(object):
                         'start_hour': [new_start_time.hour] * ndom,
                         'start_minute': [new_start_time.minute] * ndom,
                         'start_second': [new_start_time.second] * ndom}}
-        f90nml.patch(self.fname, namelist_update, self.fname)
+        fname_bak = self.fname + pd.Timestamp.now().strftime(".%Y-%m-%d_%H%M")
+        shutil.copy(self.fname, fname_bak)
+        f90nml.patch(fname_bak, namelist_update, self.fname)
 
     def get_ndomains(self):
         """return number of domains
@@ -130,6 +133,6 @@ if __name__ == "__main__":
     print("updating {file} to start at {time}".format(
             file=os.path.join(wrf_run_dir, fname), time=new_start_time))
     nml.update_namelist_start_time(new_start_time)
-        print('running `sbatch {slurm_script}` now'.format(
-            slurm_script=fname_wrf_slurm))
-        subprocess.run(["sbatch", fname_wrf_slurm], stdout=subprocess.PIPE)
+        # print('running `sbatch {slurm_script}` now'.format(
+        #     slurm_script=fname_wrf_slurm))
+        # subprocess.run(["sbatch", fname_wrf_slurm], stdout=subprocess.PIPE)
