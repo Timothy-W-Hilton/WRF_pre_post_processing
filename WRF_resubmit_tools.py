@@ -12,16 +12,7 @@ import glob
 import os
 import f90nml
 import subprocess
-
-wrf_run_dir = os.path.join('/', 'global', 'cscratch1', 'sd', 'twhilton',
-                           'WRFv4.0_Sensitivity', 'WRFCLMv4.0_NCEPDOEp2_deurbanized',
-                           'WRFV4', 'run')
-fname_wrf_slurm = os.path.join('/', 'global', 'cscratch1', 'sd',
-                               'twhilton', 'WRFv4.0_Sensitivity',
-                               'WRFCLMv4.0_wrfpy_test', 'WRFV4',
-                               'run', 'WRF_Ctl_wrf.slurm')
-fname = "namelist.input"
-
+import argparse
 
 class WRF_restart_files(object):
     """tools to work with WRF restart files
@@ -128,16 +119,42 @@ class WRF_namelist_file_tools(object):
 
 
 if __name__ == "__main__":
-    nml = WRF_namelist_file_tools(os.path.join(wrf_run_dir, fname))
+
+    parser = argparse.ArgumentParser(description=(
+        ("script to update a WRF namelist.input file to begin a new "
+         "run where the previous run left off.")))
+    parser.add_argument('--wrf_run_dir',
+                        dest='wrf_run_dir',
+                        action='store',
+                        default='./',
+                        help=('full path to the WRF run directory'))
+    parser.add_argument('--namelist_input',
+                        dest='fname',
+                        action='store',
+                        default='namelist.input',
+                        help=(('name of the namelist file to be updated'
+                               '(default is namelist.input)')))
+    parser.add_argument('--parent_job_id',
+                        dest='parent_job_id',
+                        action='store',
+                        default='',
+                        help=(('SLURM job id of the job that submitted the current task.  Used to '
+                               'build the SLURM stdout/stderr filename of that job to determine why '
+                               'the job "failed".  If failure was caused by timeout, then update the '
+                               'start time and resubmit.  If failure was caused by segmentation fault, '
+                               'then update the timestep and start time and resubmit.  ')
+    args = parser.parse_args()
+
+    nml = WRF_namelist_file_tools(os.path.join(args.wrf_run_dir, args.fname))
     ndom = nml.get_ndomains()
     end_time = max(nml.get_end_time())
 
-    rst = WRF_restart_files(wrf_run_dir)
+    rst = WRF_restart_files(args.wrf_run_dir)
     new_start_time = rst.get_last_restart_file(ndom)
     if (new_start_time < end_time):
 
     print("updating {file} to start at {time}".format(
-            file=os.path.join(wrf_run_dir, fname), time=new_start_time))
+            file=os.path.join(args.wrf_run_dir, args.fname), time=new_start_time))
     nml.update_namelist_start_time(new_start_time)
         # print('running `sbatch {slurm_script}` now'.format(
         #     slurm_script=fname_wrf_slurm))
