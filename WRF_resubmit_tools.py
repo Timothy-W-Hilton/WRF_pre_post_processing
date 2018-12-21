@@ -41,6 +41,31 @@ class WRF_restart_files(object):
     nc.close()
         return(self.tstamp)
 
+    def check_is_valid(self, fname_rst):
+        """check whether a WRF restart file is "complete"
+
+        Occasionally a WRF run times out in the middle of writing a
+        restart file, leaving a valid-ish looking partial restart file
+        on disk.  These incomplete restart files do not contain enough
+        information to restart WRF, and cause WRF to crash.  It is
+        therefore useful to identify these files when determininig at
+        which timestamp WRF should restart.
+
+        Currently tests whether the length of the "Times" netcdf
+        dimension and variable is 1.  In my experience partial restart
+        files have a Times dimension of 0.
+
+        ARGS:
+        fname_rst (string): full path of WRF restart file
+
+        RETURNS
+        True if the restart file is complete, False otherwise
+        """
+        nc = netCDF4.Dataset(fname_rst)
+        ntimes = len(nc.variables['Times'])
+        nc.close()
+        return(ntimes == 1)
+
     def get_last_restart_file(self, ndom, wildcard_str="wrfrst_d*"):
     """search a directory for most recent WRF restart file
 
@@ -64,7 +89,11 @@ class WRF_restart_files(object):
                                               wildcard_str))))
     n_last_rst = min(map(len, restart_files.values()))
     last_restart_file = restart_files['d01'][n_last_rst - 1]
+        if self.check_is_valid(last_restart_file):
         return(self.get_tstamp(last_restart_file))
+        else:
+            shutil.delete(last_restart_file)
+            return(self.get_last_restart_file(ndom, wildcard_str))
 
 
 class WRF_namelist_file_tools(object):
@@ -142,7 +171,7 @@ if __name__ == "__main__":
                                'build the SLURM stdout/stderr filename of that job to determine why '
                                'the job "failed".  If failure was caused by timeout, then update the '
                                'start time and resubmit.  If failure was caused by segmentation fault, '
-                               'then update the timestep and start time and resubmit.  ')
+                               'then update the timestep and start time and resubmit.  ')))
     args = parser.parse_args()
 
     nml = WRF_namelist_file_tools(os.path.join(args.wrf_run_dir, args.fname))
