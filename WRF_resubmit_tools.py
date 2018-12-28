@@ -41,7 +41,7 @@ class WRF_restart_files(object):
     nc.close()
         return(self.tstamp)
 
-    def check_is_valid(self, fname_rst):
+    def check_is_valid(self, fname_rst1, fname_rst0):
         """check whether a WRF restart file is "complete"
 
         Occasionally a WRF run times out in the middle of writing a
@@ -51,22 +51,28 @@ class WRF_restart_files(object):
         therefore useful to identify these files when determininig at
         which timestamp WRF should restart.
 
-        Currently tests whether the length of the "Times" netcdf
-        dimension and variable is 1.  In my experience partial restart
-        files have a Times dimension of 0.
+        Tests whether the size of the restart file (in bytes) is
+        within 2% of the previous restart file.  Turns out that
+        checking that the length of the Times dimension was greater
+        than 0 did not work; no sooner had I implemented this than WRF
+        spit out a partial restart file with len(Times) of 1.
 
         ARGS:
-        fname_rst (string): full path of WRF restart file
+        fname_rst1 (string): full path of WRF restart file to be checked
+        fname_rst0 (string): full path of WRF restart file preceding
+            fname_rst1.
 
         RETURNS
         True if the restart file is complete, False otherwise
-        """
-        nc = netCDF4.Dataset(fname_rst)
-        ntimes = len(nc.variables['Times'])
-        nc.close()
-        return(ntimes == 1)
 
-    def get_last_restart_file(self, ndom, wildcard_str="wrfrst_d*"):
+        """
+        sz1 = os.path.getsize(fname_rst1)
+        sz0 = os.path.getsize(fname_rst0)
+        diff_ratio = abs((sz1 - sz0) / sz1)
+        # consider fname_rst1 complete if size is within 2% of fname_rst0
+        return(diff_ratio < 0.02)
+
+    def get_last_restart_file(self, ndom, wildcard_str="wrfrst_d*[0-9][0-9]"):
     """search a directory for most recent WRF restart file
 
     return the last time stamp that has a restart file for all
@@ -88,11 +94,14 @@ class WRF_restart_files(object):
                 sorted(glob.glob(os.path.join(self.run_dir,
                                               wildcard_str))))
     n_last_rst = min(map(len, restart_files.values()))
-    last_restart_file = restart_files['d01'][n_last_rst - 1]
-        if self.check_is_valid(last_restart_file):
+        last_restart_file = restart_files['d02'][n_last_rst - 1]
+        if self.check_is_valid(last_restart_file,
+                               restart_files['d02'][n_last_rst - 2]):
         return(self.get_tstamp(last_restart_file))
         else:
-            shutil.delete(last_restart_file)
+            print('{} is incomplete.  Deleting and trying again'.format(
+                last_restart_file))
+            os.remove(last_restart_file)
             return(self.get_last_restart_file(ndom, wildcard_str))
 
 
