@@ -7,6 +7,7 @@
 import shutil
 import wrf
 import pandas as pd
+import numpy as np
 import netCDF4
 import glob
 import os
@@ -132,12 +133,12 @@ class WRF_namelist_file_tools(object):
                        self.nml['time_control']['end_second'])
         return(end_time)
 
-    def update_namelist_start_time(self, new_start_time):
-    """update the start time in a WRF namelist to a new value
+    def get_new_start_time(self, new_start_time):
+        """return a dict in containing the new start time
 
-    ARGS:
-    namelist_file (string): full path to WRF namelist file to be updated
-    new_start_time (numpy.Datetime64): the new start time
+        The dict is formatted for insertion into a WRF namelist file
+        using the f90nml module.
+
     """
     new_start_time = pd.to_datetime(new_start_time)
     namelist_update = {'time_control':
@@ -145,7 +146,26 @@ class WRF_namelist_file_tools(object):
                         'start_day': [new_start_time.day] * ndom,
                         'start_hour': [new_start_time.hour] * ndom,
                         'start_minute': [new_start_time.minute] * ndom,
-                        'start_second': [new_start_time.second] * ndom}}
+                            'start_second': [new_start_time.second] * ndom}
+        }
+        return(namelist_update)
+
+    def update_namelist(self, namelist_update):
+        """update values in a WRF namelist, save old namelist file as a backup
+
+        The existing namelist file is copied to a new file with the
+        current date appended to the file name (in format
+        YYYY-MM-DD_hhmm)
+
+        ARGS:
+        namelist_update (dict): the new values to be placed in the
+           namelist file.  Should be formatted as {category: {item:
+           value}}.
+
+        example:
+        update_namelist({'domains': {'time_step": 100}})
+
+        """
         fname_bak = self.fname + pd.Timestamp.now().strftime(".%Y-%m-%d_%H%M")
         shutil.copy(self.fname, fname_bak)
         f90nml.patch(fname_bak, namelist_update, self.fname)
@@ -155,6 +175,66 @@ class WRF_namelist_file_tools(object):
         """
         return(self.nml['domains']['max_dom'])
 
+    def get_current_timestep(self):
+        """return time step from the namelist files
+        """
+        return(self.nml['domains']['time_step'])
+
+    def get_new_timestep(self,
+                         wrf_run_dir,
+                         parent_job_id=None,
+                         default_time_step=120):
+        """update the WRF time_step value
+
+        If the previous run ended in a segmentation fault, the time
+        step needs to be shortened to try to satisfy the CFL condition
+        (see,
+        e.g. https://en.wikipedia.org/wiki/Courant-Friedrichs-Lewy).
+        As currently implemented, the time step is reduced to 2/3 its
+        current value for another try.
+
+        The previous run stdout/stderr file is assumed to be in a file
+        named slurm-{parent_job_id}.out within the WRF run directory.
+        Segmentation faults are identified by the presence of the
+        string "Exited with exit code 174" in this file.
+
+        If the previous run did not end in a segmentation fault or no
+        previous run is provided returns a caller-specified default
+        value (by default 120).  This is useful because shorter
+        time_step values cause WRF to use more CPU time, so we want
+        the maximum value that satisfies the CFL condition.
+
+        ARGS:
+        wrf_run_dir (string): full path to the WRF run directory
+        parent_job_id (int): the SLURM job number for the previous run
+        default_time_step (int): time_step value to use if previous
+           run was successful (default is 120)
+
+        RETURNS:
+        dict containing the new timestep value in a format to be
+        inserted into the WRF namelist file using f90nml.
+
+        """
+        time_step = self.get_current_timestep()
+        parent_ended_in_segfault = False
+        if parent_job_id is not None:
+            # if a parent file was provided, check its stdout/stderr
+            # file to see if it ended in a segmentation fault.  If so,
+            # reduce the time step for the next run.
+            parent_outfile = os.path.join(wrf_run_dir,
+                                          "slurm-{}.out".format(parent_job_id))
+            for line in open(parent_outfile, 'r'):
+                parent_ended_in_segfault =  "Exited with exit code 174" in line
+                if parent_ended_in_segfault:
+                    break
+        if parent_ended_in_segfault:
+            # if segmentation fault happened, reduce the time step
+            time_step = np.int(np.floor(time_step * 0.667))
+        else:
+            time_step = default_time_step
+
+        print("setting time step to {}".format(time_step))
+        return({'domains': {'time_step': time_step}})
 
 if __name__ == "__main__":
 
@@ -189,11 +269,12 @@ if __name__ == "__main__":
 
     rst = WRF_restart_files(args.wrf_run_dir)
     new_start_time = rst.get_last_restart_file(ndom)
+    namelist_updates = {}
     if (new_start_time < end_time):
 
     print("updating {file} to start at {time}".format(
             file=os.path.join(args.wrf_run_dir, args.fname), time=new_start_time))
-    nml.update_namelist_start_time(new_start_time)
-        # print('running `sbatch {slurm_script}` now'.format(
-        #     slurm_script=fname_wrf_slurm))
-        # subprocess.run(["sbatch", fname_wrf_slurm], stdout=subprocess.PIPE)
+        namelist_updates.update(nml.get_new_start_time(new_start_time))
+    namelist_updates.update(nml.get_new_timestep(args.wrf_run_dir,
+                                                 args.parent_job_id))
+    nml.update_namelist(namelist_updates)
