@@ -27,21 +27,21 @@ class WRF_restart_files(object):
         self.run_dir = run_dir
 
     def get_tstamp(self, fname):
-    """read the timestamp from a WRF restart file
+        """read the timestamp from a WRF restart file
 
-    assumes that the restart file contains a single timestamp in the
-    netCDF variable Times.  If this assumption is violated results are
-    undefined.
+        assumes that the restart file contains a single timestamp in the
+        netCDF variable Times.  If this assumption is violated results are
+        undefined.
 
-    ARGS:
-    fname (str): full path to WRF restart file
+        ARGS:
+        fname (str): full path to WRF restart file
 
-    RETURNS:
-    numpy.Datetime64 object containing the restart file timestamp
-    """
-    nc = netCDF4.Dataset(fname, 'r')
+        RETURNS:
+        numpy.Datetime64 object containing the restart file timestamp
+        """
+        nc = netCDF4.Dataset(fname, 'r')
         self.tstamp = pd.to_datetime(wrf.extract_times(nc, 0))
-    nc.close()
+        nc.close()
         return(self.tstamp)
 
     def check_is_valid(self, fname_rst1, fname_rst0):
@@ -76,38 +76,38 @@ class WRF_restart_files(object):
         return(diff_ratio < 0.02)
 
     def get_last_restart_file(self, ndom, wildcard_str="wrfrst_d*[0-9][0-9]"):
-    """search a directory for most recent WRF restart file
+        """search a directory for most recent WRF restart file
 
-    return the last time stamp that has a restart file for all
-    domains.
+        return the last time stamp that has a restart file for all
+        domains.
 
-    ARGS:
-    ndom (int > 0): number of domains to search
-    wildcard_str (str): wild card string matching restart file names
-       (default "wrfrst_d*")
+        ARGS:
+        ndom (int > 0): number of domains to search
+        wildcard_str (str): wild card string matching restart file names
+           (default "wrfrst_d*")
 
-    RETURNS:
-    numpy.Datetime64 object containing timestamp of last restart file
-    """
-    restart_files = {}
+        RETURNS:
+        numpy.Datetime64 object containing timestamp of last restart file
+        """
+        restart_files = {}
         # create a dict containing a list of WRF restart files present
         # for every WRF domain
-    for this_domain in range(1, ndom + 1):
+        for this_domain in range(1, ndom + 1):
             this_domain_str = 'd{:02}'.format(this_domain)
             restart_files[this_domain_str] = (
                 sorted(glob.glob(os.path.join(self.run_dir,
                                               wildcard_str))))
-    n_last_rst = min(map(len, restart_files.values()))
+            n_last_rst = min(map(len, restart_files.values()))
             last_restart_file = restart_files[this_domain_str][n_last_rst - 1]
             if self.check_is_valid(
                     last_restart_file,
                     restart_files[this_domain_str][n_last_rst - 2]):
-        return(self.get_tstamp(last_restart_file))
-        else:
-            print('{} is incomplete.  Deleting and trying again'.format(
-                last_restart_file))
-            os.remove(last_restart_file)
-            return(self.get_last_restart_file(ndom, wildcard_str))
+                return(self.get_tstamp(last_restart_file))
+            else:
+                print('{} is incomplete.  Deleting and trying again'.format(
+                    last_restart_file))
+                os.remove(last_restart_file)
+                return(self.get_last_restart_file(ndom, wildcard_str))
 
 
 class WRF_namelist_file_tools(object):
@@ -144,12 +144,12 @@ class WRF_namelist_file_tools(object):
         using the f90nml module.
 
     """
-    new_start_time = pd.to_datetime(new_start_time)
-    namelist_update = {'time_control':
-                       {'start_month': [new_start_time.month] * ndom,
-                        'start_day': [new_start_time.day] * ndom,
-                        'start_hour': [new_start_time.hour] * ndom,
-                        'start_minute': [new_start_time.minute] * ndom,
+        new_start_time = pd.to_datetime(new_start_time)
+        namelist_update = {'time_control':
+                           {'start_month': [new_start_time.month] * ndom,
+                            'start_day': [new_start_time.day] * ndom,
+                            'start_hour': [new_start_time.hour] * ndom,
+                            'start_minute': [new_start_time.minute] * ndom,
                             'start_second': [new_start_time.second] * ndom}}
         return(namelist_update)
 
@@ -227,7 +227,7 @@ class WRF_namelist_file_tools(object):
             parent_outfile = os.path.join(wrf_run_dir,
                                           "slurm-{}.out".format(parent_job_id))
             for line in open(parent_outfile, 'r'):
-                parent_ended_in_segfault =  "Exited with exit code 174" in line
+                parent_ended_in_segfault = "Exited with exit code 174" in line
                 if parent_ended_in_segfault:
                     break
         if parent_ended_in_segfault:
@@ -277,7 +277,7 @@ if __name__ == "__main__":
     new_start_time = rst.get_last_restart_file(ndom)
     namelist_updates = {}
     if (new_start_time < end_time):
-    print("updating {file} to start at {time}".format(
+        print("updating {file} to start at {time}".format(
             file=os.path.join(args.wrf_run_dir, args.fname),
             time=new_start_time))
         namelist_updates.update(nml.get_new_start_time(new_start_time))
