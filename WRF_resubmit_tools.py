@@ -1,6 +1,8 @@
 # TODO:
 # 1) make wrf_run_dir a command line argument
-# 2) investigate why the previous job failed.  If timeout, use current approach (adjust start time, resubmit).  If seg fault, lower timestep and resubmit.
+# 2) investigate why the previous job failed.  If timeout, use current
+#    approach (adjust start time, resubmit).  If seg fault, lower
+#    timestep and resubmit.
 # 3) check last restart file to make sure it is complete.  If not,
 # delete it and rerun get_last_restart_file()
 
@@ -12,8 +14,8 @@ import netCDF4
 import glob
 import os
 import f90nml
-import subprocess
 import argparse
+
 
 class WRF_restart_files(object):
     """tools to work with WRF restart files
@@ -91,13 +93,15 @@ class WRF_restart_files(object):
         # create a dict containing a list of WRF restart files present
         # for every WRF domain
     for this_domain in range(1, ndom + 1):
-        restart_files['d{:02}'.format(this_domain)] = (
+            this_domain_str = 'd{:02}'.format(this_domain)
+            restart_files[this_domain_str] = (
                 sorted(glob.glob(os.path.join(self.run_dir,
                                               wildcard_str))))
     n_last_rst = min(map(len, restart_files.values()))
-        last_restart_file = restart_files['d02'][n_last_rst - 1]
-        if self.check_is_valid(last_restart_file,
-                               restart_files['d02'][n_last_rst - 2]):
+            last_restart_file = restart_files[this_domain_str][n_last_rst - 1]
+            if self.check_is_valid(
+                    last_restart_file,
+                    restart_files[this_domain_str][n_last_rst - 2]):
         return(self.get_tstamp(last_restart_file))
         else:
             print('{} is incomplete.  Deleting and trying again'.format(
@@ -146,8 +150,7 @@ class WRF_namelist_file_tools(object):
                         'start_day': [new_start_time.day] * ndom,
                         'start_hour': [new_start_time.hour] * ndom,
                         'start_minute': [new_start_time.minute] * ndom,
-                            'start_second': [new_start_time.second] * ndom}
-        }
+                            'start_second': [new_start_time.second] * ndom}}
         return(namelist_update)
 
     def update_namelist(self, namelist_update):
@@ -217,7 +220,7 @@ class WRF_namelist_file_tools(object):
         """
         time_step = self.get_current_timestep()
         parent_ended_in_segfault = False
-        if parent_job_id is not None:
+        if (parent_job_id is not None) and (parent_job_id != 'None'):
             # if a parent file was provided, check its stdout/stderr
             # file to see if it ended in a segmentation fault.  If so,
             # reduce the time step for the next run.
@@ -235,6 +238,7 @@ class WRF_namelist_file_tools(object):
 
         print("setting time step to {}".format(time_step))
         return({'domains': {'time_step': time_step}})
+
 
 if __name__ == "__main__":
 
@@ -263,6 +267,8 @@ if __name__ == "__main__":
                                'then update the timestep and start time and resubmit.  ')))
     args = parser.parse_args()
 
+    print("DEBUG PYTHON: parent_job_id: {}".format(args.parent_job_id))
+
     nml = WRF_namelist_file_tools(os.path.join(args.wrf_run_dir, args.fname))
     ndom = nml.get_ndomains()
     end_time = max(nml.get_end_time())
@@ -271,9 +277,9 @@ if __name__ == "__main__":
     new_start_time = rst.get_last_restart_file(ndom)
     namelist_updates = {}
     if (new_start_time < end_time):
-
     print("updating {file} to start at {time}".format(
-            file=os.path.join(args.wrf_run_dir, args.fname), time=new_start_time))
+            file=os.path.join(args.wrf_run_dir, args.fname),
+            time=new_start_time))
         namelist_updates.update(nml.get_new_start_time(new_start_time))
     namelist_updates.update(nml.get_new_timestep(args.wrf_run_dir,
                                                  args.parent_job_id))
