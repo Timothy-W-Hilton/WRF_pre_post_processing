@@ -20,28 +20,36 @@ import glob
 import os
 import argparse
 
-restart_wildcard_string = "wrfrst_d[0-9][0-9]*"
+restart_wildcard_string = "wrfrst_d{domain}*"
 
 if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(description=(
         ("Delete most WRF restart files from a WRF run directory.  The "
-        "following files are kept: the ten most recent, and one restart "
-        "file per day of the WRF run (with timestamp matching "
-        "00:00).")))
+         "following files are kept: the ten most recent, and one restart "
+         "file per day of the WRF run (with timestamp matching "
+         "00:00).")))
     parser.add_argument('--wrf_run_dir',
                         dest='wrf_run_dir',
                         action='store',
                         default='./',
                         help=('full path to the WRF run directory'))
+    parser.add_argument('--n_domains',
+                        dest='ndom',
+                        action='store',
+                        default=2,
+                        help=(("number of nested domains in "
+                              " the WRF run (default 2)")))
     args = parser.parse_args()
 
-    restart_files = sorted(glob.glob(os.path.join(args.wrf_run_dir,
-                                                  restart_wildcard_string)))
-    # keep the most recent ten files
-    restart_files = restart_files[:-10]
-    # keep files with timestamps of 00:00
-    for this_file in restart_files:
-        if "_00:00:00" not in this_file:
-            print("deleting {}".format(os.path.basename(this_file)))
-            os.remove(this_file)
+    for this_domain in range(1, args.ndom + 1):
+        restart_files = sorted(glob.glob(
+            os.path.join(args.wrf_run_dir,
+                         restart_wildcard_string.format(domain=this_domain))))
+        # keep the most recent ten files
+        restart_files = restart_files[:-10]
+        # keep files with timestamps of 00:00
+        for this_file in restart_files:
+            if "_00:00:00" not in this_file:
+                print("deleting {}".format(os.path.basename(this_file)))
+                # os.remove(this_file)
