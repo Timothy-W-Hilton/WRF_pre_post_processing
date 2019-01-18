@@ -259,7 +259,7 @@ if __name__ == "__main__":
     parser.add_argument('--parent_job_id',
                         dest='parent_job_id',
                         action='store',
-                        default='',
+                        default='None',
                         help=(('SLURM job id of the job that submitted the current task.  Used to '
                                'build the SLURM stdout/stderr filename of that job to determine why '
                                'the job "failed".  If failure was caused by timeout, then update the '
