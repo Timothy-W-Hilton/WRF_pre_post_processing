@@ -908,8 +908,7 @@ class VarDiffPlotter(object):
             dmin,
             dmax,
             nlevs=21,
-            cmap=get_IGBP_modMODIS_21Category_PFTs_table())
-                                    # cmap=get_cmap('YlGnBu'))
+            cmap=get_cmap('YlGnBu')) #get_IGBP_modMODIS_21Category_PFTs_table())
 
         for axidx, k in enumerate(self.vd.data.keys()):
             print("    plot {} data - {}".format(
@@ -941,7 +940,8 @@ class VarDiffPlotter(object):
         cmap, norm = get_discrete_midpt_cmap_norm(vmin=vmin,
                                                   vmax=vmax,
                                                   midpoint=0.0,
-                                                  this_cmap=get_cmap('cool'))
+                                                  this_cmap=get_cmap('RdBu'),
+                                                  remove_middle_color=True)
         d_map = CoastalSEES_WRF_Mapper(ax=ax[2], domain=self.domain)
         if mask is not None:
             self.vd.d = ma.masked_where(mask, self.vd.d)
