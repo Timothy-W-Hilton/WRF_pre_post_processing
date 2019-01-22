@@ -137,7 +137,7 @@ class WRF_namelist_file_tools(object):
                        self.nml['time_control']['end_second'])
         return(end_time)
 
-    def get_new_start_time(self, new_start_time):
+    def get_new_start_time(self, new_start_time, verbose=True):
         """return a dict in containing the new start time
 
         The dict is formatted for insertion into a WRF namelist file
@@ -151,6 +151,8 @@ class WRF_namelist_file_tools(object):
                             'start_hour': [new_start_time.hour] * ndom,
                             'start_minute': [new_start_time.minute] * ndom,
                             'start_second': [new_start_time.second] * ndom}}
+        if verbose:
+            print("setting start time to {}".format(new_start_time))
         return(namelist_update)
 
     def update_namelist(self, namelist_update):
