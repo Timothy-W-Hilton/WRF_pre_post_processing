@@ -27,6 +27,7 @@ Timothy W. Hilton, UC Santa Cruz, twhilton@ucsc.edu
 import numpy as np
 import pandas as pd
 import numpy.ma as ma
+from scipy.stats import norm
 import datetime
 import os
 import netCDF4
@@ -44,6 +45,7 @@ from map_tools_twh.map_tools_twh import get_IGBP_modMODIS_21Category_PFTs_table
 from timutils.midpt_norm import get_discrete_midpt_cmap_norm
 from timutils.colormap_nlevs import setup_colormap
 from timutils.std_error import calc_neff
+
 
 def test_ax_min():
     """test that ax_min is functioning properly
@@ -635,6 +637,26 @@ class var_diff(object):
                 self.data[k] = self.data[k] / n_tsteps
         if time_avg:   # outside loop so string is only appended once
             self.longname = self.longname + ' time avg'
+
+    def get_significance_mask(self, significance, adj_autocorr=True):
+        """get mask for statistically insignificant differences
+
+        apply difference of means at specified level test to obtain a
+        mask for statistically significant pixels in the data.
+
+        places the mask in self.insignificant_mask
+
+        ARGS:
+        significance (float): significance level to test for.  Must be
+           in range [0.0, 1/0]
+        adj_autocorr (boolean): if true, adjust the effective number
+           of independent samples according to Wilks 1995.  Defaut is
+           True.
+        """
+        z = self.diff_means_test(adj_autocorr=adj_autocorr)
+        vectorized_cdf = np.vectorize(lambda x: norm.cdf(x, 0.0, 1.0))
+        p = vectorized_cdf(z)
+        self.insignificant_mask = p < significance
 
     def diff_means_test(self, adj_autocorr=True):
         """run a paired difference of means test
