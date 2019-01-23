@@ -7,6 +7,12 @@ run A, run B, and (run A - run B).
 Timothy W. Hilton, UC Santa Cruz, twhilton@ucsc.edu
 """
 
+# TODO: consider moving timestamp comparison earlier in
+#    var_diff.read_file().  The comparison is currently last, which #
+#    forces read_files to read *all* of both WRF runs' output files
+#    even # if one run is much shorter than the other.  Alternatively,
+#    could # pare down the files passed to var_diff in the driver
+#    script...
 # TODO: improve reading speed of netCDF files.  reading one variable
 #    from one month of WRF files concatenated with ncrcat takes about
 #    17 seconds.  ncrcat takes 1:35 to assemble the combined file.
@@ -14,7 +20,7 @@ Timothy W. Hilton, UC Santa Cruz, twhilton@ucsc.edu
 #    already is.  Current code takes about two minutes, close to (1:35
 #    + 0:17).
 # TODO: improve plotting speed by updating the data on the cartopy map
-# rather than replotting the map anew for every timestep.
+#    rather than replotting the map anew for every timestep.
 # TODO: merge fog/no fog plotting and colorbars into this branch.
 #    UPDATE: This is probably superceded by the now-implemented fog
 #    percentage plot.
