@@ -18,17 +18,17 @@ if __name__ == "__main__":
 
     out_dir = os.path.join(cscratchdir, 'plots_temporary')
 
-    # varname='HFX'
-    # varname='LH'
-    # varname='LCL'
-    # varname='fogpresent'
-    # varname='SMOIS'
-    # varname='fogbase'
-    varname='fogpct'
-    # varname='QCLOUD'
-    # varname='uvmet'
-    # varname='wa'
-    # varname='LU_INDEX'
+    # varname = 'HFX'
+    # varname = 'LH'
+    # varname = 'LCL'
+    # varname = 'fogpresent'
+    varname = 'SMOIS'
+    # varname = 'fogbase'
+    # varname = 'fogpct'
+    # varname = 'QCLOUD'
+    # varname = 'uvmet'
+    # varname = 'wa'
+    # varname = 'LU_INDEX'
 
     read_data = True
     if read_data:
@@ -48,11 +48,15 @@ if __name__ == "__main__":
         # vd.mask_land_or_water(mask_water=False)
     else:
         vd = var_diff(
-            ncfile=os.path.join('/', 'global', 'cscratch1', 'sd',
-                                'twhilton',
-                                '{varname}_d{:02d}_CLM_drysoil.nc'.format(
-                                    varname, DOMAIN)))
+            ncfile=os.path.join(
+                '/', 'global', 'cscratch1', 'sd',
+                'twhilton',
+                '{varname}_d{DOMAIN:02d}_CLM_drysoil.nc'.format(
+                    varname=varname, DOMAIN=DOMAIN)))
     # vd = is_foggy_obrien_2013(vd)
+    # vd.get_significance_mask(significance=0.99, adj_autocorr=False)
+    vd.insignificant_mask = None
+
     pfx = 'drysoilCLM'
     # for this_series in ['all_tstamps', 'time_avg']:
     for this_series in ['time_avg']:
@@ -64,6 +68,10 @@ if __name__ == "__main__":
             t_end = 1
             pfx = pfx + '_timeavg'
             vd.aggregate_time(time_avg=True)
+            if varname is "fogpresent":
+                print("multiplying fogpresent avg by 100 to get a percent")
+                for k in vd.data.keys():
+                    vd.data[k] = vd.data[k] * 100
             time_title_str = 'June 2005'
         for this_t in range(0, t_end):  #
             plotter = VarDiffPlotter(vd, t_idx=this_t, layer=0,
@@ -77,6 +85,7 @@ if __name__ == "__main__":
                 cb_orientation = 'vertical'
             fig = plotter.plot(cb_orientation=cb_orientation,
                                vmin=1,
-                               vmax=21)
+                               vmax=21,
+                               mask=vd.insignificant_mask)
 
     print('done driver ({})'.format(datetime.datetime.now() - t0))
