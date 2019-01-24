@@ -625,6 +625,49 @@ class var_diff(object):
             raise IndexError("data have unexpected shape")
         return(idx)
 
+    def aggregate_layers(self, vert_avg=False, extract_layer=None):
+        """aggregate var_diff data for all time vertical layers
+
+        Calculate the sum of each run's data across all vertical
+        layers, or, optionally, the arithmetic mean.  Vertical layers
+        could be either soil layers or atmospheric layers.
+
+        ARGS:
+        extract_layer (int): if specified, a single layer is extracted
+           and vert_avg keywordis ignored.
+        vert_avg (logical): if true, calculate the arithmetic mean
+           across layers.  Default is False.
+
+        """
+        if 'Lay' not in self.var_axes.keys():
+            ValueError('object contains no vertical layer data')
+        for k, v in self.data.items():
+            if extract_layer is not None:
+                print('extracting layer {}'.format(extract_layer))
+                # we're keeping a single vertical layer
+                idx = [slice(None)] * self.data[k].ndim
+                # `slice(None)` places a ":" in layer index
+                idx[self.var_axes['Lay']] = extract_layer
+                self.data[k] = v[tuple(idx)].squeeze()
+            else:
+                # we're doing an average or sum of all vertical layers
+                n_lays = v.shape[self.var_axes['Lay']]
+                self.data[k] = np.nansum(v,
+                                         axis=self.var_axes['Lay'],
+                                         keepdims=False)
+                if vert_avg:
+                    self.data[k] = self.data[k] / n_lays
+                    print('calculating vertical average')
+                else:
+                    print('calculating vertical sum')
+        if vert_avg:   # outside loop so string is only appended once
+            self.longname = self.longname + 'vertical avg'
+        # adjust dict of axis labels
+        for k, v in self.var_axes.items():
+            if self.var_axes[k] > self.var_axes['Lay']:
+                self.var_axes[k] = self.var_axes[k] - 1
+        self.var_axes.pop('Lay')
+
     def aggregate_time(self, time_avg=False):
         """aggregate var_diff data for all time steps
 
