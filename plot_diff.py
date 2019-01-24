@@ -473,19 +473,18 @@ class var_diff(object):
     def read_soil_layers(self, silent=False):
         """read soil layers, print to stdout
         """
-        nf = netCDF4.MFDataset(self.fnames[self.label_A])
+        first_fname = sorted(glob.glob(self.fnames[self.label_A]))[0]
+        nf = netCDF4.Dataset(first_fname)
         # ZS is soil layer midpoints
         # assume (for now) that soil layers are time-invariant
-        zs = nf.variables['ZS'][0, ...]
+        zs = nf.variables['ZS'][...].squeeze()
         # DZS is soil layer thickness
-        dzs = nf.variables['DZS'][0, ...]
-        depth_top = np.zeros(len(zs))
-        depth_bot = np.zeros(len(zs))
-        for this_lay in range(len(zs)):
-            depth_top[this_lay] = zs[this_lay] - (dzs[this_lay] / 2.0)
-            depth_bot[this_lay] = zs[this_lay] + (dzs[this_lay] / 2.0)
+        dzs = nf.variables['DZS'][...].squeeze()
+        depth_top = zs - (dzs / 2.0)
+        depth_bot = zs + (dzs / 2.0)
         if silent is False:
-            print("soil layer {}: {:0.1f} - {:0.1f} m".format(
+            for this_lay in range(len(zs)):
+                print("soil layer {}: {:0.3f} - {:0.3f} m".format(
                 this_lay, depth_top[this_lay], depth_bot[this_lay]))
         nf.close()
         return({'top': depth_top, 'bot': depth_bot})
