@@ -635,9 +635,8 @@ class var_diff(object):
         time_avg (logical): if true, calculate the arithmetic mean
            across time steps.  Default is False.
         """
-        print('summing layers 0 to 9')
         for k, v in self.data.items():
-            n_tsteps = v.shape[0]   # axes are [time, y, x]
+            n_tsteps = v.shape[self.var_axes['Time']]   # axes are [time, y, x]
             self.data[k] = np.nansum(v, axis=0, keepdims=True)
             if time_avg:
                 self.data[k] = self.data[k] / n_tsteps
@@ -749,9 +748,10 @@ class var_diff(object):
            If fname exists it will be deleted and replace.
         """
         nc = netCDF4.Dataset(fname, mode='w')
-        nc.createDimension('time', self.data['ctl'].shape[0])
-        nc.createDimension('x', self.data['ctl'].shape[1])
-        nc.createDimension('y', self.data['ctl'].shape[2])
+        nc.createDimension('time',
+                           self.data['ctl'].shape[self.var_axes['Time']])
+        nc.createDimension('x', self.data['ctl'].shape[self.var_axes['Lon']])
+        nc.createDimension('y', self.data['ctl'].shape[self.var_axes['Lat']])
         nc.createVariable('lat', np.float, ('x', 'y'))
         nc.createVariable('lon', np.float, ('x', 'y'))
         nc.createVariable('time', np.float, ('time'))
