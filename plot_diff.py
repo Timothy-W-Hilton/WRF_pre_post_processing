@@ -449,6 +449,12 @@ class var_diff(object):
                 self.label_B: nc.groups[self.label_B].variables[
                     self.varname][...]
             }
+            dim_names = nc.groups[self.label_A].variables[
+                self.varname].dimensions
+            self.var_axes = dict(zip(dim_names, range(len(dim_names))))
+            self.var_axes['lon'] = self.var_axes.pop('x')
+            self.var_axes['lat'] = self.var_axes.pop('y')
+            self.var_axes['Time'] = self.var_axes.pop('time')
             nc.close()
 
         else:
