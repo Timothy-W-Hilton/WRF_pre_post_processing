@@ -36,10 +36,10 @@ def plot_init(lon, lat):
 
     # initialize figure, axes
     nplots = 4
-    fig = Fig(figsize=(8, 8))
+    fig = Fig(figsize=(15, 8))
     ax = [None] * nplots
     for axidx, axspec in enumerate(range(221, 221 + nplots)):
-        if axidx < 3:
+        if axidx < 4:
             prj = CoastalSEES_WRF_prj()
         else:
             prj = None
@@ -84,14 +84,18 @@ if __name__ == "__main__":
 
     fig, ax = plot_init(lon, lat)
     cm = plot_landuse(ax[0], lon, lat, luidx['ctl'])
+    cm = plot_landuse(ax[2], lon, lat, luidx['ctl'])
+    ax[0].set_title('control')
+    ax[2].set_extent((-123.0, -121.0, 36.2, 39.0), crs=CoastalSEES_WRF_prj())
     cm = plot_landuse(ax[1], lon, lat, luidx['deurb'])
+    cm = plot_landuse(ax[3], lon, lat, luidx['deurb'])
+    ax[3].set_extent((-120.0, -117.0, 32.0, 35.0), crs=CoastalSEES_WRF_prj())
+    ax[1].set_title('deurbanized')
     cbar = fig.colorbar(cm,
                         ax=ax,
                         cmap=cmap,
                         extend='neither',
                         ticks=np.linspace(0.5, 21.5, 21))
-    # tick_locs = (np.arange(cmap.N) + 0.5)*(cmap.N-1)/cmap.N
-    # cbar.set_ticks(tick_locs)
     cbar.set_ticks(np.linspace(0.5, 21.5, 21))
     cbar.set_ticklabels(list(ctable['long_name']))
     fig.savefig(fname='/tmp/foo.png')
