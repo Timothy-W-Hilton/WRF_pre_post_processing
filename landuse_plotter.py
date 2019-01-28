@@ -35,11 +35,11 @@ class LU_vardiff(var_diff):
 def plot_init(lon, lat):
 
     # initialize figure, axes
-    nplots = 4
-    fig = Fig(figsize=(15, 8))
+    nplots = 6
+    fig = Fig(figsize=(15, 15))
     ax = [None] * nplots
-    for axidx, axspec in enumerate(range(221, 221 + nplots)):
-        if axidx < 4:
+    for axidx, axspec in enumerate(range(321, 321 + nplots)):
+        if axidx < 10:
             prj = CoastalSEES_WRF_prj()
         else:
             prj = None
@@ -85,11 +85,15 @@ if __name__ == "__main__":
     fig, ax = plot_init(lon, lat)
     cm = plot_landuse(ax[0], lon, lat, luidx['ctl'])
     cm = plot_landuse(ax[2], lon, lat, luidx['ctl'])
+    cm = plot_landuse(ax[4], lon, lat, luidx['ctl'])
     ax[0].set_title('control')
-    ax[2].set_extent((-123.0, -121.0, 36.2, 39.0), crs=CoastalSEES_WRF_prj())
     cm = plot_landuse(ax[1], lon, lat, luidx['deurb'])
     cm = plot_landuse(ax[3], lon, lat, luidx['deurb'])
-    ax[3].set_extent((-120.0, -117.0, 32.0, 35.0), crs=CoastalSEES_WRF_prj())
+    cm = plot_landuse(ax[5], lon, lat, luidx['deurb'])
+    ax[2].set_extent((-123.0, -121.0, 36.2, 39.0), crs=CoastalSEES_WRF_prj())
+    ax[3].set_extent((-123.0, -121.0, 36.2, 39.0), crs=CoastalSEES_WRF_prj())
+    ax[4].set_extent((-120.0, -116.0, 32.0, 35.0), crs=CoastalSEES_WRF_prj())
+    ax[5].set_extent((-120.0, -116.0, 32.0, 35.0), crs=CoastalSEES_WRF_prj())
     ax[1].set_title('deurbanized')
     cbar = fig.colorbar(cm,
                         ax=ax,
