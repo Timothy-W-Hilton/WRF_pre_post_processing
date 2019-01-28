@@ -40,7 +40,7 @@ def plot_init(lon, lat):
     ax = [None] * nplots
     for axidx, axspec in enumerate(range(321, 321 + nplots)):
         if axidx < 10:
-            prj = CoastalSEES_WRF_prj()
+            prj = ccrs.PlateCarree()
         else:
             prj = None
         ax[axidx] = fig.add_subplot(axspec,
@@ -62,8 +62,8 @@ def plot_landuse(ax, lon, lat, data):
                        cmap=cmap,
                        norm=norm)
     ax.set_extent((lon.min(), lon.max(),
-                   lat.min(), lat.max()),
-                  crs=CoastalSEES_WRF_prj())
+                   lat.min(), lat.max()))
+    ax.coastlines(resolution='10m', color='black')
     return(cm)
 
 if __name__ == "__main__":
@@ -90,10 +90,10 @@ if __name__ == "__main__":
     cm = plot_landuse(ax[1], lon, lat, luidx['deurb'])
     cm = plot_landuse(ax[3], lon, lat, luidx['deurb'])
     cm = plot_landuse(ax[5], lon, lat, luidx['deurb'])
-    ax[2].set_extent((-123.0, -121.0, 36.2, 39.0), crs=CoastalSEES_WRF_prj())
-    ax[3].set_extent((-123.0, -121.0, 36.2, 39.0), crs=CoastalSEES_WRF_prj())
-    ax[4].set_extent((-120.0, -116.0, 32.0, 35.0), crs=CoastalSEES_WRF_prj())
-    ax[5].set_extent((-120.0, -116.0, 32.0, 35.0), crs=CoastalSEES_WRF_prj())
+    ax[2].set_extent((-123.0, -121.0, 36.2, 39.0), crs=ccrs.PlateCarree())
+    ax[3].set_extent((-123.0, -121.0, 36.2, 39.0), crs=ccrs.PlateCarree())
+    ax[4].set_extent((-120.0, -116.0, 32.0, 35.0), crs=ccrs.PlateCarree())
+    ax[5].set_extent((-120.0, -116.0, 32.0, 35.0), crs=ccrs.PlateCarree())
     ax[1].set_title('deurbanized')
     cbar = fig.colorbar(cm,
                         ax=ax,
@@ -102,4 +102,8 @@ if __name__ == "__main__":
                         ticks=np.linspace(0.5, 21.5, 21))
     cbar.set_ticks(np.linspace(0.5, 21.5, 21))
     cbar.set_ticklabels(list(ctable['long_name']))
+    # for axidx in range(6):
+    #     print('{} coastlines'.format(axidx))
+    #     ax[axidx].coastlines('10m', color='black')
+
     fig.savefig(fname='/tmp/foo.png')
