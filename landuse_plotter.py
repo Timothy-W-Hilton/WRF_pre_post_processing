@@ -2,25 +2,21 @@
 """
 
 import numpy as np
-import numpy.ma as ma
-import datetime
-import os
 import netCDF4
-import glob
-from xarray import DataArray
-from wrf import getvar, extract_times, to_np, ALL_TIMES
 
 # from matplotlib.cm import get_cmap
 # from matplotlib.figure import Figure
-import matplotlib.pyplot as plt
 import cartopy.crs as ccrs
+import datetime
 
-from map_tools_twh.map_tools_twh import CoastalSEES_WRF_prj
 from map_tools_twh.map_tools_twh import Fig
 from map_tools_twh.map_tools_twh import get_IGBP_modMODIS_21Category_PFTs_cmap
 from map_tools_twh.map_tools_twh import get_IGBP_modMODIS_21Category_PFTs_table
 from timutils.colormap_nlevs import setup_colormap
-from plot_diff import var_diff, wrf_var
+from plot_diff import var_diff, VarDiffPlotter
+
+bbox_SFBay = (-123.0, -121.0, 36.2, 39.0)
+bbox_LA = (-120.0, -116.0, 32.0, 35.0)
 
 
 class LU_vardiff(var_diff):
@@ -83,18 +79,20 @@ if __name__ == "__main__":
     cmap = get_IGBP_modMODIS_21Category_PFTs_cmap()
 
     fig, ax = plot_init(lon, lat)
-    cm = plot_landuse(ax[0], lon, lat, luidx['ctl'])
-    cm = plot_landuse(ax[2], lon, lat, luidx['ctl'])
-    cm = plot_landuse(ax[4], lon, lat, luidx['ctl'])
+    axes_right_side = (0, 2, 4)
+    axes_left_side = (1, 3, 5)
+    for this_ax in axes_right_side:
+        cm = plot_landuse(ax[this_ax], lon, lat, luidx['ctl'])
+    for this_ax in axes_left_side:
+        cm = plot_landuse(ax[this_ax], lon, lat, luidx['deurb'])
+
     ax[0].set_title('control')
-    cm = plot_landuse(ax[1], lon, lat, luidx['deurb'])
-    cm = plot_landuse(ax[3], lon, lat, luidx['deurb'])
-    cm = plot_landuse(ax[5], lon, lat, luidx['deurb'])
-    ax[2].set_extent((-123.0, -121.0, 36.2, 39.0), crs=ccrs.PlateCarree())
-    ax[3].set_extent((-123.0, -121.0, 36.2, 39.0), crs=ccrs.PlateCarree())
-    ax[4].set_extent((-120.0, -116.0, 32.0, 35.0), crs=ccrs.PlateCarree())
-    ax[5].set_extent((-120.0, -116.0, 32.0, 35.0), crs=ccrs.PlateCarree())
     ax[1].set_title('deurbanized')
+    ax[2].set_extent(bbox_SFBay, crs=ccrs.PlateCarree())
+    ax[3].set_extent(bbox_SFBay, crs=ccrs.PlateCarree())
+    ax[4].set_extent(bbox_LA, crs=ccrs.PlateCarree())
+    ax[5].set_extent(bbox_LA, crs=ccrs.PlateCarree())
+
     cbar = fig.colorbar(cm,
                         ax=ax,
                         cmap=cmap,
