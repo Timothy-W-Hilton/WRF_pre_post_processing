@@ -24,9 +24,22 @@ class LU_vardiff(var_diff):
 
     land use is categorical data, not numeric, so tabulating
     differencing is, well, different :)
-
     """
 
+    def __init__(self, fname_A=None, fname_B=None, label_A=None, label_B=None):
+        super(LU_vardiff, self).__init__(
+            fname_A=fname_A, fname_B=fname_B,
+            label_A=label_A, label_B=label_B,
+            varname='LANDUSEF')
+
+    def read_files(self):
+        for k in self.data.keys():
+            nc = netCDF4.Dataset(self.fnames[k], 'r')
+            self.data[k] = nc.variables['LANDUSEF'][...].squeeze()
+            self.lon = nc.variables['XLONG'][...].squeeze()
+            self.lat = nc.variables['XLAT'][...].squeeze()
+            nc.close()
+        self.time = (datetime.datetime(2005, 6, 1, 0, 0, 0), )
 
 def plot_init(lon, lat):
 
@@ -100,8 +113,20 @@ if __name__ == "__main__":
                         ticks=np.linspace(0.5, 21.5, 21))
     cbar.set_ticks(np.linspace(0.5, 21.5, 21))
     cbar.set_ticklabels(list(ctable['long_name']))
-    # for axidx in range(6):
-    #     print('{} coastlines'.format(axidx))
-    #     ax[axidx].coastlines('10m', color='black')
 
-    fig.savefig(fname='/tmp/foo.png')
+    fig.savefig(fname='/tmp/land_use_dominant.png')
+
+    vd_LUfrac = LU_vardiff(fname_A=wrfin['ctl'], fname_B=wrfin['deurb'],
+                           label_A='ctl', label_B='deurb')
+    vd_LUfrac.read_files()
+    for this_pft in range(len(ctable)):
+        plotter = VarDiffPlotter(
+            vd_LUfrac,
+            t_idx=0,
+            layer=this_pft,
+            domain=2,
+            pfx='{:02d}-{}'.format(ctable['PFTnum'][this_pft],
+                               ctable['long_name'][this_pft]),
+            savedir='.',
+            time_title_str='foo')
+        fig = plotter.plot(vmin=0.0, vmax=1.0)
