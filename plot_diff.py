@@ -940,7 +940,8 @@ class VarDiffPlotter(object):
         this_map.colorbar()
         fig.savefig(fname='height_lay{:02d}.png'.format(layer))
 
-    def plot(self, cb_orientation='vertical', vmin=None, vmax=None, mask=None):
+    def plot(self, cb_orientation='vertical', vmin=None, vmax=None, mask=None,
+             cmap=get_cmap('YlGnBu')):
         """plot contour plots for both variables, diff, pct diff
 
         ARGS
@@ -984,7 +985,7 @@ class VarDiffPlotter(object):
             dmin,
             dmax,
             nlevs=21,
-            cmap=get_cmap('YlGnBu')) #get_IGBP_modMODIS_21Category_PFTs_table())
+            cmap=cmap)
 
         for axidx, k in enumerate(self.vd.data.keys()):
             print("    plot {} data - {}".format(
@@ -1016,6 +1017,8 @@ class VarDiffPlotter(object):
         cmap, norm = get_discrete_midpt_cmap_norm(vmin=vmin,
                                                   vmax=vmax,
                                                   midpoint=0.0,
+                                                  bands_above_mdpt=10,
+                                                  bands_below_mdpt=10,
                                                   this_cmap=get_cmap('RdBu'),
                                                   remove_middle_color=True)
         d_map = CoastalSEES_WRF_Mapper(ax=ax[2], domain=self.domain)
