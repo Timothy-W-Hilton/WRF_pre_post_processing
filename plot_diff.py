@@ -452,11 +452,16 @@ class var_diff(object):
             dim_names = nc.groups[self.label_A].variables[
                 self.varname].dimensions
             self.var_axes = dict(zip(dim_names, range(len(dim_names))))
-            self.var_axes['lon'] = self.var_axes.pop('x')
-            self.var_axes['lat'] = self.var_axes.pop('y')
+            self.var_axes['Lon'] = self.var_axes.pop('x')
+            self.var_axes['Lat'] = self.var_axes.pop('y')
             self.var_axes['Time'] = self.var_axes.pop('time')
+            # read difference p-value if it was written to netCDF
+            if 'p' in nc.variables:
+                self.p = nc.variables['p'][...]
+            else:
+                self.p = None
+            self.insignificant_mask = None
             nc.close()
-
         else:
             if None in [fname_A, fname_B, label_A, label_B, varname]:
                 raise TypeError(('must specify either a netCDF file or '
@@ -475,6 +480,8 @@ class var_diff(object):
             self.data = {label_A: None, label_B: None}
             self.is_land = None
             self.z = None  # height above sea level (meters)
+            self.insignificant_mask = None
+            self.p = None
 
     def read_soil_layers(self, silent=False):
         """read soil layers, print to stdout
@@ -708,8 +715,8 @@ class var_diff(object):
         """
         z = self.diff_means_test(adj_autocorr=adj_autocorr)
         vectorized_cdf = np.vectorize(lambda x: norm.cdf(x, 0.0, 1.0))
-        p = vectorized_cdf(z)
-        self.insignificant_mask = p < significance
+        self.p = vectorized_cdf(z)
+        self.insignificant_mask = self.p < significance
 
     def diff_means_test(self, adj_autocorr=True):
         """run a paired difference of means test
@@ -820,6 +827,12 @@ class var_diff(object):
         grpB.createVariable(self.varname, var_dtype, ('time', 'y', 'x'))
         grpA.variables[self.varname][...] = self.data[self.label_A][...]
         grpB.variables[self.varname][...] = self.data[self.label_B][...]
+        if self.p is not None:
+            nc.createVariable('p', np.float, ('y', 'x'))
+            nc.variables['p'][...] = self.p
+            nc.variables['p'].description = ('significance of the difference '
+                                             'in variable values from a '
+                                             'paired difference of means test')
         nc.varname = self.varname
         nc.units = self.units
         nc.close()
