@@ -800,8 +800,8 @@ class var_diff(object):
                            self.data['ctl'].shape[self.var_axes['Time']])
         nc.createDimension('x', self.data['ctl'].shape[self.var_axes['Lon']])
         nc.createDimension('y', self.data['ctl'].shape[self.var_axes['Lat']])
-        nc.createVariable('lat', np.float, ('x', 'y'))
-        nc.createVariable('lon', np.float, ('x', 'y'))
+        nc.createVariable('lat', np.float, ('y', 'x'))
+        nc.createVariable('lon', np.float, ('y', 'x'))
         nc.createVariable('time', np.float, ('time'))
         nc.variables['lat'][...] = self.lat
         nc.variables['lon'][...] = self.lon
@@ -816,8 +816,8 @@ class var_diff(object):
         var_dtype = self.data[self.label_A].dtype
         if var_dtype is np.dtype('bool'):
             var_dtype = 'i1'
-        grpA.createVariable(self.varname, var_dtype, ('time', 'x', 'y'))
-        grpB.createVariable(self.varname, var_dtype, ('time', 'x', 'y'))
+        grpA.createVariable(self.varname, var_dtype, ('time', 'y', 'x'))
+        grpB.createVariable(self.varname, var_dtype, ('time', 'y', 'x'))
         grpA.variables[self.varname][...] = self.data[self.label_A][...]
         grpB.variables[self.varname][...] = self.data[self.label_B][...]
         nc.varname = self.varname
