@@ -3,6 +3,7 @@
 
 import numpy as np
 import netCDF4
+import os
 
 # from matplotlib.cm import get_cmap
 # from matplotlib.figure import Figure
@@ -114,7 +115,9 @@ if __name__ == "__main__":
     cbar.set_ticks(np.linspace(0.5, 21.5, 21))
     cbar.set_ticklabels(list(ctable['long_name']))
 
-    fig.savefig(fname='/tmp/land_use_dominant.png')
+    fig.savefig(fname=os.path.join('/', 'Users', 'tim', 'work',
+                                   'Plots', 'Summen', 'NoUrban',
+                                   'land_use_dominant.png'))
 
     vd_LUfrac = LU_vardiff(fname_A=wrfin['ctl'], fname_B=wrfin['deurb'],
                            label_A='ctl', label_B='deurb')
