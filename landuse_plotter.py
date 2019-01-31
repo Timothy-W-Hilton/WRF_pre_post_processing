@@ -84,8 +84,8 @@ if __name__ == "__main__":
         nc = netCDF4.Dataset(wrfin[k], 'r')
         lufrac[k] = nc.variables['LANDUSEF'][...].squeeze()
         luidx[k] = nc.variables['LU_INDEX'][...].squeeze()
-        lon = nc.variables['XLONG'][...].squeeze()
-        lat = nc.variables['XLAT'][...].squeeze()
+        lon = nc.variables['XLONG_U'][:, :, :-1].squeeze()
+        lat = nc.variables['XLAT_V'][:, :-1, :].squeeze()
         nc.close()
 
     ctable = get_IGBP_modMODIS_21Category_PFTs_table()
