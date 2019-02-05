@@ -1,4 +1,11 @@
+"""modified example from wrf module documentation
+
+modified from https://wrf-python.readthedocs.io/en/latest/plot.html#plotting-a-two-dimensional-field
+"""
+
 import os
+import numpy as np
+import numpy.ma as ma
 from netCDF4 import Dataset
 import matplotlib.pyplot as plt
 from matplotlib.cm import get_cmap
@@ -6,7 +13,7 @@ import cartopy.crs as crs
 from cartopy.feature import NaturalEarthFeature
 
 from wrf import (to_np, getvar, smooth2d, get_cartopy, cartopy_xlim,
-                 cartopy_ylim, latlon_coords)
+                 cartopy_ylim, latlon_coords, ll_to_xy)
 
 # Open the NetCDF file
 ncfile = Dataset(os.path.join(
@@ -41,14 +48,14 @@ ax.coastlines('10m', linewidth=0.8)
 
 # Make the contour outlines and filled contours for the smoothed sea level
 # pressure.
-plt.contour(to_np(lons), to_np(lats), to_np(smooth_slp), 10, colors="blue",
-            transform=crs.PlateCarree())
-plt.contourf(to_np(lons), to_np(lats), to_np(smooth_slp), 10,
-             transform=crs.PlateCarree(),
-             cmap=get_cmap("Blues"))
+# plt.contour(to_np(lons), to_np(lats), to_np(smooth_slp), 10, colors="blue",
+#             transform=crs.PlateCarree())
+# plt.contourf(to_np(lons), to_np(lats), to_np(smooth_slp), 10,
+#              transform=crs.PlateCarree(),
+#              cmap=get_cmap("Blues"))
 
 # Add a color bar
-plt.colorbar(ax=ax, shrink=.98)
+# plt.colorbar(ax=ax, shrink=.98)
 
 # Set the map bounds
 ax.set_xlim(cartopy_xlim(smooth_slp))
@@ -60,4 +67,21 @@ ax.gridlines(color="black", linestyle="dotted")
 
 plt.title("Sea Level Pressure (hPa)")
 
+# plot markers for San Francisco, Santa Cruz
+SanFrancisco = (37.7707405, -122.450006)  # lat deg N, lon deg E
+SantaCruz = (36.974474, -122.028986)
+xy_coords = ll_to_xy(ncfile, *zip(*(SanFrancisco, SantaCruz)))
+dummy = np.zeros(slp.shape)
+for here in [SanFrancisco, SantaCruz]:
+    ax.scatter(*reversed(here),
+               transform=crs.PlateCarree(),
+               marker='x',
+               c='blue')
+    dummy[tuple(to_np(ll_to_xy(ncfile, *here, stagger=None))[::-1])] = 500
+dummy = ma.masked_less(dummy, 500)
+plt.pcolormesh(to_np(lons),
+               to_np(lats),
+               dummy,
+               transform=crs.PlateCarree(),
+               edgecolor='black')
 plt.show()
