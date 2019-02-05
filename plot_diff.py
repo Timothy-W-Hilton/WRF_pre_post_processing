@@ -982,9 +982,6 @@ class VarDiffPlotter(object):
                                         projection=CoastalSEES_WRF_prj())
             ax[axidx].set_extent((self.vd.lon.min(), self.vd.lon.max(),
                                   self.vd.lat.min(), self.vd.lat.max()))
-        if mask is not None:
-            self.vd.data.update({k: ma.masked_where(mask[np.newaxis, ...], v)
-                                 for k, v in self.vd.data.items()})
         if vmin is None:
             dmin = 0.0  # min(all_data)
         else:
@@ -1017,6 +1014,9 @@ class VarDiffPlotter(object):
 
         # plot the difference
         self.vd.calc_diff(idx, self.layer)
+        if mask is not None:
+            self.vd.d = ma.masked_where(mask, self.vd.d)
+
         if vmax is None:
             vmax = self.vd.abs_max
         # the colorbar should always be symmetict about 0.  Make the
