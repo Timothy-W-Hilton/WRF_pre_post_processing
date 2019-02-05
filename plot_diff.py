@@ -974,10 +974,10 @@ class VarDiffPlotter(object):
         print('plotting {}'.format(self.fname))
 
         # initialize figure, axes
-        nplots = 4
+        nplots = 5
         fig = MyFig(figsize=(16, 16))
         ax = [None] * nplots
-        for axidx, axspec in enumerate(range(221, 225)):
+        for axidx, axspec in enumerate(range(321, 321 + nplots)):
             ax[axidx] = fig.add_subplot(axspec,
                                         projection=CoastalSEES_WRF_prj())
             ax[axidx].set_extent((self.vd.lon.min(), self.vd.lon.max(),
@@ -1046,26 +1046,25 @@ class VarDiffPlotter(object):
             labB=self.vd.label_B,
             units=self.vd.units))
 
-        # plot the pct difference
-        # abs_max = 150  # np.abs((d_pct_all.min(), d_pct_all.max())).max()
-        # cmap, norm = get_discrete_midpt_cmap_norm(vmin=abs_max * -1.0,
-        #                                           vmax=abs_max,
-        #                                           midpoint=0.0,
-        #                                           this_cmap=get_cmap('cool'))
-        pct_map = CoastalSEES_WRF_Mapper(ax=ax[3],
+
+        SFBay_map = CoastalSEES_WRF_Mapper(ax=ax[3],
                                          domain='bigbasin',
                                          res='10m')
-        pct_map.pcolormesh(self.vd.lon, self.vd.lat,
-                           self.vd.d, cmap=cmap, norm=norm)
-        pct_map.colorbar(orientation=cb_orientation)
-        if cb_orientation is "horizontal":
-            pct_map.cb.ax.set_xticklabels(
-                pct_map.cb.ax.get_xticklabels(),
-                rotation=-60)
-        pct_map.ax.set_title("{labA} - {labB} ({units})".format(
-            labA=self.vd.label_A,
-            labB=self.vd.label_B,
-            units=self.vd.units))
+        SoCal_map = CoastalSEES_WRF_Mapper(ax=ax[4],
+                                         domain='SoCal',
+                                         res='10m')
+        for this_map in [SFBay_map, SoCal_map]:
+            this_map.pcolormesh(self.vd.lon, self.vd.lat,
+                               self.vd.d, cmap=cmap, norm=norm)
+            this_map.colorbar(orientation=cb_orientation)
+            if cb_orientation is "horizontal":
+                this_map.cb.ax.set_xticklabels(
+                    this_map.cb.ax.get_xticklabels(),
+                    rotation=-60)
+            this_map.ax.set_title("{labA} - {labB} ({units})".format(
+                labA=self.vd.label_A,
+                labB=self.vd.label_B,
+                units=self.vd.units))
 
         # Draw a title before we draw plots
         if self.time_title_str is None:
