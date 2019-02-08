@@ -121,20 +121,23 @@ if __name__ == "__main__":
 
     vd_LUfrac = LU_vardiff(fname_A=wrfin['ctl'], fname_B=wrfin['deurb'],
                            label_A='ctl', label_B='deurb')
+    vd_LUfrac.units = "fraction"
+    vd_LUfrac.longname = "Land use fraction"
     for this_pft in range(len(ctable)):
         vd_LUfrac.read_files()
         for k in vd_LUfrac.data.keys():
             vd_LUfrac.data[k] = np.expand_dims(
                 vd_LUfrac.data[k][this_pft, ...],
                 0)
+        lu_str = '{:02d}-{}'.format(
+            ctable['PFTnum'][this_pft],
+            ctable['long_name'][this_pft].replace('/', ''))
         plotter = VarDiffPlotter(
             vd_LUfrac,
             t_idx=0,
             layer=0,
             domain=2,
-            pfx='{:02d}-{}'.format(
-                ctable['PFTnum'][this_pft],
-                ctable['long_name'][this_pft].replace('/', '')),
+            pfx=lu_str,
             savedir='.',
-            time_title_str='foo')
+            time_title_str=lu_str)
         fig = plotter.plot(vmin=0.0, vmax=1.0)
