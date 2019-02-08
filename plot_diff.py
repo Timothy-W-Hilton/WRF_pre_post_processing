@@ -987,14 +987,23 @@ class VarDiffPlotter(object):
             nlevs=21,
             cmap=cmap)
 
+        # pcolormesh expects the coordinates to describe the lower
+        # left corner of each grid cell.  WRF's mass grid describes
+        # the center.  Calculate lower left from the centers by
+        # substractinv half each grid cell's width or height from the
+        # coordinates.  This reaults in one fewer row and column in
+        # the array.
+        lons_ll = (self.vd.lon[:, :-1] - (np.diff(self.vd.lon, axis=1) / 2))[:-1, :]
+        lats_ll = (self.vd.lat[:-1, :] - (np.diff(self.vd.lat, axis=0) / 2))[:, :-1]
+
         for axidx, k in enumerate(self.vd.data.keys()):
             print("    plot {} data - {}".format(
                 k, str(self.vd.time[self.t_idx])))
             this_map = CoastalSEES_WRF_Mapper(ax=ax[axidx], domain=self.domain)
 
-            this_map.pcolormesh(self.vd.lon,
-                                self.vd.lat,
-                                self.vd.data[k][idx],
+            this_map.pcolormesh(lons_ll,
+                                lats_ll,
+                                self.vd.data[k][idx][:-2, :-2],
                                 norm=norm, cmap=cmap)
             this_map.colorbar(orientation=cb_orientation)
             if cb_orientation is "horizontal":
@@ -1024,7 +1033,7 @@ class VarDiffPlotter(object):
         d_map = CoastalSEES_WRF_Mapper(ax=ax[2], domain=self.domain)
         if mask is not None:
             self.vd.d = ma.masked_where(mask, self.vd.d)
-        d_map.pcolormesh(self.vd.lon, self.vd.lat, self.vd.d,
+        d_map.pcolormesh(lons_ll, lats_ll, self.vd.d[:-2, :-2],
                          cmap=cmap, norm=norm)
         d_map.colorbar(orientation=cb_orientation)
         if cb_orientation is "horizontal":
@@ -1045,8 +1054,8 @@ class VarDiffPlotter(object):
         pct_map = CoastalSEES_WRF_Mapper(ax=ax[3],
                                          domain='bigbasin',
                                          res='10m')
-        pct_map.pcolormesh(self.vd.lon, self.vd.lat,
-                           self.vd.d, cmap=cmap, norm=norm)
+        pct_map.pcolormesh(lons_ll, lats_ll,
+                           self.vd.d[:-2, :-2], cmap=cmap, norm=norm)
         pct_map.colorbar(orientation=cb_orientation)
         if cb_orientation is "horizontal":
             pct_map.cb.ax.set_xticklabels(
