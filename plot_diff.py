@@ -953,7 +953,8 @@ class VarDiffPlotter(object):
         this_map.colorbar()
         fig.savefig(fname='height_lay{:02d}.png'.format(layer))
 
-    def plot(self, cb_orientation='vertical', vmin=None, vmax=None, mask=None):
+    def plot(self, cb_orientation='vertical', vmin=None, vmax=None, mask=None,
+             cmap=get_cmap('YlGnBu')):
         """plot contour plots for both variables, diff, pct diff
 
         ARGS
@@ -994,16 +995,25 @@ class VarDiffPlotter(object):
             dmin,
             dmax,
             nlevs=21,
-            cmap=get_cmap('YlGnBu')) #get_IGBP_modMODIS_21Category_PFTs_table())
+            cmap=cmap)
+
+        # pcolormesh expects the coordinates to describe the lower
+        # left corner of each grid cell.  WRF's mass grid describes
+        # the center.  Calculate lower left from the centers by
+        # substractinv half each grid cell's width or height from the
+        # coordinates.  This reaults in one fewer row and column in
+        # the array.
+        lons_ll = (self.vd.lon[:, :-1] - (np.diff(self.vd.lon, axis=1) / 2))[:-1, :]
+        lats_ll = (self.vd.lat[:-1, :] - (np.diff(self.vd.lat, axis=0) / 2))[:, :-1]
 
         for axidx, k in enumerate(self.vd.data.keys()):
             print("    plot {} data - {}".format(
                 k, str(self.vd.time[self.t_idx])))
             this_map = CoastalSEES_WRF_Mapper(ax=ax[axidx], domain=self.domain)
 
-            this_map.pcolormesh(self.vd.lon,
-                                self.vd.lat,
-                                self.vd.data[k][idx],
+            this_map.pcolormesh(lons_ll,
+                                lats_ll,
+                                self.vd.data[k][idx][:-2, :-2],
                                 norm=norm, cmap=cmap)
             this_map.colorbar(orientation=cb_orientation)
             if cb_orientation is "horizontal":
@@ -1029,12 +1039,14 @@ class VarDiffPlotter(object):
         cmap, norm = get_discrete_midpt_cmap_norm(vmin=vmin,
                                                   vmax=vmax,
                                                   midpoint=0.0,
+                                                  bands_above_mdpt=10,
+                                                  bands_below_mdpt=10,
                                                   this_cmap=get_cmap('RdBu'),
                                                   remove_middle_color=True)
         d_map = CoastalSEES_WRF_Mapper(ax=ax[2], domain=self.domain)
         if mask is not None:
             self.vd.d = ma.masked_where(mask, self.vd.d)
-        d_map.pcolormesh(self.vd.lon, self.vd.lat, self.vd.d,
+        d_map.pcolormesh(lons_ll, lats_ll, self.vd.d[:-2, :-2],
                          cmap=cmap, norm=norm)
         d_map.colorbar(orientation=cb_orientation)
         if cb_orientation is "horizontal":
@@ -1054,8 +1066,8 @@ class VarDiffPlotter(object):
                                          domain='SoCal',
                                          res='10m')
         for this_map in [SFBay_map, SoCal_map]:
-            this_map.pcolormesh(self.vd.lon, self.vd.lat,
-                               self.vd.d, cmap=cmap, norm=norm)
+            this_map.pcolormesh(lons_ll, lats_ll,
+                               self.vd.d[:-2, :-2], cmap=cmap, norm=norm)
             this_map.colorbar(orientation=cb_orientation)
             if cb_orientation is "horizontal":
                 this_map.cb.ax.set_xticklabels(
