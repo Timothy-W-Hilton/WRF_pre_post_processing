@@ -67,14 +67,6 @@ ax.gridlines(color="black", linestyle="dotted")
 
 plt.title("Sea Level Pressure (hPa)")
 
-xlonu = getvar(ncfile, 'XLONG_U')
-xlatu = getvar(ncfile, 'XLAT_U')
-xlonv = getvar(ncfile, 'XLONG_V')
-xlatv = getvar(ncfile, 'XLAT_V')
-
-mylon = xlonu[:, :-1]
-mylat = xlatv[:-1, :]
-
 # plot markers for San Francisco, Santa Cruz
 SanFrancisco = (37.7707405, -122.450006)  # lat deg N, lon deg E
 SantaCruz = (36.974474, -122.028986)
@@ -87,10 +79,13 @@ for here in [SanFrancisco, SantaCruz]:
                c='blue')
     dummy[tuple(to_np(ll_to_xy(ncfile, *here, stagger=None))[::-1])] = 500
 dummy = ma.masked_less(dummy, 500)
-dummy = dummy[:-1, :-1]
-plt.pcolormesh(to_np(mylon),
-               to_np(mylat),
-               dummy,
+
+mylons = (lons[:, :-1] - (np.diff(lons, axis=1) / 2))[:-1, :]
+mylats = (lats[:-1, :] - (np.diff(lats, axis=0) / 2))[:, :-1]
+
+plt.pcolormesh(to_np(mylons),
+               to_np(mylats),
+               dummy[:-2, :-2],
                transform=crs.PlateCarree(),
                alpha=0.5,
                edgecolor='black')
