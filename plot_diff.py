@@ -451,10 +451,10 @@ class var_diff(object):
             }
             dim_names = nc.groups[self.label_A].variables[
                 self.varname].dimensions
-            self.var_axes = dict(zip(dim_names, range(len(dim_names))))
-            self.var_axes['Lon'] = self.var_axes.pop('x')
-            self.var_axes['Lat'] = self.var_axes.pop('y')
-            self.var_axes['Time'] = self.var_axes.pop('time')
+            self.var_axes = dim_names
+            self.var_axes[self.var_axes.index('x')] = 'Lon'
+            self.var_axes[self.var_axes.index('y')] = 'Lat'
+            self.var_axes[self.var_axes.index('time')] = "Time"
             # read difference p-value if it was written to netCDF
             if 'p' in nc.variables:
                 self.p = nc.variables['p'][...]
@@ -603,10 +603,10 @@ class var_diff(object):
         idx_B = self.time[self.label_B].isin(self.time[self.label_A])
         self.data[self.label_A] = np.take(self.data[self.label_A],
                                           np.flatnonzero(idx_A),
-                                          self.var_axes['Time'])
+                                          self.var_axes.index('Time'))
         self.data[self.label_B] = np.take(self.data[self.label_B],
                                           np.flatnonzero(idx_B),
-                                          self.var_axes['Time'])
+                                          self.var_axes.index('Time'))
         self.time = self.time[self.label_A][idx_A]
 
     def mask_land_or_water(self, mask_water=True):
@@ -651,7 +651,7 @@ class var_diff(object):
            across layers.  Default is False.
 
         """
-        if 'Lay' not in self.var_axes.keys():
+        if 'Lay' not in self.var_axes:
             ValueError('object contains no vertical layer data')
         for k, v in self.data.items():
             if extract_layer is not None:
@@ -659,13 +659,13 @@ class var_diff(object):
                 # we're keeping a single vertical layer
                 idx = [slice(None)] * self.data[k].ndim
                 # `slice(None)` places a ":" in layer index
-                idx[self.var_axes['Lay']] = extract_layer
+                idx[self.var_axes.index('Lay')] = extract_layer
                 self.data[k] = v[tuple(idx)].squeeze()
             else:
                 # we're doing an average or sum of all vertical layers
-                n_lays = v.shape[self.var_axes['Lay']]
+                n_lays = v.shape[self.var_axes.index('Lay')]
                 self.data[k] = np.nansum(v,
-                                         axis=self.var_axes['Lay'],
+                                         axis=self.var_axes.index('Lay'),
                                          keepdims=False)
                 if vert_avg:
                     self.data[k] = self.data[k] / n_lays
@@ -674,11 +674,8 @@ class var_diff(object):
                     print('calculating vertical sum')
         if vert_avg:   # outside loop so string is only appended once
             self.longname = self.longname + 'vertical avg'
-        # adjust dict of axis labels
-        for k, v in self.var_axes.items():
-            if self.var_axes[k] > self.var_axes['Lay']:
-                self.var_axes[k] = self.var_axes[k] - 1
-        self.var_axes.pop('Lay')
+        # adjust axis labels
+        self.var_axes.pop(self.var_axes.index('Lay'))
 
     def aggregate_time(self, time_avg=False):
         """aggregate var_diff data for all time steps
@@ -691,8 +688,10 @@ class var_diff(object):
            across time steps.  Default is False.
         """
         for k, v in self.data.items():
-            n_tsteps = v.shape[self.var_axes['Time']]   # axes are [time, y, x]
-            self.data[k] = np.nansum(v, axis=0, keepdims=True)
+            # axes are [time, y, x]
+            time_axis = self.var_axes.index('Time')
+            n_tsteps = v.shape[time_axis]
+            self.data[k] = np.nansum(v, axis=time_axis, keepdims=True)
             if time_avg:
                 self.data[k] = self.data[k] / n_tsteps
         if time_avg:   # outside loop so string is only appended once
@@ -804,9 +803,11 @@ class var_diff(object):
         """
         nc = netCDF4.Dataset(fname, mode='w')
         nc.createDimension('time',
-                           self.data['ctl'].shape[self.var_axes['Time']])
-        nc.createDimension('x', self.data['ctl'].shape[self.var_axes['Lon']])
-        nc.createDimension('y', self.data['ctl'].shape[self.var_axes['Lat']])
+                           self.data['ctl'].shape[self.var_axes.index('Time')])
+        nc.createDimension('x',
+                           self.data['ctl'].shape[self.var_axes.index('Lon')])
+        nc.createDimension('y',
+                           self.data['ctl'].shape[self.var_axes.index('Lat')])
         nc.createVariable('lat', np.float, ('y', 'x'))
         nc.createVariable('lon', np.float, ('y', 'x'))
         nc.createVariable('time', np.float, ('time'))
@@ -849,24 +850,17 @@ def wrf_var_find_axes(wv):
     a dict containing the integer values of the time, vertical,
        north-south, and east-west axes of the variable.
     """
-    axes = {}
+    axes = list(wv.data.dims)
     try:
-        axes.update({"Time": wv.data.dims.index('Time')})
-    except ValueError:
-        print("{} has no time axis".format(wv.varname))
-        axes.update({"Time": None})
-    try:
-        axes.update({"Lay": wv.data.dims.index('bottom_top')})
+        axes[axes.index("bottom_top")] = "Lay"
     except ValueError:
         print("{} has no atmospheric vertical axis".format(wv.varname))
-        axes.update({"Lay": None})
         try:
-            axes.update({"Lay": wv.data.dims.index('soil_layers_stag')})
+            axes[axes.index('soil_layers_stag')] = "Lay"
         except ValueError:
             print("{} has no soil axis".format(wv.varname))
-            axes.update({"Lay": None})
-    axes.update({"Lon": wv.data.dims.index('west_east')})
-    axes.update({"Lat": wv.data.dims.index('south_north')})
+    axes[axes.index('west_east')] = "Lon"
+    axes[axes.index('south_north')] = "Lat"
     return(axes)
 
 
