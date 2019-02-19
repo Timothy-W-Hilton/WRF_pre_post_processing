@@ -1123,7 +1123,7 @@ class VarDiffPlotter(object):
 
         barb_params = dict(zorder=20,
                            regrid_shape=10,
-                           sizes=dict(emptybarb=0.25, spacing=.2, height=0.5))
+                           sizes=dict(emptybarb=0.1, spacing=.2, height=0.5))
 
         for axidx, k in enumerate(self.vd.data.keys()):
             print("    plot {} data - {}".format(
