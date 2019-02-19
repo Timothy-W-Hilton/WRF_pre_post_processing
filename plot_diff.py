@@ -912,6 +912,7 @@ class VarDiffPlotter(object):
         """return string containing filename for saving plot
         """
         if self.pfx is not None:
+            if self.pfx[-1] is not '_':
             self.pfx = self.pfx + '_'
 
         self.fname = os.path.join(
@@ -977,11 +978,16 @@ class VarDiffPlotter(object):
         t0 = datetime.datetime.now()
         self._plot_init(mask=mask)
         if 'u_v' in self.vd.var_axes:
+            # heat maps make huge PDF files, but barbs do not
+            self.fig_type = 'pdf'
+            self.get_filename()
             self._plot_vector()
         else:
             self._plot_scalar(cb_orientation, vmin, vmax, mask, cmap)
         self.fig.savefig(fname=self.fname)
-        print('done plotting ({})'.format(datetime.datetime.now() - t0))
+        print('done plotting {} ({})'.format(
+            self.fname,
+            datetime.datetime.now() - t0))
 
     def _get_idx(self):
         """TODO write this docstring
@@ -1116,7 +1122,7 @@ class VarDiffPlotter(object):
         """
 
         barb_params = dict(zorder=20,
-                           regrid_shape=20,
+                           regrid_shape=10,
                            sizes=dict(emptybarb=0.25, spacing=.2, height=0.5))
 
         for axidx, k in enumerate(self.vd.data.keys()):
@@ -1154,7 +1160,7 @@ class VarDiffPlotter(object):
             example, masking out statistically insignificant pixels.
         """
         self.get_filename()
-        print('plotting {}'.format(self.fname))
+        print('plotting {} difference maps'.format(self.vd.varname))
         # initialize figure, axes
         nplots = 5
         self.fig = MyFig(figsize=(16, 16))
