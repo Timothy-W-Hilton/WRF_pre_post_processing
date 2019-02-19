@@ -1123,7 +1123,8 @@ class VarDiffPlotter(object):
 
         barb_params = dict(zorder=20,
                            regrid_shape=10,
-                           sizes=dict(emptybarb=0.1, spacing=.2, height=0.5))
+                           sizes=dict(emptybarb=0.1, spacing=.2, height=0.5),
+                           barb_increments=dict(half=0.5, full=5, flag=10))
 
         for axidx, k in enumerate(self.vd.data.keys()):
             print("    plot {} data - {}".format(
@@ -1187,7 +1188,7 @@ class VarDiffPlotter(object):
         self.SoCal_map = CoastalSEES_WRF_Mapper(ax=self.ax[4],
                                                 domain='SoCal',
                                                 res='10m')
-        for this_map in [self.SFBay_map, self.SoCal_map]:
+        for this_map in [self.d_map, self.SFBay_map, self.SoCal_map]:
             this_map.ax.set_title("{labA} - {labB} ({units})".format(
                 labA=self.vd.label_A,
                 labB=self.vd.label_B,
