@@ -627,14 +627,18 @@ class var_diff(object):
         """construct an index into the data to extract given time step
         """
         # construct index into data
-        if self.data[self.label_A].ndim is 3:
-            idx = np.s_[t_idx, ...]
-        elif self.data[self.label_A].ndim is 4:
-            idx = np.s_[t_idx, layer, ...]
-        elif self.data[self.label_A].ndim is 5:
-            idx = np.s_[:, t_idx, layer, ...]
-        else:
-            raise IndexError("data have unexpected shape")
+
+        # initialize to ellipses for all dimensions
+        idx = [slice(None)] * list(self.data.values())[0].ndim
+        try:
+            idx[self.var_axes.index('Lay')] = layer
+        except ValueError as e:
+            print("get_tstep_idx: no vertical layers in data")
+        try:
+            idx[self.var_axes.index('Time')] = t_idx
+        except ValueError as e:
+            print("get_tstep_idx: no time dimension in data")
+            raise(e)
         return(idx)
 
     def aggregate_layers(self, vert_avg=False, extract_layer=None):
