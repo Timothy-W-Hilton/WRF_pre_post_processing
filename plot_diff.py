@@ -1035,19 +1035,18 @@ class VarDiffPlotter(object):
         for axidx, k in enumerate(self.vd.data.keys()):
             print("    plot {} data - {}".format(
                 k, str(self.vd.time[self.t_idx])))
-            this_map = CoastalSEES_WRF_Mapper(ax=self.ax[axidx],
-                                              domain=self.domain)
-            this_map.pcolormesh(lons_ll,
+            self.main_maps[axidx].pcolormesh(
+                lons_ll,
                                 lats_ll,
                                 self.vd.data[k][self._get_idx()][:-2, :-2],
                                 norm=norm,
                                 cmap=cmap)
-            this_map.colorbar(orientation=cb_orientation)
+            self.main_maps[axidx].colorbar(orientation=cb_orientation)
             if cb_orientation is "horizontal":
-                this_map.cb.ax.set_xticklabels(
-                    this_map.cb.ax.get_xticklabels(),
+                self.main_maps[axidx].cb.ax.set_xticklabels(
+                    self.main_maps[axidx].cb.ax.get_xticklabels(),
                     rotation=-60)
-            this_map.ax.set_title(k)
+                self.main_maps[axidx].ax.set_title(k)
 
         # figure out colorscale bounds for difference maps
         if vmax is None:
@@ -1258,6 +1257,9 @@ class VarDiffPlotter(object):
         if mask is not None:
             self.vd.d = ma.masked_where(mask, self.vd.d)
 
+        self.main_maps = [CoastalSEES_WRF_Mapper(ax=self.ax[i],
+                                                 domain=self.domain)
+                          for i in (0, 1)]
         self.d_map = CoastalSEES_WRF_Mapper(ax=self.ax[2], domain=self.domain)
 
         self.SFBay_map = CoastalSEES_WRF_Mapper(ax=self.ax[3],
