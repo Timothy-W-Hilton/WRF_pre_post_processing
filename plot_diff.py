@@ -947,7 +947,155 @@ class VarDiffPlotter(object):
         this_map.colorbar()
         fig.savefig(fname='height_lay{:02d}.png'.format(layer))
 
-    def plot(self, cb_orientation='vertical', vmin=None, vmax=None, mask=None,
+    def plot(self,
+             cb_orientation='vertical',
+             vmin=None,
+             vmax=None,
+             mask=None,
+             cmap=get_cmap('YlGnBu')):
+        """plot contour plots for both variables, diff, pct diff
+
+        ARGS
+        cb_orientation ({"vertical"} | "horizontal"): orientation for
+            the colorbars
+        vmin (float): minimum value for color scale.  If unspecified
+            defaults to 0.0.
+        vmax (float): maximum value for color scale.  If unspecified
+            defaults to the maximum value in the difference data.
+        mask (array-like): array of True/False values.  If specified,
+            True values will be masked in the plot.  Useful for, for
+            example, masking out statistically insignificant pixels.
+        """
+
+        # plot() is essentially a wrapper function to dispatch
+        # _plot_scalar or _plot_vector
+        t0 = datetime.datetime.now()
+        self._plot_init(mask=mask)
+        if 'u_v' in self.vd.var_axes:
+            self._plot_vector()
+        else:
+            self._plot_scalar(cb_orientation, vmin, vmax, mask, cmap)
+        self.fig.savefig(fname=self.fname)
+        print('done plotting ({})'.format(datetime.datetime.now() - t0))
+
+    def _get_idx(self):
+        """TODO write this docstring
+        """
+        return(self.vd.get_tstep_idx(self.t_idx, self.layer))
+
+    def _plot_scalar(self,
+                     cb_orientation='vertical',
+                     vmin=None,
+                     vmax=None,
+                     mask=None,
+                     cmap=get_cmap('YlGnBu')):
+        """plot heatmaps for both variables, diff, pct diff
+
+        This function does the heavy lifting for scalar variables.  It
+        is dispatched by self.plot() depending on the dimensions and
+        dimension labels.
+
+        ARGS
+        cb_orientation ({"vertical"} | "horizontal"): orientation for
+            the colorbars
+        vmin (float): minimum value for color scale.  If unspecified
+            defaults to 0.0.
+        vmax (float): maximum value for color scale.  If unspecified
+            defaults to the maximum value in the difference data.
+        mask (array-like): array of True/False values.  If specified,
+            True values will be masked in the plot.  Useful for, for
+            example, masking out statistically insignificant pixels.
+
+        """
+        if vmin is None:
+            dmin = 0.0  # min(all_data)
+        else:
+            dmin = vmin
+        if vmax is None:
+            dmax = np.max(list(map(np.max, self.vd.data.values())))
+        else:
+            dmax = vmax
+        cmap, norm = setup_colormap(
+            dmin,
+            dmax,
+            nlevs=21,
+            cmap=cmap)
+
+        # pcolormesh expects the coordinates to describe the lower
+        # left corner of each grid cell.  WRF's mass grid describes
+        # the center.  Calculate lower left from the centers by
+        # substractinv half each grid cell's width or height from the
+        # coordinates.  This reaults in one fewer row and column in
+        # the array.
+        lons_ll = (self.vd.lon[:, :-1] -
+                   (np.diff(self.vd.lon, axis=1) / 2))[:-1, :]
+        lats_ll = (self.vd.lat[:-1, :] -
+                   (np.diff(self.vd.lat, axis=0) / 2))[:, :-1]
+
+        for axidx, k in enumerate(self.vd.data.keys()):
+            print("    plot {} data - {}".format(
+                k, str(self.vd.time[self.t_idx])))
+            this_map = CoastalSEES_WRF_Mapper(ax=self.ax[axidx],
+                                              domain=self.domain)
+            this_map.pcolormesh(lons_ll,
+                                lats_ll,
+                                self.vd.data[k][self._get_idx()][:-2, :-2],
+                                norm=norm,
+                                cmap=cmap)
+            this_map.colorbar(orientation=cb_orientation)
+            if cb_orientation is "horizontal":
+                this_map.cb.ax.set_xticklabels(
+                    this_map.cb.ax.get_xticklabels(),
+                    rotation=-60)
+            this_map.ax.set_title(k)
+
+        # figure out colorscale bounds for difference maps
+        if vmax is None:
+            vmax = self.vd.abs_max
+            # the colorbar should always be symmetict about 0.  Make the
+            # choice to use vmax to define the range if both vmin and vmax
+            # are specified.  Specifying both vmin and vmax is useful for
+            # e.g. LCL, where the two LCL maps should go 0 to some max
+            # value, but the *difference* plots should still be symmetric
+            # about 0.0.
+        vmin = vmax * -1.0
+        cmap, norm = get_discrete_midpt_cmap_norm(vmin=vmin,
+                                                  vmax=vmax,
+                                                  midpoint=0.0,
+                                                  bands_above_mdpt=10,
+                                                  bands_below_mdpt=10,
+                                                  this_cmap=get_cmap('RdBu'),
+                                                  remove_middle_color=True)
+        self.d_map.pcolormesh(lons_ll,
+                              lats_ll,
+                              self.vd.d[:-2, :-2],
+                              cmap=cmap,
+                              norm=norm)
+        self.d_map.colorbar(orientation=cb_orientation)
+        if cb_orientation is "horizontal":
+            self.d_map.cb.ax.set_xticklabels(
+                self.d_map.cb.ax.get_xticklabels(),
+                rotation=-60)
+            self.d_map.ax.set_title("{labA} - {labB} ({units})".format(
+                labA=self.vd.label_A,
+                labB=self.vd.label_B,
+                units=self.vd.units))
+
+        for this_map in [self.SFBay_map, self.SoCal_map]:
+            this_map.pcolormesh(lons_ll, lats_ll,
+                                self.vd.d[:-2, :-2], cmap=cmap, norm=norm)
+            this_map.colorbar(orientation=cb_orientation)
+            if cb_orientation is "horizontal":
+                this_map.cb.ax.set_xticklabels(
+                    this_map.cb.ax.get_xticklabels(),
+                    rotation=-60)
+        return(None)
+
+    def _plot_vector(self,
+                     cb_orientation='vertical',
+                     vmin=None,
+                     vmax=None,
+                     mask=None,
              cmap=get_cmap('YlGnBu')):
         """plot contour plots for both variables, diff, pct diff
 
@@ -1037,17 +1185,17 @@ class VarDiffPlotter(object):
                                                   bands_below_mdpt=10,
                                                   this_cmap=get_cmap('RdBu'),
                                                   remove_middle_color=True)
-        d_map = CoastalSEES_WRF_Mapper(ax=ax[2], domain=self.domain)
+        self.d_map = CoastalSEES_WRF_Mapper(ax=ax[2], domain=self.domain)
         if mask is not None:
             self.vd.d = ma.masked_where(mask, self.vd.d)
-        d_map.pcolormesh(lons_ll, lats_ll, self.vd.d[:-2, :-2],
+        self.d_map.pcolormesh(lons_ll, lats_ll, self.vd.d[:-2, :-2],
                          cmap=cmap, norm=norm)
-        d_map.colorbar(orientation=cb_orientation)
+        self.d_map.colorbar(orientation=cb_orientation)
         if cb_orientation is "horizontal":
-            d_map.cb.ax.set_xticklabels(
-                d_map.cb.ax.get_xticklabels(),
+            self.d_map.cb.ax.set_xticklabels(
+                self.d_map.cb.ax.get_xticklabels(),
                 rotation=-60)
-        d_map.ax.set_title("{labA} - {labB} ({units})".format(
+        self.d_map.ax.set_title("{labA} - {labB} ({units})".format(
             labA=self.vd.label_A,
             labB=self.vd.label_B,
             units=self.vd.units))
@@ -1083,4 +1231,54 @@ class VarDiffPlotter(object):
         fig.suptitle(title)
         fig.savefig(fname=self.fname)
         print("done plotting ({})".format(str(datetime.datetime.now() - t0)))
+        return(None)
+
+    def _plot_init(self, mask=None):
+        """plot contour plots for both variables, diff, pct diff
+
+        ARGS
+        mask (array-like): array of True/False values.  If specified,
+            True values will be masked in the plot.  Useful for, for
+            example, masking out statistically insignificant pixels.
+        """
+        self.get_filename()
+        print('plotting {}'.format(self.fname))
+        # initialize figure, axes
+        nplots = 5
+        self.fig = MyFig(figsize=(16, 16))
+        self.ax = [None] * nplots
+        for axidx, axspec in enumerate(range(321, 321 + nplots)):
+            self.ax[axidx] = self.fig.add_subplot(
+                axspec, projection=CoastalSEES_WRF_prj())
+            self.ax[axidx].set_extent((self.vd.lon.min(), self.vd.lon.max(),
+                                       self.vd.lat.min(), self.vd.lat.max()))
+
+        # plot the difference
+        self.vd.calc_diff(self._get_idx(), self.layer)
+        if mask is not None:
+            self.vd.d = ma.masked_where(mask, self.vd.d)
+
+        self.d_map = CoastalSEES_WRF_Mapper(ax=self.ax[2], domain=self.domain)
+
+        self.SFBay_map = CoastalSEES_WRF_Mapper(ax=self.ax[3],
+                                                domain='bigbasin',
+                                                res='10m')
+        self.SoCal_map = CoastalSEES_WRF_Mapper(ax=self.ax[4],
+                                                domain='SoCal',
+                                                res='10m')
+        for this_map in [self.SFBay_map, self.SoCal_map]:
+            this_map.ax.set_title("{labA} - {labB} ({units})".format(
+                labA=self.vd.label_A,
+                labB=self.vd.label_B,
+                units=self.vd.units))
+
+        # make a title before we draw plots
+        if self.time_title_str is None:
+            self.time_title_str = self.vd.time[self.t_idx].strftime(
+                '%d %b %Y %H:%M UTC')
+        title = "{vname}, {tstamp} ({units})".format(
+            vname=self.vd.longname,
+            tstamp=self.time_title_str,
+            units=self.vd.units)
+        self.fig.suptitle(title)
         return(None)
