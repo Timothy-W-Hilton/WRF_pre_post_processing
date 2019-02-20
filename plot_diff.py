@@ -1124,7 +1124,7 @@ class VarDiffPlotter(object):
         barb_params = dict(zorder=20,
                            regrid_shape=10,
                            sizes=dict(emptybarb=0.1, spacing=.2, height=0.5),
-                           barb_increments=dict(half=0.5, full=5, flag=10))
+                           barb_increments=dict(half=0.5, full=1, flag=5))
 
         for axidx, k in enumerate(self.vd.data.keys()):
             print("    plot {} data - {}".format(
@@ -1151,8 +1151,9 @@ class VarDiffPlotter(object):
                                     transform=ccrs.PlateCarree(),
                                     **barb_params)
         this_map.get_ax().annotate(
-            s='barb incremements: {}'.format(
-                barb_params['barb_increments']),
+            s='barb increments\n' + '\n'.join(
+                '{} {} m/s'.format(k, v)
+                for k, v in barb_params['barb_increments'].items()),
             xy=(0.5, 0.5),
             xycoords='axes fraction',
             xytext=(1.1, 0.5),
