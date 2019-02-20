@@ -1150,6 +1150,14 @@ class VarDiffPlotter(object):
                                     uv[1, ...],
                                     transform=ccrs.PlateCarree(),
                                     **barb_params)
+        this_map.get_ax().annotate(
+            s='barb incremements: {}'.format(
+                barb_params['barb_increments']),
+            xy=(0.5, 0.5),
+            xycoords='axes fraction',
+            xytext=(1.1, 0.5),
+            textcoords='axes fraction',
+            fontsize='xx-large')
         return(None)
 
     def _plot_init(self, mask=None):
