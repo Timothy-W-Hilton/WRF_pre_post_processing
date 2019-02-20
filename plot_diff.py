@@ -807,12 +807,23 @@ class var_diff(object):
            If fname exists it will be deleted and replace.
         """
         nc = netCDF4.Dataset(fname, mode='w')
-        nc.createDimension('time',
-                           self.data['ctl'].shape[self.var_axes.index('Time')])
-        nc.createDimension('x',
-                           self.data['ctl'].shape[self.var_axes.index('Lon')])
-        nc.createDimension('y',
-                           self.data['ctl'].shape[self.var_axes.index('Lat')])
+        # make a local copy of self.var_axes
+        # simply calling `var_axes_ = self.var_axes` yields a view,
+        # not a copy.  Then changing var_axes_ also changes
+        # self.var_axes
+        var_axes_ = [x for x in self.var_axes]
+        for this_ax, this_dim in enumerate(self.var_axes):
+            if this_dim == "Lat":
+                this_dim = 'y'
+                var_axes_[this_ax] = 'y'
+            if this_dim == "Lon":
+                this_dim = 'x'
+                var_axes_[this_ax] = 'x'
+            if this_dim == "Time":
+                this_dim = 'time'
+                var_axes_[this_ax] = 'time'
+            nc.createDimension(this_dim,
+                               self.data['ctl'].shape[this_ax])
         nc.createVariable('lat', np.float, ('y', 'x'))
         nc.createVariable('lon', np.float, ('y', 'x'))
         nc.createVariable('time', np.float, ('time'))
@@ -829,8 +840,8 @@ class var_diff(object):
         var_dtype = self.data[self.label_A].dtype
         if var_dtype is np.dtype('bool'):
             var_dtype = 'i1'
-        grpA.createVariable(self.varname, var_dtype, ('time', 'y', 'x'))
-        grpB.createVariable(self.varname, var_dtype, ('time', 'y', 'x'))
+        grpA.createVariable(self.varname, var_dtype, var_axes_)
+        grpB.createVariable(self.varname, var_dtype, var_axes_)
         grpA.variables[self.varname][...] = self.data[self.label_A][...]
         grpB.variables[self.varname][...] = self.data[self.label_B][...]
         if self.p is not None:
