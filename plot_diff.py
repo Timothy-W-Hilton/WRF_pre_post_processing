@@ -452,7 +452,7 @@ class var_diff(object):
             }
             dim_names = nc.groups[self.label_A].variables[
                 self.varname].dimensions
-            self.var_axes = dim_names
+            self.var_axes = list(dim_names)
             self.var_axes[self.var_axes.index('x')] = 'Lon'
             self.var_axes[self.var_axes.index('y')] = 'Lat'
             self.var_axes[self.var_axes.index('time')] = "Time"
