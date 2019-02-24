@@ -1133,7 +1133,8 @@ class VarDiffPlotter(object):
         """
 
         barb_params = dict(zorder=20,
-                           regrid_shape=10,
+                           regrid_shape=20,
+                           length=5,
                            sizes=dict(emptybarb=0.1, spacing=.2, height=0.5),
                            barb_increments=dict(half=0.5, full=1, flag=5))
 
