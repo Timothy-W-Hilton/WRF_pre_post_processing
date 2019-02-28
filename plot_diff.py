@@ -924,7 +924,7 @@ class VarDiffPlotter(object):
         """
         if self.pfx is not None:
             if self.pfx[-1] is not '_':
-            self.pfx = self.pfx + '_'
+                self.pfx = self.pfx + '_'
 
         self.fname = os.path.join(
             self.savedir,
@@ -1059,10 +1059,10 @@ class VarDiffPlotter(object):
                 k, str(self.vd.time[self.t_idx])))
             self.main_maps[axidx].pcolormesh(
                 lons_ll,
-                                lats_ll,
-                                self.vd.data[k][self._get_idx()][:-2, :-2],
-                                norm=norm,
-                                cmap=cmap)
+                lats_ll,
+                self.vd.data[k][self._get_idx()][:-2, :-2],
+                norm=norm,
+                cmap=cmap)
             self.main_maps[axidx].colorbar(orientation=cb_orientation)
             if cb_orientation is "horizontal":
                 self.main_maps[axidx].cb.ax.set_xticklabels(
@@ -1117,7 +1117,7 @@ class VarDiffPlotter(object):
                      vmin=None,
                      vmax=None,
                      mask=None,
-             cmap=get_cmap('YlGnBu')):
+                     cmap=get_cmap('YlGnBu')):
         """plot contour plots for both variables, diff, pct diff
 
         ARGS
