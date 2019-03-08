@@ -30,7 +30,7 @@ states_provinces = cfeature.NaturalEarthFeature(
     facecolor='none')
 ax.add_feature(states_provinces, edgecolor='grey')
 ax.add_geometries(geoms=rw_shapes, crs=proj,
-                  edgecolor='blue', facecolor='white')
+                  edgecolor='#d95f02', facecolor='#d95f02')
 ax.set_extent((-125, -118, 32, 49.2))
 long_marine_lab = (-122.064791, 36.949690)
 ax.annotate('Long Marine Lab',
