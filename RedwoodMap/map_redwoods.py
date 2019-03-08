@@ -30,6 +30,14 @@ states_provinces = cfeature.NaturalEarthFeature(
     facecolor='none')
 ax.add_feature(states_provinces, edgecolor='grey')
 ax.add_geometries(geoms=rw_shapes, crs=proj,
-                  edgecolor='blue', facecolor='blue')
+                  edgecolor='blue', facecolor='white')
 ax.set_extent((-125, -118, 32, 49.2))
+long_marine_lab = (-122.064791, 36.949690)
+ax.annotate('Long Marine Lab',
+            xy = long_marine_lab,
+            xytext = (-122.064791 - 2, 36.949690 - 2),
+            xycoords = 'data',
+            arrowprops={'arrowstyle': '-|>'},
+            transform=ccrs.PlateCarree())
 plt.show()
+fig.savefig('/Users/tim/Desktop/test.pdf')
