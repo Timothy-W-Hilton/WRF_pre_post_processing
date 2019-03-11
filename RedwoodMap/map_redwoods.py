@@ -20,7 +20,7 @@ rw_shapes = list(shpreader.Reader(fname).geometries())
 #proj = ccrs.epsg(3857)
 proj = ccrs.Mercator.GOOGLE
 
-fig = plt.figure(figsize=(12, 12))
+fig = plt.figure(figsize=(5, 5))
 ax = plt.axes(projection=ccrs.PlateCarree())
 ax.coastlines(resolution='10m')
 states_provinces = cfeature.NaturalEarthFeature(
@@ -40,4 +40,4 @@ ax.annotate('Long Marine Lab',
             arrowprops={'arrowstyle': '-|>'},
             transform=ccrs.PlateCarree())
 plt.show()
-fig.savefig('/Users/tim/Desktop/test.pdf')
+# fig.savefig('/Users/tim/Desktop/test.pdf')
