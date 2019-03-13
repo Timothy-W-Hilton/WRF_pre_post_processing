@@ -432,6 +432,7 @@ class var_diff(object):
         """
         if ncfile is not None:
             nc = netCDF4.Dataset(ncfile, 'r')
+            print('loading data from {}'.format(ncfile))
             self.varname = nc.varname
             self.label_A, self.label_B = nc.groups.keys()
             self.units = nc.units
@@ -702,7 +703,16 @@ class var_diff(object):
         if time_avg:   # outside loop so string is only appended once
             self.longname = self.longname + ' time avg'
 
-    def get_significance_mask(self, significance, adj_autocorr=True):
+    def _get_p(self, adj_autocorr=True, idx=None):
+        z = self.diff_means_test(adj_autocorr=adj_autocorr, idx=idx)
+        vectorized_cdf = np.vectorize(lambda x: norm.cdf(x, 0.0, 1.0))
+        p = vectorized_cdf(z)
+        return(p)
+
+    def get_significance_mask(self,
+                              significance,
+                              adj_autocorr=True,
+                              idx=None):
         """get mask for statistically insignificant differences
 
         apply difference of means at specified level test to obtain a
@@ -717,12 +727,10 @@ class var_diff(object):
            of independent samples according to Wilks 1995.  Defaut is
            True.
         """
-        z = self.diff_means_test(adj_autocorr=adj_autocorr)
-        vectorized_cdf = np.vectorize(lambda x: norm.cdf(x, 0.0, 1.0))
-        self.p = vectorized_cdf(z)
+        self.p = self._get_p(adj_autocorr, idx)
         self.insignificant_mask = self.p < significance
 
-    def diff_means_test(self, adj_autocorr=True):
+    def diff_means_test(self, adj_autocorr=True, idx=None):
         """run a paired difference of means test
 
         Run a standard paired difference of means test (e.g. Devore
@@ -731,6 +739,9 @@ class var_diff(object):
         ARGS:
         adj_autocorr (boolean): if true, adjust the effective number
            of independent samples according to Wilks 1995.
+        idx (array-like): indices into self.data items to include in
+           the calculation.  Allows for estimating signficance for the
+           differences of a subset of the data.
 
         REFERENCES
 
@@ -741,20 +752,23 @@ class var_diff(object):
         Wilks, D., 1995 Statistical Methods in the Atmospheric
         Sciences: An Introduction.  Academic Press, New York
         """
+        if idx is None:
+            idx = slice(None)  # if idx is not specified, use the whole array
         ax_time = 0  # time is axis 0 in the data array
         for k in self.data.keys():
             if adj_autocorr:
                 # reduce the number of effectively independent data points
                 # to account for temporal autocorrelation.
-                n_eff = {k: calc_neff(v.astype(float), dim=ax_time)
+                n_eff = {k: calc_neff(v[idx].astype(float), dim=ax_time)
                          for k, v in self.data.items()}
             else:
                 # assume all data points are independent
-                n_eff = {k: v.shape[ax_time] for k, v in self.data.items()}
+                n_eff = {k: v[idx].shape[ax_time]
+                         for k, v in self.data.items()}
         # calculate test statistic z according to Devore (1995) section 9.1
-        means = {k: np.mean(v.astype(float), axis=ax_time)
+        means = {k: np.mean(v[idx].astype(float), axis=ax_time)
                  for k, v in self.data.items()}
-        vars = {k: np.var(v.astype(float), axis=ax_time)
+        vars = {k: np.var(v[idx].astype(float), axis=ax_time)
                 for k, v in self.data.items()}
         numerator = means[self.label_A] - means[self.label_B]
         denominator = (np.sqrt((vars[self.label_A] / n_eff[self.label_A]) +
@@ -853,6 +867,37 @@ class var_diff(object):
         nc.varname = self.varname
         nc.units = self.units
         nc.close()
+
+    def get_pval_timeseries(self, interval_hrs=12):
+        """calculate time series of difference p-values
+
+        rather than calculate one p-value for the difference for entire
+        time series (as in var_diff.get_significance_mask), calculate
+        values at specified intervals along the time series.  This can
+        help determine how long a simulation is generally needed to get
+        statistical significance.
+
+        ARGS:
+        interval_hrs (float): frequency of the calculated p-values
+        """
+        pval_times = pd.date_range(start=self.time[0],
+                                   end=self.time[-1],
+                                   freq='{}H'.format(interval_hrs))
+        idx_end = np.array(np.where([t in pval_times
+                                     for t in self.time])).squeeze()
+        pvals = np.full((idx_end.size,
+                         self.data['ctl'].shape[1],
+                         self.data['ctl'].shape[2]),
+                        np.nan)
+
+        for i, this_end in enumerate(idx_end):
+            t0 = datetime.datetime.now()
+            print('calculating pvals for start:{}'.format(this_end), end='...')
+            pvals[i, ...] = self._get_p(adj_autocorr=True,
+                                        idx=(range(this_end), slice(None)))
+            print(' done ({})'.format(datetime.datetime.now() - t0))
+        self.pvals_series = pvals
+        self.pvals_series_idx = pval_times
 
 
 def wrf_var_find_axes(wv):
