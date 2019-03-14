@@ -1011,7 +1011,9 @@ class VarDiffPlotter(object):
         this_map.pcolormesh(self.vd.lon,
                             self.vd.lat,
                             hgt,
-                            vmin=0, vmax=400)
+                            vmin=0,
+                            vmax=400,
+                            edgecolors='face')
         ax.set_title('WRF height, layer {:02d} (m)'.format(layer))
         this_map.colorbar()
         fig.savefig(fname='height_lay{:02d}.png'.format(layer))
@@ -1114,7 +1116,8 @@ class VarDiffPlotter(object):
                 lats_ll,
                 self.vd.data[k][self._get_idx()][:-2, :-2],
                 norm=norm,
-                cmap=cmap)
+                cmap=cmap,
+                edgecolors='face')
             self.main_maps[axidx].colorbar(orientation=cb_orientation)
             if cb_orientation is "horizontal":
                 self.main_maps[axidx].cb.ax.set_xticklabels(
@@ -1143,7 +1146,8 @@ class VarDiffPlotter(object):
                               lats_ll,
                               self.vd.d[:-2, :-2],
                               cmap=cmap,
-                              norm=norm)
+                              norm=norm,
+                              edgecolors='face')
         self.d_map.colorbar(orientation=cb_orientation)
         if cb_orientation is "horizontal":
             self.d_map.cb.ax.set_xticklabels(
@@ -1156,7 +1160,10 @@ class VarDiffPlotter(object):
 
         for this_map in [self.SFBay_map, self.SoCal_map]:
             this_map.pcolormesh(lons_ll, lats_ll,
-                                self.vd.d[:-2, :-2], cmap=cmap, norm=norm)
+                                self.vd.d[:-2, :-2],
+                                cmap=cmap,
+                                norm=norm,
+                                edgecolors='face')
             this_map.colorbar(orientation=cb_orientation)
             if cb_orientation is "horizontal":
                 this_map.cb.ax.set_xticklabels(
