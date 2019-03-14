@@ -1,5 +1,8 @@
 import datetime
+import numpy as np
 import os
+import xarray as xr
+import copy
 from plot_diff import var_diff, VarDiffPlotter
 
 DOMAIN = 2
@@ -40,12 +43,54 @@ if __name__ == "__main__":
     else:
         vd = var_diff(
             ncfile=os.path.join(
-                cscratchdir,
-                # '/Users/tim/work/Data/SummenWRF/',
+                # cscratchdir,
+                '/Users/tim/work/Data/SummenWRF/',
                 '{varname}_d{DOMAIN:02d}_RWurban.nc'.format(
                     varname=varname, DOMAIN=DOMAIN)))
         if vd.p is None:
             vd.get_significance_mask(significance=0.95, adj_autocorr=True)
     # vd = is_foggy_obrien_2013(vd)
 
-    vd.get_pval_timeseries(interval_hrs=72.0)
+    if False:
+        vd.get_pval_timeseries(interval_hrs=336.0)
+        # now need to write pval timeseries to netCDF or something....
+        pvals_xr = xr.Dataset({'p': (('t', 'x', 'y'),
+                                     vd.pvals_series),
+                               'mean_diff': (('t', 'x', 'y'),
+                                             vd.mean_diff_series),
+                               'idx': (('t', ), vd.idx_pvals_series),
+                               'Latitude': (('x', 'y'),
+                                            vd.lat),
+                               'Longitude': (('x', 'y'),
+                                             vd.lon)},
+                              coords={'t': vd.t_pvals_series,
+                                      'x': range(vd.pvals_series.shape[1]),
+                                      'y': range(vd.pvals_series.shape[2])})
+        ncfname = '/Users/tim/work/Data/SummenWRF/pvals_series.nc'
+        os.remove(ncfname)
+        pvals_xr.to_netcdf(ncfname)
+    else:
+        pvals_xr = xr.open_dataset(os.path.join('/', 'Users', 'tim',
+                                                'work', 'Data', 'SummenWRF',
+                                                'pvals_series.nc'))
+
+    data_orig = copy.copy(vd.data)
+    for i, this_t in enumerate(pvals_xr.t.values):
+        vd.d = pvals_xr.mean_diff.data[i, ...]
+        vd.abs_max = np.nanmax(np.abs(pvals_xr.mean_diff.data))
+
+        for k in data_orig.keys():
+            vd.data[k] = np.mean(data_orig[k][:pvals_xr.idx.values[i], ...],
+                                 axis=0,
+                                 keepdims=True)
+        plotter = VarDiffPlotter(vd,
+                                 fig_type='pdf',
+                                 t_idx=0,
+                                 layer=0,
+                                 domain=DOMAIN,
+                                 pfx='pval_test',
+                                 savedir='/Users/tim/work/Plots/Summen/',
+                                 time_title_str=np.datetime_as_string(
+                                     this_t, unit='m'))
+        fig = plotter.plot(cb_orientation='vertical',
+                           mask=pvals_xr.p.data[i, ...] < 0.99)
