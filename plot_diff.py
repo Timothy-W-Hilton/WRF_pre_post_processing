@@ -947,7 +947,7 @@ class VarDiffPlotter(object):
         vd (var_diff instance): values for one variable from two
            different model runs
         t_idx (int): time stamp index (in [0, number of time stamps])
-           layer (int): the vertical layer to be plotted.
+        layer (int): the vertical layer to be plotted.
         fig_type ({"png"}|"pdf"): type of image to create
         domain (int): WRF domain number (to be placed in filename)
         pfx (str): optional prefix to place in filename of every image
@@ -1247,7 +1247,7 @@ class VarDiffPlotter(object):
                                        self.vd.lat.min(), self.vd.lat.max()))
 
         # plot the difference
-        self.vd.calc_diff(self._get_idx(), self.layer)
+        # self.vd.calc_diff(self._get_idx(), self.layer)
         if mask is not None:
             self.vd.d = ma.masked_where(mask, self.vd.d)
 
