@@ -889,15 +889,23 @@ class var_diff(object):
                          self.data['ctl'].shape[1],
                          self.data['ctl'].shape[2]),
                         np.nan)
+        mean_diff = np.full((idx_end.size,
+                             self.data['ctl'].shape[1],
+                             self.data['ctl'].shape[2]),
+                            np.nan)
 
         for i, this_end in enumerate(idx_end):
             t0 = datetime.datetime.now()
             print('calculating pvals for start:{}'.format(this_end), end='...')
             pvals[i, ...] = self._get_p(adj_autocorr=True,
                                         idx=(range(this_end), slice(None)))
+            self.calc_diff((range(this_end), slice(None), slice(None)), None)
+            mean_diff[i, ...] = self.d.mean(axis=0)
             print(' done ({})'.format(datetime.datetime.now() - t0))
         self.pvals_series = pvals
-        self.pvals_series_idx = pval_times
+        self.mean_diff_series = mean_diff
+        self.t_pvals_series = pval_times
+        self.idx_pvals_series = idx_end
 
 
 def wrf_var_find_axes(wv):
