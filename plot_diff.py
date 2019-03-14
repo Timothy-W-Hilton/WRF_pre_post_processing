@@ -987,8 +987,7 @@ class VarDiffPlotter(object):
                  varname=self.vd.varname,
                  layer_id=self._get_layer_id(),
                  domain=self.domain,
-                 tstamp=self.vd.time[self.t_idx].strftime(
-                     '%Y-%m-%d_%H%M'),
+                 tstamp=self.time_title_str.replace(':', ''),
                  ext=self.fig_type))
 
     def _get_layer_id(self):
