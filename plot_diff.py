@@ -41,6 +41,7 @@ import glob
 from xarray import DataArray
 from wrf import getvar, extract_times, to_np, ALL_TIMES
 import cartopy.crs as ccrs
+import cartopy.io.shapereader as shpreader  # for redwoods range
 
 from matplotlib.cm import get_cmap
 from matplotlib.figure import Figure
@@ -1158,7 +1159,7 @@ class VarDiffPlotter(object):
                 labB=self.vd.label_B,
                 units=self.vd.units))
 
-        for this_map in [self.SFBay_map, self.SoCal_map]:
+        for this_map in [self.SFBay_map]:
             this_map.pcolormesh(lons_ll, lats_ll,
                                 self.vd.d[:-2, :-2],
                                 cmap=cmap,
@@ -1214,7 +1215,7 @@ class VarDiffPlotter(object):
         # plot the difference
         self.vd.calc_diff(slice(None), self.layer)
         uv = self.vd.d[self._get_idx()]
-        for this_map in [self.d_map, self.SFBay_map, self.SoCal_map]:
+        for this_map in [self.d_map, self.SFBay_map]:
             this_map.get_ax().barbs(self.vd.lon,
                                     self.vd.lat,
                                     uv[0, ...],
@@ -1243,10 +1244,10 @@ class VarDiffPlotter(object):
         self.get_filename()
         print('plotting {} difference maps'.format(self.vd.varname))
         # initialize figure, axes
-        nplots = 5
+        nplots = 4
         self.fig = MyFig(figsize=(16, 16))
         self.ax = [None] * nplots
-        for axidx, axspec in enumerate(range(321, 321 + nplots)):
+        for axidx, axspec in enumerate(range(221, 221 + nplots)):
             self.ax[axidx] = self.fig.add_subplot(
                 axspec, projection=CoastalSEES_WRF_prj())
             self.ax[axidx].set_extent((self.vd.lon.min(), self.vd.lon.max(),
@@ -1263,16 +1264,26 @@ class VarDiffPlotter(object):
         self.d_map = CoastalSEES_WRF_Mapper(ax=self.ax[2], domain=self.domain)
 
         self.SFBay_map = CoastalSEES_WRF_Mapper(ax=self.ax[3],
-                                                domain='bigbasin',
+                                                domain='redwoods',
                                                 res='10m')
-        self.SoCal_map = CoastalSEES_WRF_Mapper(ax=self.ax[4],
-                                                domain='SoCal',
-                                                res='10m')
-        for this_map in [self.d_map, self.SFBay_map, self.SoCal_map]:
+        for this_map in [self.d_map, self.SFBay_map]:
             this_map.ax.set_title("{labA} - {labB} ({units})".format(
                 labA=self.vd.label_A,
                 labB=self.vd.label_B,
                 units=self.vd.units))
+            fname = r'/Users/tim/work/Data/Redwoods/Redwood_SequoiaSempervirens_extentNorthAmerica/data/commondata/data0/sequsemp.shp'
+            rw_shapes = list(shpreader.Reader(fname).geometries())
+            # a number of places on the web
+            # (e.g. https://github.com/SciTools/cartopy/issues/924) suggest
+            # crs.epsg(3857) and crs.Mercator.GOOGLE are the same.  But the
+            # redwood range plots differently.
+            # crs.Mercator.GOOGLE.proj4_params
+            # and crs.epsg(3857).proj4_params differ; that's another way to
+            # illustrate this.
+            proj = ccrs.Mercator.GOOGLE
+            this_map.ax.add_geometries(geoms=rw_shapes, crs=proj,
+                                       edgecolor='#d95f02', facecolor='none',
+                                       alpha=0.5)
 
         # make a title before we draw plots
         if self.time_title_str is None:
