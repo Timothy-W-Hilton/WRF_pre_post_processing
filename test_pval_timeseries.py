@@ -22,6 +22,8 @@ if __name__ == "__main__":
     # insignificant_pixels = ma.masked_invalid(means_diff_test.main(0.95)).mask
 
     varname = 'fogpresent'
+    runkey = 'RWurban'
+    runkey = 'CLM_nourban'
 
     read_data = False
     if read_data:
@@ -45,14 +47,19 @@ if __name__ == "__main__":
             ncfile=os.path.join(
                 # cscratchdir,
                 '/Users/tim/work/Data/SummenWRF/',
-                '{varname}_d{DOMAIN:02d}_RWurban.nc'.format(
-                    varname=varname, DOMAIN=DOMAIN)))
+                # '{varname}_d{DOMAIN:02d}_RWurban.nc'.format(
+                '{varname}_d{DOMAIN:02d}_{runkey}.nc'.format(
+                    varname=varname, DOMAIN=DOMAIN, runkey=runkey)))
         if vd.p is None:
             vd.get_significance_mask(significance=0.95, adj_autocorr=True)
     # vd = is_foggy_obrien_2013(vd)
 
-    if False:
-        vd.get_pval_timeseries(interval_hrs=336.0)
+    ncfname = os.path.join('/', 'Users', 'tim', 'work', 'Data',
+                           'SummenWRF',
+                           'pvals_series_{varname}_{runkey}.nc').format(
+                               varname=varname, runkey=runkey)
+    if True:
+        vd.get_pval_timeseries(interval_hrs=772.0)
         # now need to write pval timeseries to netCDF or something....
         pvals_xr = xr.Dataset({'p': (('t', 'x', 'y'),
                                      vd.pvals_series),
@@ -66,19 +73,18 @@ if __name__ == "__main__":
                               coords={'t': vd.t_pvals_series,
                                       'x': range(vd.pvals_series.shape[1]),
                                       'y': range(vd.pvals_series.shape[2])})
-        ncfname = '/Users/tim/work/Data/SummenWRF/pvals_series.nc'
-        os.remove(ncfname)
+        try:
+            os.remove(ncfname)
+        except(FileNotFoundError):
+            pass
         pvals_xr.to_netcdf(ncfname)
     else:
-        pvals_xr = xr.open_dataset(os.path.join('/', 'Users', 'tim',
-                                                'work', 'Data', 'SummenWRF',
-                                                'pvals_series.nc'))
+        pvals_xr = xr.open_dataset(ncfname)
 
     data_orig = copy.copy(vd.data)
     for i, this_t in enumerate(pvals_xr.t.values):
         vd.d = pvals_xr.mean_diff.data[i, ...]
         vd.abs_max = np.nanmax(np.abs(pvals_xr.mean_diff.data))
-
         for k in data_orig.keys():
             vd.data[k] = np.mean(data_orig[k][:pvals_xr.idx.values[i], ...],
                                  axis=0,
@@ -88,10 +94,10 @@ if __name__ == "__main__":
                                  t_idx=0,
                                  layer=0,
                                  domain=DOMAIN,
-                                 pfx='pval_test',
+                                 pfx='pvals_{}_{}'.format(varname, runkey),
                                  savedir='/Users/tim/work/Plots/Summen/',
                                  time_title_str=np.datetime_as_string(
                                      this_t, unit='m'),
                                  show_title=False)
         fig = plotter.plot(cb_orientation='vertical',
-                           mask=pvals_xr.p.data[i, ...] < 0.99)
+                           mask=pvals_xr.p.data[i, ...] < 0.9)
