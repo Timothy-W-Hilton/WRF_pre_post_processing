@@ -84,13 +84,14 @@ if __name__ == "__main__":
                                  axis=0,
                                  keepdims=True)
         plotter = VarDiffPlotter(vd,
-                                 fig_type='pdf',
+                                 fig_type='png',
                                  t_idx=0,
                                  layer=0,
                                  domain=DOMAIN,
                                  pfx='pval_test',
                                  savedir='/Users/tim/work/Plots/Summen/',
                                  time_title_str=np.datetime_as_string(
-                                     this_t, unit='m'))
+                                     this_t, unit='m'),
+                                 show_title=False)
         fig = plotter.plot(cb_orientation='vertical',
                            mask=pvals_xr.p.data[i, ...] < 0.99)

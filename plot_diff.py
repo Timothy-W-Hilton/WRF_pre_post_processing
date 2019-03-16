@@ -89,7 +89,7 @@ class MyFig(Figure):
     one-line figure saving independent of platform and $DISPLAY.
 
     """
-    def savefig(self, dpi=150, fname="figure.pdf"):
+    def savefig(self, dpi=150, fname="figure.pdf", **kwargs):
         """save the object's map to an image file
         """
         from matplotlib.backends.backend_agg import FigureCanvasAgg
@@ -101,9 +101,11 @@ class MyFig(Figure):
         else:
             raise(IOError(('unrecognized figure type.'
                            '  pdf or png are supported')))
+        self.set_figwidth(27.0)
+        self.set_figheight(7.5)
         # The size * the dpi gives the final image sys.getsizeof()
         #   a4"x4" image * 80 dpi ==> 320x320 pixel image
-        canvas.print_figure(fname, dpi=dpi)
+        canvas.print_figure(fname, dpi=dpi, **kwargs)
 
 
 class wrf_var(object):
@@ -940,7 +942,7 @@ class VarDiffPlotter(object):
 
     def __init__(self, vd, t_idx=0, layer=None, fig_type='png',
                  domain=2, pfx=None, savedir=None,
-                 time_title_str=None):
+                 time_title_str=None, show_title=True):
         """
         Initialize a VarDiffPlotter with a Figure instance and four Axes
 
@@ -954,6 +956,8 @@ class VarDiffPlotter(object):
         pfx (str): optional prefix to place in filename of every image
         savedir (str): optional full path to a directory in which to
            save the figure
+        show_title ({True}|False): if true show plot titles and a main
+           title
         """
         self.vd = vd
         self.t_idx = t_idx
@@ -962,6 +966,7 @@ class VarDiffPlotter(object):
         self.domain = domain
         self.pfx = pfx
         self.time_title_str = time_title_str
+        self.show_title = show_title
 
         for k in self.vd.data.keys():
             if np.isnan(self.vd.data[k]).any():
@@ -1050,7 +1055,9 @@ class VarDiffPlotter(object):
             self._plot_vector()
         else:
             self._plot_scalar(cb_orientation, vmin, vmax, mask, cmap)
-        self.fig.savefig(fname=self.fname)
+        self.fig.savefig(fname=self.fname,
+                         bbox_inches='tight',
+                         dpi=self.fig.get_dpi())
         print('done plotting {} ({})'.format(
             self.fname,
             datetime.datetime.now() - t0))
@@ -1245,9 +1252,9 @@ class VarDiffPlotter(object):
         print('plotting {} difference maps'.format(self.vd.varname))
         # initialize figure, axes
         nplots = 4
-        self.fig = MyFig(figsize=(16, 16))
+        self.fig = MyFig(figsize=(22, 5.5))
         self.ax = [None] * nplots
-        for axidx, axspec in enumerate(range(221, 221 + nplots)):
+        for axidx, axspec in enumerate(range(141, 141 + nplots)):
             self.ax[axidx] = self.fig.add_subplot(
                 axspec, projection=CoastalSEES_WRF_prj())
             self.ax[axidx].set_extent((self.vd.lon.min(), self.vd.lon.max(),
@@ -1267,10 +1274,11 @@ class VarDiffPlotter(object):
                                                 domain='redwoods',
                                                 res='10m')
         for this_map in [self.d_map, self.SFBay_map]:
-            this_map.ax.set_title("{labA} - {labB} ({units})".format(
-                labA=self.vd.label_A,
-                labB=self.vd.label_B,
-                units=self.vd.units))
+            if self.show_title:
+                this_map.ax.set_title("{labA} - {labB} ({units})".format(
+                    labA=self.vd.label_A,
+                    labB=self.vd.label_B,
+                    units=self.vd.units))
             fname = r'/Users/tim/work/Data/Redwoods/Redwood_SequoiaSempervirens_extentNorthAmerica/data/commondata/data0/sequsemp.shp'
             rw_shapes = list(shpreader.Reader(fname).geometries())
             # a number of places on the web
@@ -1289,9 +1297,14 @@ class VarDiffPlotter(object):
         if self.time_title_str is None:
             self.time_title_str = self.vd.time[self.t_idx].strftime(
                 '%d %b %Y %H:%M UTC')
-        title = "{vname}, {tstamp} ({units})".format(
-            vname=self.vd.longname,
-            tstamp=self.time_title_str,
-            units=self.vd.units)
-        self.fig.suptitle(title)
+        if self.show_title:
+            title = "{vname}, {tstamp} ({units})".format(
+                vname=self.vd.longname,
+                tstamp=self.time_title_str,
+                units=self.vd.units)
+            self.fig.suptitle(title)
+        self.fig.tight_layout()
+        self.fig.set_figwidth(22.0)
+        self.fig.set_figheight(5.5)
+        self.fig.set_dpi(300)
         return(None)
