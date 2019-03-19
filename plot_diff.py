@@ -1316,7 +1316,12 @@ class VarDiffPlotter(object):
                 tstamp=self.time_title_str,
                 units=self.vd.units)
             self.fig.suptitle(title)
-        self.fig.tight_layout()
+        # self.fig.set_tight_layout(True) and self.fig.tight_layout()
+        # both issue warnings (see
+        # https://github.com/matplotlib/matplotlib/issues/1852,
+        # https://stackoverflow.com/questions/15455029/python-matplotlib-agg-vs-interactive-plotting-and-tight-layout).
+        # self.fig.set_tight_layout(True)
+        # self.fig.tight_layout()
         self.fig.set_figwidth(22.0)
         self.fig.set_figheight(5.5)
         self.fig.set_dpi(300)
