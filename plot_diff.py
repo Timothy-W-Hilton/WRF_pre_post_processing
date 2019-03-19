@@ -38,6 +38,7 @@ import datetime
 import os
 import netCDF4
 import glob
+import socket
 from xarray import DataArray
 from wrf import getvar, extract_times, to_np, ALL_TIMES
 import cartopy.crs as ccrs
@@ -1279,7 +1280,19 @@ class VarDiffPlotter(object):
                     labA=self.vd.label_A,
                     labB=self.vd.label_B,
                     units=self.vd.units))
-            fname = r'/Users/tim/work/Data/Redwoods/Redwood_SequoiaSempervirens_extentNorthAmerica/data/commondata/data0/sequsemp.shp'
+            if 'cori' in socket.gethostname():
+                redwood_data_path = os.path.join(
+                    '/', 'project', 'projectdirs', 'm2319', 'Data',
+                    'Redwood_SequoiaSempervirens_extentNorthAmerica',
+                    'data', 'commondata', 'data0')
+            elif 'MacBook' in socket.gethostname():
+                redwood_data_path = os.path.join(
+                    '/', 'Users', 'tim', 'work', 'Data', 'Redwoods',
+                    'Redwood_SequoiaSempervirens_extentNorthAmerica',
+                    'data', 'commondata', 'data0')
+            else:
+                raise(FileNotFoundError)
+            fname = os.path.join(redwood_data_path, 'sequsemp.shp')
             rw_shapes = list(shpreader.Reader(fname).geometries())
             # a number of places on the web
             # (e.g. https://github.com/SciTools/cartopy/issues/924) suggest
