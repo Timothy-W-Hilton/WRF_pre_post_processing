@@ -5,7 +5,27 @@ import xarray as xr
 import copy
 from plot_diff import var_diff, VarDiffPlotter
 
+
 DOMAIN = 2
+
+
+def twotail_signif(p, level):
+    """
+    ARGS:
+    p (array-like): p-values
+    level (float in [0.0, 1.0]): significance level (percent)
+    """
+    crit_low = ((1.0 - level) / 2.0)
+    crit_high = 1.0 - crit_low
+    low_tail = np.greater(np.ma.masked_invalid(p),
+                          crit_low,
+                          where=~np.isnan(p))
+    high_tail = np.less(np.ma.masked_invalid(p),
+                        crit_high,
+                        where=~np.isnan(p))
+    s = np.logical_and(low_tail, high_tail)
+    return(s)
+
 
 if __name__ == "__main__":
     t0 = datetime.datetime.now()
@@ -24,6 +44,7 @@ if __name__ == "__main__":
     varname = 'fogpresent'
     runkey = 'RWurban'
     runkey = 'CLM_nourban'
+    runkey = 'CLM_drysoil'
 
     read_data = False
     if read_data:
@@ -58,7 +79,7 @@ if __name__ == "__main__":
                            'SummenWRF',
                            'pvals_series_{varname}_{runkey}.nc').format(
                                varname=varname, runkey=runkey)
-    if True:
+    if False:
         vd.get_pval_timeseries(interval_hrs=772.0)
         # now need to write pval timeseries to netCDF or something....
         pvals_xr = xr.Dataset({'p': (('t', 'x', 'y'),
@@ -83,21 +104,30 @@ if __name__ == "__main__":
 
     data_orig = copy.copy(vd.data)
     for i, this_t in enumerate(pvals_xr.t.values):
-        vd.d = pvals_xr.mean_diff.data[i, ...]
-        vd.abs_max = np.nanmax(np.abs(pvals_xr.mean_diff.data))
-        for k in data_orig.keys():
-            vd.data[k] = np.mean(data_orig[k][:pvals_xr.idx.values[i], ...],
-                                 axis=0,
-                                 keepdims=True)
-        plotter = VarDiffPlotter(vd,
-                                 fig_type='png',
-                                 t_idx=0,
-                                 layer=0,
-                                 domain=DOMAIN,
-                                 pfx='pvals_{}_{}'.format(varname, runkey),
-                                 savedir='/Users/tim/work/Plots/Summen/',
-                                 time_title_str=np.datetime_as_string(
-                                     this_t, unit='m'),
-                                 show_title=False)
-        fig = plotter.plot(cb_orientation='vertical',
-                           mask=pvals_xr.p.data[i, ...] < 0.9)
+        last_i = i
+    for i, this_t in enumerate(pvals_xr.t.values):
+        if i == last_i:
+            vd.d = pvals_xr.mean_diff.data[i, ...]
+            vd.abs_max = np.nanmax(np.abs(pvals_xr.mean_diff.data))
+            for k in data_orig.keys():
+                vd.data[k] = np.mean(
+                    data_orig[k][:pvals_xr.idx.values[i], ...],
+                    axis=0,
+                    keepdims=True)
+            plotter = VarDiffPlotter(vd,
+                                     fig_type='png',
+                                     t_idx=0,
+                                     layer=0,
+                                     domain=DOMAIN,
+                                     pfx='pvals_{}_{}'.format(varname, runkey),
+                                     savedir='/Users/tim/work/Plots/Summen/',
+                                     time_title_str=np.datetime_as_string(
+                                         this_t, unit='m'),
+                                     show_title=False)
+            p_insignificant95 = twotail_signif(pvals_xr.p.data[i, ...], 0.95)
+            p_insignificant99 = twotail_signif(pvals_xr.p.data[i, ...], 0.99)
+            d_LT_epsilon = np.abs(vd.d) < 1e-6
+            fig = plotter.plot(cb_orientation='vertical',
+                               mask=np.logical_or(p_insignificant95,
+                                                  d_LT_epsilon))
+            # mask=pvals_xr.p.data[i, ...] < 0.995)
