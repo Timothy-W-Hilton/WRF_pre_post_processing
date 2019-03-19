@@ -645,7 +645,7 @@ class var_diff(object):
         except ValueError as e:
             print("get_tstep_idx: no time dimension in data")
             raise(e)
-        return(idx)
+        return(tuple(idx))
 
     def aggregate_layers(self, vert_avg=False, extract_layer=None):
         """aggregate var_diff data for all time vertical layers
