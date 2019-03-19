@@ -780,7 +780,7 @@ class var_diff(object):
         # return infinity where denominator is zero
         z = np.divide(numerator, denominator,
                       out=np.full_like(numerator, np.inf),
-                      where=denominator != 0)
+                      where=np.abs(denominator) > 1e-12)
         return(z)
 
     def calc_diff(self, idx, layer):
