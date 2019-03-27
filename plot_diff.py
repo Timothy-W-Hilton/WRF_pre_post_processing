@@ -1262,7 +1262,7 @@ class VarDiffPlotter(object):
                                        self.vd.lat.min(), self.vd.lat.max()))
 
         # plot the difference
-        if ~hasattr(self.vd, 'd'):
+        if not(hasattr(self.vd, 'd')):
             self.vd.calc_diff(self._get_idx(), self.layer)
         if mask is not None:
             self.vd.d = ma.masked_where(mask, self.vd.d)
