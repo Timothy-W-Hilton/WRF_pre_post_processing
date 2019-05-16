@@ -800,6 +800,10 @@ class var_diff(object):
            index into the time step to calculate difference for
 
         """
+        if self.data[self.label_A][idx].dtype is np.dtype('bool'):
+            d = (self.data[self.label_A][idx].astype(float) -
+                 self.data[self.label_B][idx].astype(float))
+        else:
         d = (self.data[self.label_A][idx] -
              self.data[self.label_B][idx])
         self.d = ma.masked_where(np.isclose(d, 0.0), d)
@@ -810,8 +814,8 @@ class var_diff(object):
         else:
             idxA = np.s_[:, layer, ...]
             idxB = np.s_[:idx_max, layer, ...]
-        d_all = (self.data[self.label_A][idxA] -
-                 self.data[self.label_B][idxB])
+        d_all = (self.data[self.label_A][idxA].astype(float) -
+                 self.data[self.label_B][idxB].astype(float))
         self.abs_max = np.nanmax(np.abs((np.nanmin(d_all.data),
                                          np.nanmax(d_all.data))))
         self.d_pct = (self.d / self.data[self.label_A][idx]) * 100.0
@@ -887,6 +891,7 @@ class var_diff(object):
         pval_times = pd.date_range(start=self.time[0],
                                    end=self.time[-1],
                                    freq='{}H'.format(interval_hrs))
+        pval_times = pval_times[1:]  # skip time = 0
         idx_end = np.array(np.where([t in pval_times
                                      for t in self.time])).squeeze()
         pvals = np.full((idx_end.size,
@@ -1097,7 +1102,7 @@ class VarDiffPlotter(object):
         else:
             dmin = vmin
         if vmax is None:
-            dmax = np.max(list(map(np.max, self.vd.data.values())))
+            dmax = np.nanmax(list(map(np.nanmax, self.vd.data.values())))
         else:
             dmax = vmax
         cmap, norm = setup_colormap(
@@ -1120,7 +1125,7 @@ class VarDiffPlotter(object):
         for axidx, k in enumerate(self.vd.data.keys()):
             print("    plot {} data - {}".format(
                 k, str(self.vd.time[self.t_idx])))
-            self.main_maps[axidx].pcolormesh(
+            cm = self.main_maps[axidx].pcolormesh(
                 lons_ll,
                 lats_ll,
                 self.vd.data[k][self._get_idx()][:-2, :-2],
@@ -1151,7 +1156,7 @@ class VarDiffPlotter(object):
                                                   bands_below_mdpt=10,
                                                   this_cmap=get_cmap('RdBu'),
                                                   remove_middle_color=True)
-        self.d_map.pcolormesh(lons_ll,
+        cm = self.d_map.pcolormesh(lons_ll,
                               lats_ll,
                               self.vd.d[:-2, :-2],
                               cmap=cmap,

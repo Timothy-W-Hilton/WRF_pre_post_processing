@@ -41,12 +41,12 @@ if __name__ == "__main__":
 
     # insignificant_pixels = ma.masked_invalid(means_diff_test.main(0.95)).mask
 
-    varname = 'fogpresent'
-    runkey = 'RWurban'
+    varname = 'HFX'
     runkey = 'CLM_nourban'
     runkey = 'CLM_drysoil'
+    runkey = 'RWurban'
 
-    read_data = False
+    read_data = True
     if read_data:
         # wildcard_pat = "*d{:02d}02_2009-06-\{0[0-9],1[01]\}".format(DOMAIN)
         wildcard_pat = "*d{:02d}_2009-06-*".format(DOMAIN)
@@ -57,17 +57,17 @@ if __name__ == "__main__":
                       varname=varname)
         vd.read_files()
         vd.get_significance_mask(significance=0.95, adj_autocorr=True)
-        # vd.to_netcdf(os.path.join('/', 'global', 'cscratch1', 'sd',
-        #                           'twhilton',
-        #                           '{}_d{:02d}_RWurban.nc'.format(varname,
-        #                                                          DOMAIN)))
+        vd.to_netcdf(os.path.join('/', 'global', 'cscratch1', 'sd',
+                                  'twhilton',
+                                  '{}_d{:02d}_RWurban.nc'.format(varname,
+                                                                 DOMAIN)))
         print('done reading files ({})'.format(datetime.datetime.now() - t0))
         # vd.mask_land_or_water(mask_water=False)
     else:
         vd = var_diff(
             ncfile=os.path.join(
-                # cscratchdir,
-                '/Users/tim/work/Data/SummenWRF/',
+                cscratchdir,
+                # '/Users/tim/work/Data/SummenWRF/',
                 # '{varname}_d{DOMAIN:02d}_RWurban.nc'.format(
                 '{varname}_d{DOMAIN:02d}_{runkey}.nc'.format(
                     varname=varname, DOMAIN=DOMAIN, runkey=runkey)))
@@ -75,12 +75,17 @@ if __name__ == "__main__":
             vd.get_significance_mask(significance=0.95, adj_autocorr=True)
     # vd = is_foggy_obrien_2013(vd)
 
-    ncfname = os.path.join('/', 'Users', 'tim', 'work', 'Data',
-                           'SummenWRF',
+    # ncfname = os.path.join('/', 'Users', 'tim', 'work', 'Data',
+    #                        'SummenWRF',
+    ncfname = os.path.join(cscratchdir,
                            'pvals_series_{varname}_{runkey}.nc').format(
                                varname=varname, runkey=runkey)
-    if False:
-        vd.get_pval_timeseries(interval_hrs=772.0)
+
+    load_saved_pvalues_series = True
+    if load_saved_pvalues_series:
+        pvals_xr = xr.open_dataset(ncfname)
+    else:
+        vd.get_pval_timeseries(interval_hrs=168.0)
         # now need to write pval timeseries to netCDF or something....
         pvals_xr = xr.Dataset({'p': (('t', 'x', 'y'),
                                      vd.pvals_series),
@@ -99,14 +104,12 @@ if __name__ == "__main__":
         except(FileNotFoundError):
             pass
         pvals_xr.to_netcdf(ncfname)
-    else:
-        pvals_xr = xr.open_dataset(ncfname)
 
     data_orig = copy.copy(vd.data)
     for i, this_t in enumerate(pvals_xr.t.values):
         last_i = i
     for i, this_t in enumerate(pvals_xr.t.values):
-        if i == last_i:
+        if (i <= last_i) and (i > 0):
             vd.d = pvals_xr.mean_diff.data[i, ...]
             vd.abs_max = np.nanmax(np.abs(pvals_xr.mean_diff.data))
             for k in data_orig.keys():
@@ -120,7 +123,9 @@ if __name__ == "__main__":
                                      layer=0,
                                      domain=DOMAIN,
                                      pfx='pvals_{}_{}'.format(varname, runkey),
-                                     savedir='/Users/tim/work/Plots/Summen/',
+                                     # savedir='/Users/tim/work/Plots/Summen/',
+                                     savedir=os.path.join(cscratchdir,
+                                                          'plots_temporary'),
                                      time_title_str=np.datetime_as_string(
                                          this_t, unit='m'),
                                      show_title=False)
