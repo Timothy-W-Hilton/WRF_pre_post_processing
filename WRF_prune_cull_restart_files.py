@@ -20,7 +20,7 @@ import glob
 import os
 import argparse
 
-restart_wildcard_string = "wrfrst_d{domain}*"
+restart_wildcard_string = "wrfrst_d{domain:02d}*"
 
 if __name__ == "__main__":
 
@@ -52,4 +52,4 @@ if __name__ == "__main__":
         for this_file in restart_files:
             if "_00:00:00" not in this_file:
                 print("deleting {}".format(os.path.basename(this_file)))
-                # os.remove(this_file)
+                os.remove(this_file)
