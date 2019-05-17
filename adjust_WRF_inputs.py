@@ -105,6 +105,43 @@ def remove_urban(fname_wrf):
     print('reduced urban fraction to 0.0 in {}'.format(fname_wrf))
 
 
+
+def use_yatir_parameterization(fname_wrf):
+    """change the landuse category for Yatir forest to 21
+
+    21 matches the new entry for Yatir Forest in VEGPARM.TBL and LANDUSE.TBL
+
+    Yatir Forest occupies cell 34, 34 in the Yatir WRF domain I setup.
+    For now I am hard-coding this in to take advantage of free CPUs in
+    the NERSC cori flex queue for the next two weeks.
+
+    """
+    nc = netCDF4.Dataset(fname_wrf, 'a')  # open in append mode
+    # set LU_INDEX to yatir (21) for all non-water pixels.
+    #
+    LU_YATIR = 21
+    YATIR_X = 34
+    YATIR_Y = 34
+    landuse = nc.variables['LU_INDEX'][...]
+    landuse[:, YATIR_X, YATIR_Y] = LU_YATIR
+    nc.variables['LU_INDEX'][...] = landuse
+    print("modified LU_INDEX for Yatir in {fname_wrf}".format(fname_wrf=fname_wrf))
+
+    # LANDUSEF specifies a fraction for all land use types in each
+    # pixel.  Set all urban fraction in LANDUSEF to (1.0 -
+    # LANDUSEF[LU_water]) and all other non-water fractions to 0.0.
+    # need to subtract 1 from land use codes to translate them to
+    # zero-based array indices
+    landusef = nc.variables['LANDUSEF'][...]
+    landusef[:, :, YATIR_X, YATIR_Y ] = 0.0   # set all LU fractions to 0.0 in Yatir pixel
+    landusef[:, 21, YATIR_X, YATIR_Y] = 1.0  # set all LU fractions to 0.0 in Yatir pixel
+    nc.variables['LANDUSEF'][...] = landusef
+    nc.history = ("created by metgrid_exe.  Land use set "
+                  "to Yatir in WRF pixel ({}, {}) ".format(YATIR_X, YATIR_Y))
+    nc.close()
+
+
+
 def make_redwood_range_urban(redwoods_mask, fname_wrf):
     """make redwood range urban using digital redwoods data
     """
