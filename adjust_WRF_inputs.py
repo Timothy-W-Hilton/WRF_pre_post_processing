@@ -132,10 +132,30 @@ def use_yatir_parameterization(fname_wrf):
     # LANDUSEF[LU_water]) and all other non-water fractions to 0.0.
     # need to subtract 1 from land use codes to translate them to
     # zero-based array indices
+    nc.createDimension('z-dimension0022', size=22)
+    landusef_new_var = nc.createVariable('LANDUSEF_NEW',
+                                         'f',
+                                         ('Time', 'z-dimension0022',
+                                          'south_north', 'west_east'))
     landusef = nc.variables['LANDUSEF'][...]
-    landusef[:, :, YATIR_X, YATIR_Y ] = 0.0   # set all LU fractions to 0.0 in Yatir pixel
-    landusef[:, 21, YATIR_X, YATIR_Y] = 1.0  # set all LU fractions to 0.0 in Yatir pixel
-    nc.variables['LANDUSEF'][...] = landusef
+    new_landusef = np.zeros((landusef.shape[0],
+                             22,
+                             landusef.shape[2],
+                             landusef.shape[3]))
+    new_landusef[:, 0:21, :, :] = landusef[...]
+    # set all LU fractions to 0.0 in Yatir pixel
+    new_landusef[:, :, YATIR_X, YATIR_Y ] = 0.0
+    # set Yatir LU fraction to 1.0 in Yatir pixel
+    new_landusef[:, 21, YATIR_X, YATIR_Y] = 1.0
+    nc.variables['LANDUSEF_NEW'][...] = new_landusef
+    landusef_new_var.FieldType = 104
+    landusef_new_var.MemoryOrder = 'XYZ'
+    landusef_new_var.units = 'category'
+    landusef_new_var.description = 'Noah-modified 21-category IGBP-MODIS landuse with Yatir parameterization'
+    landusef_new_var.stagger = 'M'
+    landusef_new_var.sr_x = 1
+    landusef_new_var.sr_y = 1
+    nc.renameVariable('LANDUSEF_NEW', 'LANDUSEF')
     nc.history = ("created by metgrid_exe.  Land use set "
                   "to Yatir in WRF pixel ({}, {}) ".format(YATIR_X, YATIR_Y))
     nc.close()
