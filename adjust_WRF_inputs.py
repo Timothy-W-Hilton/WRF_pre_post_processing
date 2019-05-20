@@ -119,7 +119,7 @@ def use_yatir_parameterization(fname_wrf):
     nc = netCDF4.Dataset(fname_wrf, 'a')  # open in append mode
     # set LU_INDEX to yatir (21) for all non-water pixels.
     #
-    LU_YATIR = 21
+    LU_YATIR = 22
     YATIR_X = 34
     YATIR_Y = 34
     landuse = nc.variables['LU_INDEX'][...]
@@ -132,14 +132,15 @@ def use_yatir_parameterization(fname_wrf):
     # LANDUSEF[LU_water]) and all other non-water fractions to 0.0.
     # need to subtract 1 from land use codes to translate them to
     # zero-based array indices
-    nc.createDimension('z-dimension0022', size=22)
-    landusef_new_var = nc.createVariable('LANDUSEF_NEW',
+    zdim_new = nc.createDimension('z-dimension0022', size=22)
+    nc.renameVariable('LANDUSEF', 'LANDUSEF_21')
+    landusef_new_var = nc.createVariable('LANDUSEF',
                                          'f',
                                          ('Time', 'z-dimension0022',
                                           'south_north', 'west_east'))
-    landusef = nc.variables['LANDUSEF'][...]
+    landusef = nc.variables['LANDUSEF_21'][...]
     new_landusef = np.zeros((landusef.shape[0],
-                             22,
+                             len(zdim_new),
                              landusef.shape[2],
                              landusef.shape[3]))
     new_landusef[:, 0:21, :, :] = landusef[...]
@@ -147,7 +148,7 @@ def use_yatir_parameterization(fname_wrf):
     new_landusef[:, :, YATIR_X, YATIR_Y ] = 0.0
     # set Yatir LU fraction to 1.0 in Yatir pixel
     new_landusef[:, 21, YATIR_X, YATIR_Y] = 1.0
-    nc.variables['LANDUSEF_NEW'][...] = new_landusef
+    nc.variables['LANDUSEF'][...] = new_landusef
     landusef_new_var.FieldType = 104
     landusef_new_var.MemoryOrder = 'XYZ'
     landusef_new_var.units = 'category'
@@ -155,7 +156,6 @@ def use_yatir_parameterization(fname_wrf):
     landusef_new_var.stagger = 'M'
     landusef_new_var.sr_x = 1
     landusef_new_var.sr_y = 1
-    nc.renameVariable('LANDUSEF_NEW', 'LANDUSEF')
     nc.history = ("created by metgrid_exe.  Land use set "
                   "to Yatir in WRF pixel ({}, {}) ".format(YATIR_X, YATIR_Y))
     nc.close()
