@@ -109,7 +109,7 @@ def remove_urban(fname_wrf):
 def use_yatir_parameterization(fname_wrf):
     """change the landuse category for Yatir forest to 21
 
-    21 matches the new entry for Yatir Forest in VEGPARM.TBL and LANDUSE.TBL
+    20 matches the new entry for Yatir Forest in VEGPARM.TBL and LANDUSE.TBL
 
     Yatir Forest occupies cell 34, 34 in the Yatir WRF domain I setup.
     For now I am hard-coding this in to take advantage of free CPUs in
@@ -117,16 +117,14 @@ def use_yatir_parameterization(fname_wrf):
 
     """
     nc = netCDF4.Dataset(fname_wrf, 'a')  # open in append mode
-    nc.NUM_LAND_CAT = 22
     # for these files, only change NUM_LAND_CAT attribute
     if any([substr in fname_wrf for substr in ("wrfbdy",
                                                "wrflow",
                                                "wrfinput_d01")]):
         nc.close()
         return()
-    # set LU_INDEX to yatir (21) for all non-water pixels.
-    #
-    LU_YATIR = 22
+
+    LU_YATIR = 20
     YATIR_X = 34
     YATIR_Y = 34
     landuse = nc.variables['LU_INDEX'][...]
@@ -139,31 +137,12 @@ def use_yatir_parameterization(fname_wrf):
     # LANDUSEF[LU_water]) and all other non-water fractions to 0.0.
     # need to subtract 1 from land use codes to translate them to
     # zero-based array indices
-    zdim_new = nc.createDimension('z-dimension0022', size=22)
-    nc.renameVariable('LANDUSEF', 'LANDUSEF_21')
-    landusef_new_var = nc.createVariable('LANDUSEF',
-                                         'f',
-                                         ('Time', 'z-dimension0022',
-                                          'south_north', 'west_east'))
-    landusef = nc.variables['LANDUSEF_21'][...]
-    new_landusef = np.zeros((landusef.shape[0],
-                             len(zdim_new),
-                             landusef.shape[2],
-                             landusef.shape[3]))
-    new_landusef[:, 0:21, :, :] = landusef[...]
+    landusef = nc.variables['LANDUSEF'][...]
     # set all LU fractions to 0.0 in Yatir pixel
-    new_landusef[:, :, YATIR_X, YATIR_Y ] = 0.0
+    landusef[:, :, YATIR_X, YATIR_Y ] = 0.0
     # set Yatir LU fraction to 1.0 in Yatir pixel
-    new_landusef[:, 21, YATIR_X, YATIR_Y] = 1.0
-    nc.variables['LANDUSEF'][...] = new_landusef
-    landusef_new_var.FieldType = 104
-    landusef_new_var.MemoryOrder = 'XYZ'
-    landusef_new_var.units = 'category'
-    landusef_new_var.description = ('Noah-modified 21-category IGBP-MODIS'
-                                    'landuse with Yatir parameterization')
-    landusef_new_var.stagger = 'M'
-    landusef_new_var.sr_x = 1
-    landusef_new_var.sr_y = 1
+    landusef[:, LU_YATIR - 1, YATIR_X, YATIR_Y] = 1.0
+    nc.variables['LANDUSEF'][...] = landusef
     nc.history = ("created by metgrid_exe.  Land use set "
                   "to Yatir in WRF pixel ({}, {}) ".format(YATIR_X, YATIR_Y))
     nc.close()
