@@ -117,6 +117,13 @@ def use_yatir_parameterization(fname_wrf):
 
     """
     nc = netCDF4.Dataset(fname_wrf, 'a')  # open in append mode
+    nc.NUM_LAND_CAT = 22
+    # for these files, only change NUM_LAND_CAT attribute
+    if any([substr in fname_wrf for substr in ("wrfbdy",
+                                               "wrflow",
+                                               "wrfinput_d01")]):
+        nc.close()
+        return()
     # set LU_INDEX to yatir (21) for all non-water pixels.
     #
     LU_YATIR = 22
@@ -152,7 +159,8 @@ def use_yatir_parameterization(fname_wrf):
     landusef_new_var.FieldType = 104
     landusef_new_var.MemoryOrder = 'XYZ'
     landusef_new_var.units = 'category'
-    landusef_new_var.description = 'Noah-modified 21-category IGBP-MODIS landuse with Yatir parameterization'
+    landusef_new_var.description = ('Noah-modified 21-category IGBP-MODIS'
+                                    'landuse with Yatir parameterization')
     landusef_new_var.stagger = 'M'
     landusef_new_var.sr_x = 1
     landusef_new_var.sr_y = 1
