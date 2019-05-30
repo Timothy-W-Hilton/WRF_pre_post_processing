@@ -948,7 +948,9 @@ class VarDiffPlotter(object):
 
     def __init__(self, vd, t_idx=0, layer=None, fig_type='png',
                  domain=2, pfx=None, savedir=None,
-                 time_title_str=None, show_title=True):
+                 time_title_str=None, show_title=True,
+                 map_prj=CoastalSEES_WRF_prj(),
+                 mapper=CoastalSEES_WRF_Mapper):
         """
         Initialize a VarDiffPlotter with a Figure instance and four Axes
 
@@ -973,6 +975,8 @@ class VarDiffPlotter(object):
         self.pfx = pfx
         self.time_title_str = time_title_str
         self.show_title = show_title
+        self.map_prj = map_prj
+        self.mapper = mapper
 
         for k in self.vd.data.keys():
             if np.isnan(self.vd.data[k]).any():
@@ -1015,10 +1019,10 @@ class VarDiffPlotter(object):
         """
         fig = MyFig(figsize=(8, 8))
         ax = fig.add_subplot(111,
-                             projection=CoastalSEES_WRF_prj())
+                             projection=self.map_prj)
         ax.set_extent((self.vd.lon.min(), self.vd.lon.max(),
                        self.vd.lat.min(), self.vd.lat.max()))
-        this_map = CoastalSEES_WRF_Mapper(ax=ax, domain=self.domain)
+        this_map = self.mapper(ax=ax, domain=self.domain)
         hgt = ma.masked_greater(self.vd.z[layer, ...], 400)
         this_map.pcolormesh(self.vd.lon,
                             self.vd.lat,
@@ -1262,7 +1266,7 @@ class VarDiffPlotter(object):
         self.ax = [None] * nplots
         for axidx, axspec in enumerate(range(141, 141 + nplots)):
             self.ax[axidx] = self.fig.add_subplot(
-                axspec, projection=CoastalSEES_WRF_prj())
+                axspec, projection=self.map_prj)
             self.ax[axidx].set_extent((self.vd.lon.min(), self.vd.lon.max(),
                                        self.vd.lat.min(), self.vd.lat.max()))
 
@@ -1272,12 +1276,12 @@ class VarDiffPlotter(object):
         if mask is not None:
             self.vd.d = ma.masked_where(mask, self.vd.d)
 
-        self.main_maps = [CoastalSEES_WRF_Mapper(ax=self.ax[i],
+        self.main_maps = [self.mapper(ax=self.ax[i],
                                                  domain=self.domain)
                           for i in (0, 1)]
-        self.d_map = CoastalSEES_WRF_Mapper(ax=self.ax[2], domain=self.domain)
+        self.d_map = self.mapper(ax=self.ax[2], domain=self.domain)
 
-        self.SFBay_map = CoastalSEES_WRF_Mapper(ax=self.ax[3],
+        self.SFBay_map = self.mapper(ax=self.ax[3],
                                                 domain='redwoods',
                                                 res='10m')
         for this_map in [self.d_map, self.SFBay_map]:
