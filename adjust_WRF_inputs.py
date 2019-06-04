@@ -18,6 +18,7 @@ import numpy.ma as ma
 import glob
 import os
 
+
 def deal_with_100pct_urban(landusef, f_urban):
     """replace urban land use in cells that are 100% urban
 
@@ -39,14 +40,15 @@ def deal_with_100pct_urban(landusef, f_urban):
         found_replacement = False
         xeast = x
         while not(found_replacement):
-            xeast = xeast + 1 # try the next cell to the east by
-                              # incrementing x index
+            xeast = xeast + 1  # try the next cell to the east by
+                               # incrementing x index
             if (f_urban[0, y, xeast] < 0.99):
                 found_replacement = True
         landusef[0, :, y, x] = landusef[0, :, y, xeast]
         f_urban[0, y, x] = f_urban[0, y, xeast]
         print("    replaced {} land use with {}".format((y, x), (y, xeast)))
     return(landusef, f_urban)
+
 
 def remove_urban(fname_wrf):
     """remove urban landuse from WRF input files
@@ -105,7 +107,6 @@ def remove_urban(fname_wrf):
     print('reduced urban fraction to 0.0 in {}'.format(fname_wrf))
 
 
-
 def use_yatir_parameterization(fname_wrf):
     """change the landuse category for Yatir forest to 21
 
@@ -139,14 +140,13 @@ def use_yatir_parameterization(fname_wrf):
     # zero-based array indices
     landusef = nc.variables['LANDUSEF'][...]
     # set all LU fractions to 0.0 in Yatir pixel
-    landusef[:, :, YATIR_X, YATIR_Y ] = 0.0
+    landusef[:, :, YATIR_X, YATIR_Y] = 0.0
     # set Yatir LU fraction to 1.0 in Yatir pixel
     landusef[:, LU_YATIR - 1, YATIR_X, YATIR_Y] = 1.0
     nc.variables['LANDUSEF'][...] = landusef
     nc.history = ("created by metgrid_exe.  Land use set "
                   "to Yatir in WRF pixel ({}, {}) ".format(YATIR_X, YATIR_Y))
     nc.close()
-
 
 
 def make_redwood_range_urban(redwoods_mask, fname_wrf):
@@ -167,7 +167,7 @@ def make_redwood_range_urban(redwoods_mask, fname_wrf):
     # zero-based array indices
     landusef = nc.variables['LANDUSEF'][...]
     redwoods_mask = np.broadcast_to(redwoods_mask,
-                                   landusef.shape)
+                                    landusef.shape)
     plant_mask = np.copy(redwoods_mask)
     plant_mask[:, nc.ISURBAN - 1, ...] = False
     plant_mask[:, nc.ISWATER - 1, ...] = False
@@ -211,8 +211,8 @@ def make_redwood_range_urban_quick_dirty(fname_wrf):
                     near_coast[0, i, j] = True
                 land_count = land_count + 1
     redwoods_mask = ((lat <= crescent_city_lat) &
-                    (lat >= big_sur_latitude) &
-                    near_coast)
+                     (lat >= big_sur_latitude) &
+                     near_coast)
     landuse[np.where(redwoods_mask)] = nc.ISURBAN
     nc.variables['LU_INDEX'][...] = landuse
     print("modified LU_INDEX in {fname_wrf}".format(fname_wrf=fname_wrf))
@@ -224,7 +224,7 @@ def make_redwood_range_urban_quick_dirty(fname_wrf):
     # zero-based array indices
     landusef = nc.variables['LANDUSEF'][...]
     redwoods_mask = np.broadcast_to(redwoods_mask,
-                                   landusef.shape)
+                                    landusef.shape)
     plant_mask = np.copy(redwoods_mask)
     plant_mask[:, nc.ISURBAN - 1, ...] = False
     plant_mask[:, nc.ISWATER - 1, ...] = False
@@ -328,7 +328,7 @@ def reduce_soil_moisture(fname_wrf, f, soil_moist_vars=None,
         sm_adjusted[is_water] = 1.0
         nc.variables[this_var][...] = sm_adjusted
         print("modified {this_var} in {fname_wrf}").format(this_var=this_var,
-                                                       fname_wrf=fname_wrf)
+                                                           fname_wrf=fname_wrf)
     nc.history = ("created by metgrid_exe.  Soil moisture adjusted by"
                   " a factor of {f} by reduce_soil_moisture python"
                   " module.".format(f=f))
