@@ -804,8 +804,8 @@ class var_diff(object):
             d = (self.data[self.label_A][idx].astype(float) -
                  self.data[self.label_B][idx].astype(float))
         else:
-        d = (self.data[self.label_A][idx] -
-             self.data[self.label_B][idx])
+            d = (self.data[self.label_A][idx] -
+                 self.data[self.label_B][idx])
         self.d = ma.masked_where(np.isclose(d, 0.0), d)
         idx_max = self.data[self.label_A].shape[0]
         if layer is None:
@@ -844,8 +844,9 @@ class var_diff(object):
             if this_dim == "Time":
                 this_dim = 'time'
                 var_axes_[this_ax] = 'time'
+            key1 = list(self.data.keys())[0]
             nc.createDimension(this_dim,
-                               self.data['ctl'].shape[this_ax])
+                               self.data[key1].shape[this_ax])
         nc.createVariable('lat', np.float, ('y', 'x'))
         nc.createVariable('lon', np.float, ('y', 'x'))
         nc.createVariable('time', np.float, ('time'))
@@ -894,13 +895,14 @@ class var_diff(object):
         pval_times = pval_times[1:]  # skip time = 0
         idx_end = np.array(np.where([t in pval_times
                                      for t in self.time])).squeeze()
+        key1 = list(self.data.keys())[0]
         pvals = np.full((idx_end.size,
-                         self.data['ctl'].shape[1],
-                         self.data['ctl'].shape[2]),
+                         self.data[key1].shape[1],
+                         self.data[key1].shape[2]),
                         np.nan)
         mean_diff = np.full((idx_end.size,
-                             self.data['ctl'].shape[1],
-                             self.data['ctl'].shape[2]),
+                             self.data[key1].shape[1],
+                             self.data[key1].shape[2]),
                             np.nan)
 
         for i, this_end in enumerate(idx_end):
@@ -1277,13 +1279,13 @@ class VarDiffPlotter(object):
             self.vd.d = ma.masked_where(mask, self.vd.d)
 
         self.main_maps = [self.mapper(ax=self.ax[i],
-                                                 domain=self.domain)
+                                      domain=self.domain)
                           for i in (0, 1)]
         self.d_map = self.mapper(ax=self.ax[2], domain=self.domain)
 
         self.SFBay_map = self.mapper(ax=self.ax[3],
-                                                domain='redwoods',
-                                                res='10m')
+                                     domain='redwoods',
+                                     res='10m')
         for this_map in [self.d_map, self.SFBay_map]:
             if self.show_title:
                 this_map.ax.set_title("{labA} - {labB} ({units})".format(
