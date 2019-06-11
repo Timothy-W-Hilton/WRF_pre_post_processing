@@ -37,7 +37,7 @@ from scipy.stats import norm
 import datetime
 import os
 import netCDF4
-import glob
+import re
 import socket
 from xarray import DataArray
 from wrf import getvar, extract_times, to_np, ALL_TIMES
@@ -538,7 +538,16 @@ class var_diff(object):
         for k, v in self.data.items():
             t0 = datetime.datetime.now()
             print('starting to read {}'.format(self.varname))
-            wv = wrf_var(sorted(glob.glob(self.fnames[k])),
+            search_directory = os.path.dirname(self.fnames[k])
+            re_pat = os.path.basename(self.fnames[k])
+            # RE search on file basenames
+            matching_files = [f for f in filter(re.compile(re_pat).search,
+                                                os.listdir(search_directory))]
+            # put the full directory path back in
+            matching_files = [os.path.join(search_directory, f)
+                              for f in matching_files]
+            matching_files = sorted(matching_files)
+            wv = wrf_var(matching_files,
                          label=self.label_A,
                          varname=self.varname,
                          is_atm=False)
