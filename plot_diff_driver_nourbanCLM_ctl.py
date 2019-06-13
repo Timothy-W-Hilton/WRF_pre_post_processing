@@ -18,7 +18,7 @@ if __name__ == "__main__":
                              'run', 'summen_2005_deurbanized_NCEPDOE')
     out_dir = os.path.join(cscratchdir, 'plots_temporary')
 
-    # varname = 'HFX'
+    varname = 'HFX'
     # varname = 'LH';
     # varname = 'LCL'
     # varname = 'fogpresent'
@@ -27,16 +27,17 @@ if __name__ == "__main__":
     # varname = 'fogpct'
     # varname = 'QCLOUD'
     # varname = 'uvmet10'
-    varname = 'wa'
+    # varname = 'wa'
     # varname = 'ctt'  # cloud top temperature
     # varname = 'LU_INDEX'
 
-    read_data = False
+    read_data = True
     if read_data:
         # wildcard_pat = "*d{:02d}02_2009-06-\{0[0-9],1[01]\}".format(DOMAIN)
         wildcard_pat = "*d{:02d}_2005-*".format(DOMAIN)
-        vd = var_diff(os.path.join(ctl_dir, wildcard_pat),
-                      os.path.join(nourb_dir, wildcard_pat),
+        re_pat = "d{:02d}_2005-".format(DOMAIN)
+        vd = var_diff(os.path.join(ctl_dir, re_pat),
+                      os.path.join(nourb_dir, re_pat),
                       label_A='ctl',
                       label_B='no_urban_CLM',
                       varname=varname)
