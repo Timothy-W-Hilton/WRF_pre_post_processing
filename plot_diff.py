@@ -342,7 +342,12 @@ class wrf_var(object):
         xtime = extract_times(nclist, ALL_TIMES)
         self.time = pd.DatetimeIndex(xtime)
         self.longname = self.data.description
-        self.z = getvar(nclist, 'z')
+        try:
+            self.z = getvar(nclist, 'z')
+        except ValueError as e:
+            print('Unable to calculate heights (see errors below)')
+            print(e)
+            self.z = None
         for this_nc in nclist:
             this_nc.close()
         if mask_land or mask_water:
