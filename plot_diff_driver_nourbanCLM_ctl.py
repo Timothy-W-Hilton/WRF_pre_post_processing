@@ -2,8 +2,28 @@ import datetime
 import os
 import numpy as np
 from plot_diff import var_diff, VarDiffPlotter
+import sys
 
+# ----- settings -----
 DOMAIN = 2
+PVAL = 0.05
+READ_DATA = True
+if len(sys.argv) > 1:
+    varname = sys.argv[1]
+else:
+    # varname = 'HFX'
+    varname = 'LH';
+    # varname = 'LCL'
+    # varname = 'fogpresent'
+    # varname = 'SMOIS'
+    # varname = 'fogbase'
+    # varname = 'fogpct'
+    # varname = 'QCLOUD'
+    # varname = 'uvmet10'
+    # varname = 'wa'
+    # varname = 'ctt'  # cloud top temperature
+    # varname = 'LU_INDEX'
+print('varname: {}'.format(varname))
 
 if __name__ == "__main__":
     t0 = datetime.datetime.now()
@@ -18,24 +38,10 @@ if __name__ == "__main__":
                              'run', 'summen_2005_deurbanized_NCEPDOE')
     out_dir = os.path.join(cscratchdir, 'plots_temporary')
 
-    varname = 'HFX'
-    # varname = 'LH';
-    # varname = 'LCL'
-    # varname = 'fogpresent'
-    # varname = 'SMOIS'
-    # varname = 'fogbase'
-    # varname = 'fogpct'
-    # varname = 'QCLOUD'
-    # varname = 'uvmet10'
-    # varname = 'wa'
-    # varname = 'ctt'  # cloud top temperature
-    # varname = 'LU_INDEX'
-
-    read_data = True
-    if read_data:
+    if READ_DATA:
         # wildcard_pat = "*d{:02d}02_2009-06-\{0[0-9],1[01]\}".format(DOMAIN)
         wildcard_pat = "*d{:02d}_2005-*".format(DOMAIN)
-        re_pat = "d{:02d}_2005-".format(DOMAIN)
+        re_pat = "d{:02d}_1day.nc".format(DOMAIN)
         vd = var_diff(os.path.join(ctl_dir, re_pat),
                       os.path.join(nourb_dir, re_pat),
                       label_A='ctl',
@@ -67,18 +73,18 @@ if __name__ == "__main__":
         if vd.p is None:
             vd.get_significance_mask(significance=0.95, adj_autocorr=True)
     # vd = is_foggy_obrien_2013(vd)
-    pfx = 'nourbanCLM_95CI'
+    pfx = 'nourbanCLM_{:0.0f}CI'.format((1.0 - PVAL) * 100.0)
     # for this_series in ['all_tstamps', 'time_avg']:
     for this_series in ['time_avg']:
         if this_series == 'all_tstamps':
             t_end = 1
-            pfx = 'nourbanCLM'
+            pfx = 'nourbanCLM_1day'
             time_title_str = None
         else:
             t_end = 1
             pfx = pfx + '_timeavg'
             vd.aggregate_time(time_avg=True)
-            time_title_str = 'June 2005'
+            time_title_str = ''
         for this_t in range(0, t_end):  #
             plotter = VarDiffPlotter(vd, t_idx=this_t, layer=0,
                                      domain=DOMAIN,
@@ -92,6 +98,8 @@ if __name__ == "__main__":
             fig = plotter.plot(cb_orientation=cb_orientation,
                                vmin=None,
                                vmax=None,
-                               mask=vd.p > 0.05)
+                               mask=vd.p > PVAL)
+                               # mask=None)
+
 
     print('done driver ({})'.format(datetime.datetime.now() - t0))
