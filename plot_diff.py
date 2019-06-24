@@ -43,6 +43,7 @@ from xarray import DataArray
 from wrf import getvar, extract_times, to_np, ALL_TIMES
 import cartopy.crs as ccrs
 import cartopy.io.shapereader as shpreader  # for redwoods range
+import warnings
 
 from matplotlib.cm import get_cmap
 from matplotlib.figure import Figure
@@ -400,6 +401,15 @@ class wrf_var(object):
 
         t0 = datetime.datetime.now()
         print('start get_fog_pct()', end='')
+        warnings.warn(('using the variable fogpct intrinsically disables '
+                       'confidence interval calculation because calculating '
+                       'the percentage of time a point is foggy '
+                       'necessarily aggregates the time series to a single '
+                       'point (the percentage).  After this aggregation '
+                       'calculating variance or temporal autocorrelation '
+                       'is no longer possible.  To calculate fog time '
+                       'percentage with confidence interval use the '
+                       'variable fogpresent and calculate time average.'))
         self.is_foggy_obrien_2013_2D(z_threshold, q_threshold)
         time_axis = 0  # axes are (0=time, 2=x, 3=y)
         n_tsteps = self.data.shape[time_axis]
