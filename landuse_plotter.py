@@ -41,6 +41,8 @@ class LU_vardiff(var_diff):
             self.lat = nc.variables['XLAT'][...].squeeze()
             nc.close()
         self.time = (datetime.datetime(2005, 6, 1, 0, 0, 0), )
+        self.var_axes = ['Time', 'Lon', 'Lat']
+
 
 def plot_init(lon, lat):
 
