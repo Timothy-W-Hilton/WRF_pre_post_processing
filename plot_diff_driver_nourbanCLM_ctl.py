@@ -12,7 +12,7 @@ if len(sys.argv) > 1:
     varname = sys.argv[1]
 else:
     # varname = 'HFX'
-    varname = 'LH';
+    varname = 'LH'
     # varname = 'LCL'
     # varname = 'fogpresent'
     # varname = 'SMOIS'
@@ -41,7 +41,7 @@ if __name__ == "__main__":
     if READ_DATA:
         # wildcard_pat = "*d{:02d}02_2009-06-\{0[0-9],1[01]\}".format(DOMAIN)
         wildcard_pat = "*d{:02d}_2005-*".format(DOMAIN)
-        re_pat = "d{:02d}_1day.nc".format(DOMAIN)
+        re_pat = "d{:02d}_all\\.nc".format(DOMAIN)
         vd = var_diff(os.path.join(ctl_dir, re_pat),
                       os.path.join(nourb_dir, re_pat),
                       label_A='ctl',
@@ -57,8 +57,9 @@ if __name__ == "__main__":
         vd.get_significance_mask(significance=0.95, adj_autocorr=True)
         vd.to_netcdf(os.path.join('/', 'global', 'cscratch1', 'sd',
                                   'twhilton',
-                                  '{}_d{:02d}_CLM_nourban.nc'.format(varname,
-                                                                     DOMAIN)))
+                                  '{}_d{:02d}_CLM_nourban.nc'.format(
+                                      varname,
+                                      DOMAIN)))
         print('done reading files ({})'.format(datetime.datetime.now() - t0))
         # vd.mask_land_or_water(mask_water=False)
     else:
