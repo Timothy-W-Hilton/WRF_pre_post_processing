@@ -79,8 +79,8 @@ def plot_landuse(ax, lon, lat, data):
     return(cm)
 
 if __name__ == "__main__":
-    wrfin = {'ctl': '/Users/tim/work/Data/WRF_Driver/wrfinput_d02_ctl',
-             'deurb': '/Users/tim/work/Data/WRF_Driver/wrfinput_d02_deurbanized'}
+    wrfin = {'ctl': '/global/cscratch1/sd/twhilton/WRFv4.0_Sensitivity/WRFCLMv4.0_NCEPDOEp2/WRFV4/run/wrfinput_d02',
+             'deurb': '/global/cscratch1/sd/twhilton/WRFv4.0_Sensitivity/WRFCLMv4.0_NCEPDOEp2_deurbanized/WRFV4/run/wrfinput_d02'}
     lufrac = {}
     luidx = {}
     for k in wrfin.keys():
@@ -117,8 +117,8 @@ if __name__ == "__main__":
     cbar.set_ticks(np.linspace(0.5, 21.5, 21))
     cbar.set_ticklabels(list(ctable['long_name']))
 
-    fig.savefig(fname=os.path.join('/', 'Users', 'tim', 'work',
-                                   'Plots', 'Summen', 'NoUrban',
+    fig.savefig(fname=os.path.join('/', 'global', 'cscratch1', 'sd',
+                                   'twhilton', 'plots_temporary',
                                    'land_use_dominant.png'))
 
     vd_LUfrac = LU_vardiff(fname_A=wrfin['ctl'], fname_B=wrfin['deurb'],
@@ -140,6 +140,7 @@ if __name__ == "__main__":
             layer=0,
             domain=2,
             pfx=lu_str,
-            savedir='.',
+            savedir=os.path.join('/', 'global', 'cscratch1', 'sd',
+                                 'twhilton', 'plots_temporary'),
             time_title_str=lu_str)
         fig = plotter.plot(vmin=0.0, vmax=1.0)
