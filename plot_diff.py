@@ -562,6 +562,9 @@ class var_diff(object):
             matching_files = [os.path.join(search_directory, f)
                               for f in matching_files]
             matching_files = sorted(matching_files)
+            if len(matching_files) == 0:
+                raise(IOError(('regular expression "{}" '
+                               'matches no files').format(re_pat)))
             wv = wrf_var(matching_files,
                          label=self.label_A,
                          varname=self.varname,
