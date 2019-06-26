@@ -2,12 +2,14 @@ import datetime
 import os
 import numpy as np
 from plot_diff import var_diff, VarDiffPlotter
+from landuse_plotter import get_LUfrac_diff
 import sys
+import matplotlib.pyplot as plt
 
 # ----- settings -----
 DOMAIN = 2
 PVAL = 0.05
-READ_DATA = True
+READ_DATA = False
 if len(sys.argv) > 1:
     varname = sys.argv[1]
 else:
@@ -101,6 +103,42 @@ if __name__ == "__main__":
                                vmax=None,
                                mask=vd.p > PVAL)
                                # mask=None)
+
+    PFT_URBAN = 12  # modified MODIS-IGBP code for urban land use
+    wrfin = {'ctl': os.path.join('/', 'global', 'cscratch1', 'sd',
+                                 'twhilton', 'WRFv4.0_Sensitivity',
+                                 'WRFCLMv4.0_NCEPDOEp2', 'WRFV4',
+                                 'run', 'wrfinput_d02'),
+             'deurb': os.path.join('/', 'global', 'cscratch1', 'sd',
+                                   'twhilton', 'WRFv4.0_Sensitivity',
+                                   'WRFCLMv4.0_NCEPDOEp2_deurbanized',
+                                   'WRFV4', 'run', 'wrfinput_d02')}
+    vd_LUfrac = get_LUfrac_diff(PFT_URBAN, wrfin)
+    vd_LUfrac.calc_diff(0, 0)
+
+    fig = plt.figure()
+    ax = plt.axes()
+    # ax.scatter(vd_LUfrac.d.flatten(), vd.d.flatten())
+    d_urban_LU_all = vd_LUfrac.d.flatten()
+    d_fog_all = vd.d.flatten()
+    idx_valid = np.argwhere(np.logical_and(np.isfinite(d_fog_all),
+                                           np.isfinite(d_urban_LU_all)))
+    d_urban_LU = d_urban_LU_all[idx_valid].data.squeeze()
+    d_fog = d_fog_all[idx_valid].data.squeeze()
+
+    fit = np.polyfit(d_urban_LU, d_fog, 1)
+    fit_fn = np.poly1d(fit)
+
+    line_data, line_fit = ax.plot(d_urban_LU, d_fog, 'ob',
+                                d_urban_LU, fit_fn(d_urban_LU), '--k')
+    line_fit.set_dashes([3, 3])
+    ax.set_xlim((0.0, 1.0))
+    ax.set_ylim((-1.0, 0.0))
+    ax.set_ylabel('LU fraction change')
+    ax.set_xlabel('fog change')
+    fname = os.path.join(out_dir, 'deurbanize_fraction_vs_fog_change.pdf')
+    fig.savefig(fname)
+    print('wrote {}'.format(fname))
 
 
     print('done driver ({})'.format(datetime.datetime.now() - t0))
