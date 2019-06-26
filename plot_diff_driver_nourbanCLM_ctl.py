@@ -134,11 +134,29 @@ if __name__ == "__main__":
     ax.plot(x, fit_fn(x), dashes=[3, 3], color='black')
     ax.set_xlim((0.0, 1.0))
     ax.set_ylim((-1.0, 0.0))
-    ax.set_ylabel('LU fraction change')
-    ax.set_xlabel('fog change')
+    ax.set_xlabel('urban fraction decrease')
+    ax.set_ylabel('fog change')
+    ax.set_title('significant at 95%')
     fname = os.path.join(out_dir, 'deurbanize_fraction_vs_fog_change.pdf')
     fig.savefig(fname)
     print('wrote {}'.format(fname))
+
+    idx_all_urban_pixels = np.nonzero(d_urban_LU_all.data)[0]
+    fig = plt.figure()
+    ax = plt.axes()
+    # plt.scatter(np.arange(len(idx_all_urban_pixels)),
+    #             d_urban_LU_all[idx_all_urban_pixels].data)
+    plt.scatter(d_urban_LU_all[idx_all_urban_pixels].data,
+                d_fog_all[idx_all_urban_pixels].data)
+    fit = np.polyfit(d_urban_LU_all[idx_all_urban_pixels].data,
+                     d_fog_all[idx_all_urban_pixels].data, 1)
+    fit_fn = np.poly1d(fit)
+    x = np.array([0.0, 1.0])
+    ax.plot(x, fit_fn(x), dashes=[3, 3], color='black')
+    ax.set_xlabel('urban fraction decrease')
+    ax.set_ylabel('fog change')
+    ax.set_title('all pixels with some urban landuse')
+
 
 
     print('done driver ({})'.format(datetime.datetime.now() - t0))
