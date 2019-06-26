@@ -78,9 +78,34 @@ def plot_landuse(ax, lon, lat, data):
     ax.coastlines(resolution='10m', color='black')
     return(cm)
 
+
+def get_LUfrac_diff(this_pft, wrfin):
+    """return a vd_LUfrac object for the LU change for a specified PFT
+    """
+    vd_LUfrac = LU_vardiff(fname_A=wrfin['ctl'], fname_B=wrfin['deurb'],
+                           label_A='ctl', label_B='deurb')
+    vd_LUfrac.units = "fraction"
+    vd_LUfrac.longname = "Land use fraction"
+
+    vd_LUfrac.read_files()
+    for k in vd_LUfrac.data.keys():
+        # selecting data[k][this_pft, ...] removes the PFT
+        # dimension, but plotter needs that dimension there
+        vd_LUfrac.data[k] = np.expand_dims(
+            vd_LUfrac.data[k][this_pft, ...],
+            0)
+    return(vd_LUfrac)
+
+
 if __name__ == "__main__":
-    wrfin = {'ctl': '/global/cscratch1/sd/twhilton/WRFv4.0_Sensitivity/WRFCLMv4.0_NCEPDOEp2/WRFV4/run/wrfinput_d02',
-             'deurb': '/global/cscratch1/sd/twhilton/WRFv4.0_Sensitivity/WRFCLMv4.0_NCEPDOEp2_deurbanized/WRFV4/run/wrfinput_d02'}
+    wrfin = {'ctl': os.path.join('/', 'global', 'cscratch1', 'sd',
+                                 'twhilton', 'WRFv4.0_Sensitivity',
+                                 'WRFCLMv4.0_NCEPDOEp2', 'WRFV4',
+                                 'run', 'wrfinput_d02'),
+             'deurb': os.path.join('/', 'global', 'cscratch1', 'sd',
+                                   'twhilton', 'WRFv4.0_Sensitivity',
+                                   'WRFCLMv4.0_NCEPDOEp2_deurbanized',
+                                   'WRFV4', 'run', 'wrfinput_d02')}
     lufrac = {}
     luidx = {}
     for k in wrfin.keys():
@@ -120,17 +145,8 @@ if __name__ == "__main__":
     fig.savefig(fname=os.path.join('/', 'global', 'cscratch1', 'sd',
                                    'twhilton', 'plots_temporary',
                                    'land_use_dominant.png'))
-
-    vd_LUfrac = LU_vardiff(fname_A=wrfin['ctl'], fname_B=wrfin['deurb'],
-                           label_A='ctl', label_B='deurb')
-    vd_LUfrac.units = "fraction"
-    vd_LUfrac.longname = "Land use fraction"
-    for this_pft in range(len(ctable)):
-        vd_LUfrac.read_files()
-        for k in vd_LUfrac.data.keys():
-            vd_LUfrac.data[k] = np.expand_dims(
-                vd_LUfrac.data[k][this_pft, ...],
-                0)
+    for this_pft in range(3):  # range(len(ctable)):
+        vd_LUfrac = get_LUfrac_diff(this_pft, wrfin)
         lu_str = '{:02d}-{}'.format(
             ctable['PFTnum'][this_pft],
             ctable['long_name'][this_pft].replace('/', ''))
