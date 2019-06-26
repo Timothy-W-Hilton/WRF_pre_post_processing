@@ -129,9 +129,9 @@ if __name__ == "__main__":
     fit = np.polyfit(d_urban_LU, d_fog, 1)
     fit_fn = np.poly1d(fit)
 
-    line_data, line_fit = ax.plot(d_urban_LU, d_fog, 'ob',
-                                d_urban_LU, fit_fn(d_urban_LU), '--k')
-    line_fit.set_dashes([3, 3])
+    ax.scatter(d_urban_LU, d_fog)
+    x = np.array([0.0, 1.0])
+    ax.plot(x, fit_fn(x), dashes=[3, 3], color='black')
     ax.set_xlim((0.0, 1.0))
     ax.set_ylim((-1.0, 0.0))
     ax.set_ylabel('LU fraction change')
