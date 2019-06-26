@@ -119,7 +119,8 @@ if __name__ == "__main__":
     fig = plt.figure()
     ax = plt.axes()
     # ax.scatter(vd_LUfrac.d.flatten(), vd.d.flatten())
-    d_urban_LU_all = vd_LUfrac.d.flatten()
+    # use convention that urban fraction decrease < 0.0
+    d_urban_LU_all = vd_LUfrac.d.flatten() * -1.0
     d_fog_all = vd.d.flatten()
     idx_valid = np.argwhere(np.logical_and(np.isfinite(d_fog_all),
                                            np.isfinite(d_urban_LU_all)))
@@ -130,9 +131,9 @@ if __name__ == "__main__":
     fit_fn = np.poly1d(fit)
 
     ax.scatter(d_urban_LU, d_fog)
-    x = np.array([0.0, 1.0])
+    x = np.array([0.0, -1.0])
     ax.plot(x, fit_fn(x), dashes=[3, 3], color='black')
-    ax.set_xlim((0.0, 1.0))
+    ax.set_xlim((-1.0, 0.0))
     ax.set_ylim((-1.0, 0.0))
     ax.set_xlabel('urban fraction decrease')
     ax.set_ylabel('fog change')
@@ -151,12 +152,11 @@ if __name__ == "__main__":
     fit = np.polyfit(d_urban_LU_all[idx_all_urban_pixels].data,
                      d_fog_all[idx_all_urban_pixels].data, 1)
     fit_fn = np.poly1d(fit)
-    x = np.array([0.0, 1.0])
+    x = np.array([0.0, -1.0])
     ax.plot(x, fit_fn(x), dashes=[3, 3], color='black')
     ax.set_xlabel('urban fraction decrease')
     ax.set_ylabel('fog change')
     ax.set_title('all pixels with some urban landuse')
-
-
+    ax.set_xlim((-1.0, 0.0))
 
     print('done driver ({})'.format(datetime.datetime.now() - t0))
