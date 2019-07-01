@@ -58,6 +58,7 @@ if __name__ == "__main__":
     coasts.crs = crs_latlon
     wrf_pixels = gpd.GeoDataFrame(
         df, geometry=gpd.points_from_xy(df.lon, df.lat), crs=crs_latlon)
+    wrf_pixels_utm = wrf_pixels.to_crs(crs_utmz10)
     # d1 = wrf_pixels.distance(coasts)
     # d2 = coasts.distance(wrf_pixels)
     # window coasts to W coast of N America
@@ -80,8 +81,7 @@ if __name__ == "__main__":
     d1 = ca_cities.distance(ca_coast)
     ax = ca_coast.plot()
     ca_cities.plot(color='red', marker='x', ax=ax)
-    ca_cities.iloc[2].geometry.distance(ca_coast.iloc[0].geometry)
-    ca_coast.iloc[0].distance(ca_cities.iloc[0])
+
     # geopandas distance method operates on a *GeoSeries* object.  Not
     # a DataFrame, not a point, only a GeoSeries.  The geometry field
     # of a geopandas dataframe is a GeoSeries.
@@ -93,4 +93,10 @@ if __name__ == "__main__":
         print('{} to coast: {:0.0f} km'.format(this_city['City'], d_km[0]))
 
 
-    foo = ca_coast.geometry.distance(ca_cities.iloc[0].geometry)
+    for idx, this_pixel in wrf_pixels.iterrows():
+        d = ca_coast.geometry.distance(this_pixel.geometry).values
+        d_km = 1 / 1000.0
+
+    d = [ca_coast.geometry.distance(this_pixel.geometry).values for
+         idx, this_pixel in wrf_pixels_utm.iterrows()]
+    d_km = np.array(d) / 1000.0
