@@ -25,10 +25,62 @@ import shapely
 import geopandas as gpd
 
 
+def dist_to_coast_demo(na_w_coast, wrf_pixels):
+    """plot a map showing WRF pixels colored by distance to coast
+
+    Demonstrates that distance to coast calculation is working well
+    enough.
+    """
+    fig = plt.figure()
+    ax = plt.subplot(111)
+    na_w_coast.plot(ax=ax)
+    cm = ax.scatter(wrf_pixels['lon'],
+                    wrf_pixels['lat'],
+                    c=wrf_pixels['d_coast_km'],
+                    s=4)
+    cbar = plt.colorbar(cm)
+    ax.set_xlabel('longitude ($^\circ$W)')
+    ax.set_ylabel('latitude ($^\circ$N)')
+    cbar.ax.set_title('km to coast')
+    return(fig, ax)
+
+
+def dfog_durban_scatterplot(df):
+    """draw a scatterplot showing d(fog fraction) vs d(urban fraction)
+
+    Each point is a WRF pixel.
+
+    Uses the color axis to show distance to coast in km.
+
+    returns:
+    matplotlib figure and axes objects containing the plot
+    """
+
+    # draw the plot
+    fig = plt.figure()
+    ax = plt.subplot(111)
+    n = Normalize().autoscale(A=wrf_pixels['d_coast_km'])
+    bins = np.array([0, 5, 10, 15, 20, 25, 50, 100, 300, 500, 700])
+    bins = np.array([0, 2, 5, 10, 15, 20, 25, 800])
+    wrf_pixels['d_coast_binned'] = pd.cut(
+        wrf_pixels['d_coast_km'],
+        bins=bins,
+    )
+    sp = sns.scatterplot(y="d_fog",
+                         x="d_urban_frac",
+                         hue='d_coast_binned',
+                         hue_norm=n,
+                         palette=sns.color_palette("cubehelix",   # Blues_d",
+                                                   n_colors=bins.size - 1),
+                         data=wrf_pixels)
+    sp.legend().get_texts()[0].set_text('km to coast')
+    ax.set_ylabel('$\Delta$fraction of hours with fog')
+    ax.set_xlabel('$\Delta$urban fraction')
+    return(fig, ax)
+
 if __name__ == "__main__":
 
     df = pd.read_csv('./fog_change_data_frame.csv')
-    df['round_lat'] = round(df['lat'])
 
     # Read the Natural Earth shapefile dataset
     #----------------------------------
@@ -86,34 +138,5 @@ if __name__ == "__main__":
     d_km = np.array(d) / 1000.0
     wrf_pixels['d_coast_km'] = d_km
 
-    ax = na_w_coast.plot()
-    cm = ax.scatter(wrf_pixels['lon'],
-                    wrf_pixels['lat'],
-                    c=wrf_pixels['d_coast_km'],
-                    s=4)
-    cbar = plt.colorbar(cm)
-    ax.set_xlabel('longitude ($^\circ$W)')
-    ax.set_ylabel('latitude ($^\circ$N)')
-    cbar.ax.set_title('km to coast')
-
-
-    # draw the plot
-    fig = plt.figure()
-    ax = plt.subplot(111)
-    n = Normalize().autoscale(A=wrf_pixels['d_coast_km'])
-    bins = np.array([0, 5, 10, 15, 20, 25, 50, 100, 300, 500, 700])
-    bins = np.array([0, 2, 5, 10, 15, 20, 25, 800])
-    wrf_pixels['d_coast_binned'] = pd.cut(
-        wrf_pixels['d_coast_km'],
-        bins=bins,
-    )
-    sp = sns.scatterplot(y="d_fog",
-                         x="d_urban_frac",
-                         hue='d_coast_binned',
-                         hue_norm=n,
-                         palette=sns.color_palette("cubehelix",   # Blues_d",
-                                                   n_colors=bins.size - 1),
-                         data=wrf_pixels)
-    sp.legend().get_texts()[0].set_text('km to coast')
-    ax.set_ylabel('$\Delta$fraction of hours with fog')
-    ax.set_xlabel('$\Delta$urban fraction')
+    fig1, ax1 = dist_to_coast_demo(na_w_coast, wrf_pixels)
+    fig2, ax2 = dfog_durban_scatterplot(wrf_pixels)
