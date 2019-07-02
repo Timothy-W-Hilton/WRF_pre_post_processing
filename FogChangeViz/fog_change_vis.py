@@ -102,6 +102,7 @@ if __name__ == "__main__":
     ax = plt.subplot(111)
     n = Normalize().autoscale(A=wrf_pixels['d_coast_km'])
     bins = np.array([0, 5, 10, 15, 20, 25, 50, 100, 300, 500, 700])
+    bins = np.array([0, 2, 5, 10, 15, 20, 25, 800])
     wrf_pixels['d_coast_binned'] = pd.cut(
         wrf_pixels['d_coast_km'],
         bins=bins,
@@ -110,9 +111,9 @@ if __name__ == "__main__":
                          x="d_urban_frac",
                          hue='d_coast_binned',
                          hue_norm=n,
-                         palette=sns.color_palette("Blues_d",
+                         palette=sns.color_palette("cubehelix",   # Blues_d",
                                                    n_colors=bins.size - 1),
                          data=wrf_pixels)
-    sp.legend().get_texts()[0].set_text('Day of Week')
-    ax.set_xlabel('$\Delta$fraction of hours with fog')
-    ax.set_ylabel('$\Delta$urban fraction')
+    sp.legend().get_texts()[0].set_text('km to coast')
+    ax.set_ylabel('$\Delta$fraction of hours with fog')
+    ax.set_xlabel('$\Delta$urban fraction')
