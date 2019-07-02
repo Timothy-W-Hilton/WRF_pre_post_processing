@@ -24,11 +24,6 @@ from cartopy.io import shapereader
 import shapely
 import geopandas as gpd
 
-def dist_to_coast(df_row, shp=None):
-    """calculate distance from a lat/lon point to a coastline
-    """
-    pt1 = shapely.geometry.Point(df_row['lon'], df_row['lat'])
-    return(np.min([pt1.distance(this_g) for this_g in shp.geometries()]))
 
 if __name__ == "__main__":
 
@@ -40,10 +35,7 @@ if __name__ == "__main__":
     kw = dict(resolution='10m', category='physical', name='coastline')
     coast_shp = shapereader.natural_earth(**kw)
     shp = shapereader.Reader(coast_shp)
-    # TODO: this needs projection information somehow...
-    # foo = df.copy()
-    # df = df.head()
-    # df['dist_to_coast'] = df.apply(dist_to_coast, axis=1, args={shp: shp})
+
 
     # # draw the plot
     # n = Normalize().autoscale(A=df['dist_to_coast'])
@@ -58,9 +50,6 @@ if __name__ == "__main__":
     #                 palette=sns.color_palette("Blues_d", n_colors=10),
     #                 data=df)
 
-    # 200-300 contains all of US west coast
-    # search for lon < 50 and lat > 0 to (mostly) to (crudely) window N America
-
     # define the coordinate reference system to latitude/longitude
     crs_latlon = "+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs"
     crs_utmz10 = "+proj=utm +zone=10 +ellps=WGS84 +datum=WGS84 +units=m +no_defs"
@@ -70,8 +59,6 @@ if __name__ == "__main__":
     wrf_pixels = gpd.GeoDataFrame(
         df, geometry=gpd.points_from_xy(df.lon, df.lat), crs=crs_latlon)
     wrf_pixels_utm = wrf_pixels.to_crs(crs_utmz10)
-    # d1 = wrf_pixels.distance(coasts)
-    # d2 = coasts.distance(wrf_pixels)
     # window coasts to W coast of N America
     na_w_coast = coasts.cx[-140:-110, 20:60]
 
