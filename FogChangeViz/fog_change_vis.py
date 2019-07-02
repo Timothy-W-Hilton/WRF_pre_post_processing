@@ -36,20 +36,6 @@ if __name__ == "__main__":
     coast_shp = shapereader.natural_earth(**kw)
     shp = shapereader.Reader(coast_shp)
 
-
-    # # draw the plot
-    # n = Normalize().autoscale(A=df['dist_to_coast'])
-    # df['dist_to_coast_cat'] = pd.cut(
-    #     df['dist_to_coast'],
-    #     bins=np.append(np.linspace(0.0, 1.0, 10), 10)
-    # )
-    # sns.scatterplot(y="d_fog",
-    #                 x="d_urban_frac",
-    #                 hue='dist_to_coast_cat',
-    #                 hue_norm=n,
-    #                 palette=sns.color_palette("Blues_d", n_colors=10),
-    #                 data=df)
-
     # define the coordinate reference system to latitude/longitude
     crs_latlon = "+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs"
     crs_utmz10 = "+proj=utm +zone=10 +ellps=WGS84 +datum=WGS84 +units=m +no_defs"
@@ -109,3 +95,24 @@ if __name__ == "__main__":
     ax.set_xlabel('longitude ($^\circ$W)')
     ax.set_ylabel('latitude ($^\circ$N)')
     cbar.ax.set_title('km to coast')
+
+
+    # draw the plot
+    fig = plt.figure()
+    ax = plt.subplot(111)
+    n = Normalize().autoscale(A=wrf_pixels['d_coast_km'])
+    bins = np.array([0, 5, 10, 15, 20, 25, 50, 100, 300, 500, 700])
+    wrf_pixels['d_coast_binned'] = pd.cut(
+        wrf_pixels['d_coast_km'],
+        bins=bins,
+    )
+    sp = sns.scatterplot(y="d_fog",
+                         x="d_urban_frac",
+                         hue='d_coast_binned',
+                         hue_norm=n,
+                         palette=sns.color_palette("Blues_d",
+                                                   n_colors=bins.size - 1),
+                         data=wrf_pixels)
+    sp.legend().get_texts()[0].set_text('Day of Week')
+    ax.set_xlabel('$\Delta$fraction of hours with fog')
+    ax.set_ylabel('$\Delta$urban fraction')
