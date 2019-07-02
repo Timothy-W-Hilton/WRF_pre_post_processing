@@ -1,4 +1,13 @@
 """try out some visualizations of fog change/urbanization
+
+uses universal tranverse mercator (UTM) zones to project the
+coordinates.  This allows me to use the vectorized distance
+calculation in geopandas geoseries (which, in turn, uses shapely's
+distance function).  Shapely calculates cartesian distances, not
+geodesic distances.  So the cost of using the vectorized distance
+function is whatever loss of accuracy using UTM zones and cartesian
+distances introduces.  For the purpose of sorting fog reduction by
+distance to coast these distances look plenty close enough to me.
 """
 
 import numpy as np
@@ -7,6 +16,7 @@ import seaborn as sns
 from cartopy.feature import GSHHSFeature
 
 from matplotlib.colors import cnames, Normalize
+import matplotlib.pyplot as plt
 import cartopy.crs as ccrs
 import cartopy.feature as cfeature
 from cartopy.mpl.gridliner import LONGITUDE_FORMATTER, LATITUDE_FORMATTER
@@ -54,6 +64,7 @@ if __name__ == "__main__":
     # define the coordinate reference system to latitude/longitude
     crs_latlon = "+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs"
     crs_utmz10 = "+proj=utm +zone=10 +ellps=WGS84 +datum=WGS84 +units=m +no_defs"
+    crs_utmz11 = "+proj=utm +zone=11 +ellps=WGS84 +datum=WGS84 +units=m +no_defs"
     coasts = gpd.read_file(coast_shp)
     coasts.crs = crs_latlon
     wrf_pixels = gpd.GeoDataFrame(
@@ -77,7 +88,7 @@ if __name__ == "__main__":
     ca_cities = gdf.to_crs(crs_utmz10)
     na_w_coast_utm = na_w_coast.to_crs(crs_utmz10)
     # window to California coast for testing
-    ca_coast = na_w_coast_utm.iloc[16:17, :]
+    ca_coast = na_w_coast_utm.iloc[15:17, :]
     d1 = ca_cities.distance(ca_coast)
     ax = ca_coast.plot()
     ca_cities.plot(color='red', marker='x', ax=ax)
@@ -86,17 +97,28 @@ if __name__ == "__main__":
     # a DataFrame, not a point, only a GeoSeries.  The geometry field
     # of a geopandas dataframe is a GeoSeries.
     for idx, this_city in ca_cities.iterrows():
-        d = ca_coast.geometry.distance(this_city.geometry).values
+        d = ca_coast.geometry.distance(this_city.geometry).values.min()
         d_km = d / 1000.0
         if d.size != 1:
             raise(ValueError('distance() returned multiple values'))
-        print('{} to coast: {:0.0f} km'.format(this_city['City'], d_km[0]))
+        print('{} to coast: {:0.0f} km'.format(this_city['City'], d_km))
 
 
     for idx, this_pixel in wrf_pixels.iterrows():
         d = ca_coast.geometry.distance(this_pixel.geometry).values
         d_km = 1 / 1000.0
 
-    d = [ca_coast.geometry.distance(this_pixel.geometry).values for
+    d = [ca_coast.geometry.distance(this_pixel.geometry).values.min() for
          idx, this_pixel in wrf_pixels_utm.iterrows()]
     d_km = np.array(d) / 1000.0
+    wrf_pixels['d_coast_km'] = d_km
+
+    ax = na_w_coast.plot()
+    cm = ax.scatter(wrf_pixels['lon'],
+                    wrf_pixels['lat'],
+                    c=wrf_pixels['d_coast_km'],
+                    s=4)
+    cbar = plt.colorbar(cm)
+    ax.set_xlabel('longitude ($^\circ$W)')
+    ax.set_ylabel('latitude ($^\circ$N)')
+    cbar.ax.set_title('km to coast')
