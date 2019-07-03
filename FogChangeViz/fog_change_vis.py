@@ -45,7 +45,7 @@ def dist_to_coast_demo(na_w_coast, wrf_pixels):
     return(fig, ax)
 
 
-def dfog_durban_scatterplot(df):
+def dfog_durban_scatterplot(df, show_ci=None, show_fits=False):
     """draw a scatterplot showing d(fog fraction) vs d(urban fraction)
 
     Each point is a WRF pixel.
@@ -73,11 +73,12 @@ def dfog_durban_scatterplot(df):
                                               n_colors=bins.size - 1),
                     data=df,
                     legend_out=True,
-                    ci=None)
+                    ci=show_ci,
+                    fit_reg=show_fits)
     sp._legend.set_title('km to coast')
     fig = plt.gcf()
     ax = plt.gca()
-    ax.set_xlim((0.0, 1.0))
+    ax.set_xlim((-0.02, 1.02))
     ax.set_ylabel('$\Delta$fraction of hours with fog')
     ax.set_xlabel('$\Delta$urban fraction')
     return(fig, ax)
@@ -143,4 +144,4 @@ if __name__ == "__main__":
     wrf_pixels['d_coast_km'] = d_km
 
     fig1, ax1 = dist_to_coast_demo(na_w_coast, wrf_pixels)
-    fig2, ax2 = dfog_durban_scatterplot(wrf_pixels)
+    fig2, ax2 = dfog_durban_scatterplot(wrf_pixels, show_fits=True)
