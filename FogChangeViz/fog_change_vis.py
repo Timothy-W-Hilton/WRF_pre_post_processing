@@ -62,20 +62,22 @@ def dfog_durban_scatterplot(df, show_ci=None, show_fits=False):
     n = Normalize().autoscale(A=df['d_coast_km'])
     bins = np.array([0, 5, 10, 15, 20, 25, 50, 100, 300, 500, 700])
     bins = np.array([0, 2, 5, 10, 15, 20, 25, 800])
+    n_bins = bins.size - 1
+    df['lat_bins'] = pd.cut(df['lat'], n_bins)
     df['d_coast_binned'] = pd.cut(
         df['d_coast_km'],
         bins=bins,
     )
     sp = sns.lmplot(y="d_fog",
                     x="d_urban_frac",
-                    hue='d_coast_binned',
+                    hue='lat_bins',
                     palette=sns.color_palette("cubehelix",   # Blues_d",
-                                              n_colors=bins.size - 1),
+                                              n_colors=n_bins),
                     data=df,
                     legend_out=True,
                     ci=show_ci,
                     fit_reg=show_fits)
-    sp._legend.set_title('km to coast')
+    sp._legend.set_title('latitude $^\circ$N')
     fig = plt.gcf()
     ax = plt.gca()
     ax.set_xlim((-0.02, 1.02))
@@ -119,9 +121,9 @@ if __name__ == "__main__":
     na_w_coast_utm = na_w_coast.to_crs(crs_utmz10)
     # window to California coast for testing
     ca_coast = na_w_coast_utm.iloc[15:17, :]
-    d1 = ca_cities.distance(ca_coast)
-    ax = ca_coast.plot()
-    ca_cities.plot(color='red', marker='x', ax=ax)
+    # d1 = ca_cities.distance(ca_coast)
+    # ax = ca_coast.plot()
+    # ca_cities.plot(color='red', marker='x', ax=ax)
 
     # geopandas distance method operates on a *GeoSeries* object.  Not
     # a DataFrame, not a point, only a GeoSeries.  The geometry field
@@ -143,5 +145,8 @@ if __name__ == "__main__":
     d_km = np.array(d) / 1000.0
     wrf_pixels['d_coast_km'] = d_km
 
-    fig1, ax1 = dist_to_coast_demo(na_w_coast, wrf_pixels)
-    fig2, ax2 = dfog_durban_scatterplot(wrf_pixels, show_fits=True)
+    # fig1, ax1 = dist_to_coast_demo(na_w_coast, wrf_pixels)
+    wrf_pixels_coastal = wrf_pixels[wrf_pixels['d_coast_km'] < 5]
+    fig2, ax2 = dfog_durban_scatterplot(wrf_pixels_coastal, show_fits=True)
+    ax2.set_title('all WRF pixels with some urban land use within 5 km of coast', pad=1)
+    fig2.savefig('/Users/tim/work/Plots/Summen/NoUrban/deurbanize_fraction_vs_fog_change_allurban_coastal_latbins_lmfits.pdf')
