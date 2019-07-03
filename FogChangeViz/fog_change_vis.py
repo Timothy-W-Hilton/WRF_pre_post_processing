@@ -59,11 +59,11 @@ def dfog_durban_scatterplot(df):
     # draw the plot
     # fig = plt.figure()
     # ax = plt.subplot(111)
-    n = Normalize().autoscale(A=wrf_pixels['d_coast_km'])
+    n = Normalize().autoscale(A=df['d_coast_km'])
     bins = np.array([0, 5, 10, 15, 20, 25, 50, 100, 300, 500, 700])
     bins = np.array([0, 2, 5, 10, 15, 20, 25, 800])
-    wrf_pixels['d_coast_binned'] = pd.cut(
-        wrf_pixels['d_coast_km'],
+    df['d_coast_binned'] = pd.cut(
+        df['d_coast_km'],
         bins=bins,
     )
     sp = sns.lmplot(y="d_fog",
@@ -71,7 +71,7 @@ def dfog_durban_scatterplot(df):
                     hue='d_coast_binned',
                     palette=sns.color_palette("cubehelix",   # Blues_d",
                                               n_colors=bins.size - 1),
-                    data=wrf_pixels,
+                    data=df,
                     legend_out=True,
                     ci=None)
     sp._legend.set_title('km to coast')
