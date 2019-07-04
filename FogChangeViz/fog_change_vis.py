@@ -62,12 +62,20 @@ def dfog_durban_scatterplot(df, show_ci=None, show_fits=False):
     n = Normalize().autoscale(A=df['d_coast_km'])
     bins = np.array([0, 5, 10, 15, 20, 25, 50, 100, 300, 500, 700])
     bins = np.array([0, 2, 5, 10, 15, 20, 25, 800])
-    n_bins = bins.size - 1
-    df['lat_bins'] = pd.cut(df['lat'], n_bins)
     df['d_coast_binned'] = pd.cut(
         df['d_coast_km'],
         bins=bins,
     )
+
+    tijuana = 32.522499
+    santa_barbara = 34.4215357
+    santa_cruz = 36.974474
+    santa_rosa = 38.444660
+    lat_bins = np.array([tijuana, santa_barbara, santa_cruz, santa_rosa,
+                         41, 43, 45, 47, 49, 51])
+    n_bins = lat_bins.size - 1
+    df['lat_bins'] = pd.cut(df['lat'], lat_bins)
+
     sp = sns.lmplot(y="d_fog",
                     x="d_urban_frac",
                     hue='lat_bins',
@@ -147,6 +155,6 @@ if __name__ == "__main__":
 
     # fig1, ax1 = dist_to_coast_demo(na_w_coast, wrf_pixels)
     wrf_pixels_coastal = wrf_pixels[wrf_pixels['d_coast_km'] < 5]
-    fig2, ax2 = dfog_durban_scatterplot(wrf_pixels_coastal, show_fits=True)
-    ax2.set_title('all WRF pixels with some urban land use within 5 km of coast', pad=1)
-    fig2.savefig('/Users/tim/work/Plots/Summen/NoUrban/deurbanize_fraction_vs_fog_change_allurban_coastal_latbins_lmfits.pdf')
+    fig2, ax2 = dfog_durban_scatterplot(wrf_pixels, show_fits=True)
+    ax2.set_title('all WRF pixels with some urban use', pad=1)
+    fig2.savefig('/Users/tim/work/Plots/Summen/NoUrban/deurbanize_fraction_vs_fog_change_allurban_latbins_lmfits.pdf')
