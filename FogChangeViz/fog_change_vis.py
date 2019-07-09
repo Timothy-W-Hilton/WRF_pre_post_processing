@@ -60,8 +60,7 @@ def dfog_durban_scatterplot(df, show_ci=None, show_fits=False):
     # fig = plt.figure()
     # ax = plt.subplot(111)
     n = Normalize().autoscale(A=df['d_coast_km'])
-    bins = np.array([0, 5, 10, 15, 20, 25, 50, 100, 300, 500, 700])
-    bins = np.array([0, 2, 5, 10, 15, 20, 25, 800])
+    bins = np.array([0, 5, 10, 15, 20, 25, 50, 100, 350, 550, 750, 950, 1150])
     df['d_coast_binned'] = pd.cut(
         df['d_coast_km'],
         bins=bins,
@@ -95,7 +94,7 @@ def dfog_durban_scatterplot(df, show_ci=None, show_fits=False):
 
 if __name__ == "__main__":
 
-    df = pd.read_csv('./fog_change_data_frame.csv')
+    df = pd.read_csv('./fog_change_data_frame_allpixels.csv.zip')
 
     # Read the Natural Earth shapefile dataset
     #----------------------------------
