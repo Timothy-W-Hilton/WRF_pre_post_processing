@@ -1,3 +1,4 @@
+import pandas as pd
 import datetime
 import os
 import numpy as np
@@ -14,9 +15,9 @@ if len(sys.argv) > 1:
     varname = sys.argv[1]
 else:
     # varname = 'HFX'
-    varname = 'LH'
+    # varname = 'LH'
     # varname = 'LCL'
-    # varname = 'fogpresent'
+    varname = 'fogpresent'
     # varname = 'SMOIS'
     # varname = 'fogbase'
     # varname = 'fogpct'
@@ -160,3 +161,10 @@ if __name__ == "__main__":
     ax.set_xlim((-1.0, 0.0))
 
     print('done driver ({})'.format(datetime.datetime.now() - t0))
+
+    df = pd.DataFrame({'d_urban_frac': vd_LUfrac.d.data.flatten(),
+                       'd_fog': vd.d.data.flatten(),
+                       'lat': vd.lat.flatten(),
+                       'lon': vd.lon.flatten(),
+                       'p': vd.p.flatten()})
+    df.to_csv('fog_change_data_frame_allpixels.csv.zip')
