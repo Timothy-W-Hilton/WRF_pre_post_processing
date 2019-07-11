@@ -60,12 +60,8 @@ def dfog_durban_scatterplot(df, show_ci=None, show_fits=False):
     # fig = plt.figure()
     # ax = plt.subplot(111)
     n = Normalize().autoscale(A=df['d_coast_km'])
-    bins = np.array([0, 5, 10, 15, 20, 25, 50, 100, 300, 500, 700])
-    bins = np.array([0, 2, 5, 10, 15, 20, 25, 800])
-    df['d_coast_binned'] = pd.cut(
-        df['d_coast_km'],
-        bins=bins,
-    )
+    bins = np.array([0, 5, 10, 15, 20, 25, 50, 100, 350, 550, 750, 950, 1150])
+    df = df.assign(d_coast_binned = pd.cut(df.loc[:, 'd_coast_km'], bins=bins))
 
     tijuana = 32.522499
     santa_barbara = 34.4215357
@@ -74,7 +70,7 @@ def dfog_durban_scatterplot(df, show_ci=None, show_fits=False):
     lat_bins = np.array([tijuana, santa_barbara, santa_cruz, santa_rosa,
                          41, 43, 45, 47, 49, 51])
     n_bins = lat_bins.size - 1
-    df['lat_bins'] = pd.cut(df['lat'], lat_bins)
+    df = df.assign(lat_bins = pd.cut(df['lat'], lat_bins))
 
     sp = sns.lmplot(y="d_fog",
                     x="d_urban_frac",
@@ -95,7 +91,7 @@ def dfog_durban_scatterplot(df, show_ci=None, show_fits=False):
 
 if __name__ == "__main__":
 
-    df = pd.read_csv('./fog_change_data_frame.csv')
+    df = pd.read_csv('./fog_change_data_frame_allpixels.csv.zip')
 
     # Read the Natural Earth shapefile dataset
     #----------------------------------
