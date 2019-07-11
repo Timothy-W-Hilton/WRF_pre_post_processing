@@ -463,7 +463,8 @@ class var_diff(object):
                 pd.Timestamp('1970-01-01 00:00:00')
             )
             self.is_land = None
-            self.z = None
+            self.z = None  # vertical levels
+            self.z_score = None  # mean difference Z-scores
             self.data = {
                 self.label_A: nc.groups[self.label_A].variables[
                     self.varname][...],
@@ -481,6 +482,10 @@ class var_diff(object):
                 self.p = nc.variables['p'][...]
             else:
                 self.p = None
+            if 'z_score' in nc.variables:
+                self.z_score = nc.variables['z_score'][...]
+            else:
+                self.z_score = None
             self.insignificant_mask = None
             nc.close()
         else:
@@ -503,6 +508,7 @@ class var_diff(object):
             self.z = None  # height above sea level (meters)
             self.insignificant_mask = None
             self.p = None
+            self.z_score = None  # mean difference Z-score
 
     def read_soil_layers(self, silent=False):
         """read soil layers, print to stdout
@@ -735,9 +741,10 @@ class var_diff(object):
             self.longname = self.longname + ' time avg'
 
     def _get_p(self, adj_autocorr=True, idx=None):
-        z = self.diff_means_test(adj_autocorr=adj_autocorr, idx=idx)
+        if self.z_score is None:
+            self.diff_means_test(adj_autocorr=adj_autocorr, idx=idx)
         vectorized_cdf = np.vectorize(lambda x: norm.cdf(x, 0.0, 1.0))
-        p = vectorized_cdf(z)
+        p = vectorized_cdf(self.z_score)
         return(p)
 
     def get_significance_mask(self,
@@ -805,10 +812,9 @@ class var_diff(object):
         denominator = (np.sqrt((vars[self.label_A] / n_eff[self.label_A]) +
                                (vars[self.label_B] / n_eff[self.label_B])))
         # return infinity where denominator is zero
-        z = np.divide(numerator, denominator,
-                      out=np.full_like(numerator, np.inf),
-                      where=np.abs(denominator) > 1e-12)
-        return(z)
+        self.z_score = np.divide(numerator, denominator,
+                           out=np.full_like(numerator, np.inf),
+                           where=np.abs(denominator) > 1e-12)
 
     def calc_diff(self, idx, layer):
         """calculate the variables' difference, pct diff, and absolute max diff
@@ -900,6 +906,12 @@ class var_diff(object):
             nc.variables['p'].description = ('significance of the difference '
                                              'in variable values from a '
                                              'paired difference of means test')
+        if self.z_score is not None:
+            nc.createVariable('z_score', np.float, ('y', 'x'))
+            nc.variables['z_score'][...] = self.z_score
+            nc.variables['z_score'].description = ('Z-score of the difference '
+                                                   'in variable values from a '
+                                                   'paired difference of means test')
         nc.varname = self.varname
         nc.units = self.units
         nc.close()
