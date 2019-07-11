@@ -735,6 +735,13 @@ class var_diff(object):
             self.longname = self.longname + ' time avg'
 
     def _get_p(self, adj_autocorr=True, idx=None):
+        """return a p-value for the difference in means
+
+        Internally: calculates a z score (with the effective sample
+        size adjusted as needed for autocorrelation), and then places
+        the z score on a standard normal distribution
+
+        """
         z = self.diff_means_test(adj_autocorr=adj_autocorr, idx=idx)
         vectorized_cdf = np.vectorize(lambda x: norm.cdf(x, 0.0, 1.0))
         p = vectorized_cdf(z)
@@ -773,6 +780,10 @@ class var_diff(object):
         idx (array-like): indices into self.data items to include in
            the calculation.  Allows for estimating signficance for the
            differences of a subset of the data.
+
+        RETURNS:
+        a numpy array containing Z scores for the difference of means
+        test
 
         REFERENCES
 
