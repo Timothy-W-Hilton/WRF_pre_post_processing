@@ -1091,6 +1091,7 @@ class VarDiffPlotter(object):
              vmin=None,
              vmax=None,
              mask=None,
+             hatch_z_score=False,
              cmap=get_cmap('YlGnBu')):
         """plot contour plots for both variables, diff, pct diff
 
@@ -1114,9 +1115,14 @@ class VarDiffPlotter(object):
             # heat maps make huge PDF files, but barbs do not
             self.fig_type = 'pdf'
             self.get_filename()
-            self._plot_vector()
+            self._plot_vector(hatch_z_score)
         else:
-            self._plot_scalar(cb_orientation, vmin, vmax, mask, cmap)
+            self._plot_scalar(cb_orientation,
+                              vmin,
+                              vmax,
+                              mask,
+                              hatch_z_score,
+                              cmap)
         self.fig.savefig(fname=self.fname,
                          bbox_inches='tight',
                          dpi=self.fig.get_dpi())
@@ -1134,6 +1140,7 @@ class VarDiffPlotter(object):
                      vmin=None,
                      vmax=None,
                      mask=None,
+                     hatch_z_score=False,
                      cmap=get_cmap('YlGnBu')):
         """plot heatmaps for both variables, diff, pct diff
 
@@ -1218,6 +1225,23 @@ class VarDiffPlotter(object):
                                    cmap=cmap,
                                    norm=norm,
                                    edgecolors='face')
+        if hatch_z_score:
+            if self.vd.z_score is not None:
+                # unlike pcolormesh, contourf expects the coordinates
+                # to describe the cell center.  Therefore use
+                # self.vd.lon, not lons_ll
+                z_scores = np.abs(self.vd.z_score.data)
+                # z_scores[np.isinf(z_scores)] = z_scores.max()
+                self.d_map.contourf(self.vd.lon,
+                                    self.vd.lat,
+                                    z_scores,
+                                    colors=['none'],
+                                    hatches=['', '/',  'X',  '+'],
+                                    levels=[1, 2, 3, 4],)
+
+            else:
+                warnings.warn(('hatch_z_score is set to true but no '
+                               'Z-scores are present in var_diff object'))
         self.d_map.colorbar(orientation=cb_orientation)
         if cb_orientation == "horizontal":
             self.d_map.cb.ax.set_xticklabels(
@@ -1246,6 +1270,7 @@ class VarDiffPlotter(object):
                      vmin=None,
                      vmax=None,
                      mask=None,
+                     hatch_z_score=False,
                      cmap=get_cmap('YlGnBu')):
         """plot contour plots for both variables, diff, pct diff
 
