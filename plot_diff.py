@@ -1189,7 +1189,7 @@ class VarDiffPlotter(object):
                 cmap=cmap,
                 edgecolors='face')
             self.main_maps[axidx].colorbar(orientation=cb_orientation)
-            if cb_orientation is "horizontal":
+            if cb_orientation == "horizontal":
                 self.main_maps[axidx].cb.ax.set_xticklabels(
                     self.main_maps[axidx].cb.ax.get_xticklabels(),
                     rotation=-60)
@@ -1213,13 +1213,13 @@ class VarDiffPlotter(object):
                                                   this_cmap=get_cmap('RdBu'),
                                                   remove_middle_color=True)
         cm = self.d_map.pcolormesh(lons_ll,
-                              lats_ll,
-                              self.vd.d[:-2, :-2],
-                              cmap=cmap,
-                              norm=norm,
-                              edgecolors='face')
+                                   lats_ll,
+                                   self.vd.d[:-2, :-2],
+                                   cmap=cmap,
+                                   norm=norm,
+                                   edgecolors='face')
         self.d_map.colorbar(orientation=cb_orientation)
-        if cb_orientation is "horizontal":
+        if cb_orientation == "horizontal":
             self.d_map.cb.ax.set_xticklabels(
                 self.d_map.cb.ax.get_xticklabels(),
                 rotation=-60)
@@ -1235,7 +1235,7 @@ class VarDiffPlotter(object):
                                 norm=norm,
                                 edgecolors='face')
             this_map.colorbar(orientation=cb_orientation)
-            if cb_orientation is "horizontal":
+            if cb_orientation == "horizontal":
                 this_map.cb.ax.set_xticklabels(
                     this_map.cb.ax.get_xticklabels(),
                     rotation=-60)
