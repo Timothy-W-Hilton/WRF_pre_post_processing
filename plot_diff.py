@@ -1232,13 +1232,14 @@ class VarDiffPlotter(object):
                 # self.vd.lon, not lons_ll
                 z_scores = np.abs(self.vd.z_score.data)
                 # z_scores[np.isinf(z_scores)] = z_scores.max()
-                self.d_map.contourf(self.vd.lon,
-                                    self.vd.lat,
-                                    z_scores,
-                                    colors=['none'],
-                                    hatches=['', '/',  'X',  '+'],
-                                    levels=[1, 2, 3, 4],)
-
+                cm_hatch = self.d_map.contourf(self.vd.lon,
+                                               self.vd.lat,
+                                               z_scores,
+                                               colors=['none'],
+                                               hatches=['', '/',  'X',  '+'],
+                                               levels=[1, 2, 3, 4],)
+                self.d_map.ax.colorbar(cm_hatch,
+                                       orientation=cb_orientation)
             else:
                 warnings.warn(('hatch_z_score is set to true but no '
                                'Z-scores are present in var_diff object'))
