@@ -9,7 +9,7 @@ import matplotlib.pyplot as plt
 
 # ----- settings -----
 DOMAIN = 2
-PVAL = 0.05
+PVAL = 1.0   # set to 1.0 for no confidence interval masking
 READ_DATA = False
 if len(sys.argv) > 1:
     varname = sys.argv[1]
@@ -57,12 +57,13 @@ if __name__ == "__main__":
         #     idx[z_ax] = slice(0, 10)
         #     vd.data[k] = np.mean(vd.data[k][idx], axis=z_ax)
         # vd.var_axes.pop(vd.var_axes.index('Lay'))
-        vd.get_significance_mask(significance=0.95, adj_autocorr=True)
-        vd.to_netcdf(os.path.join('/', 'global', 'cscratch1', 'sd',
-                                  'twhilton',
-                                  '{}_d{:02d}_CLM_nourban.nc'.format(
-                                      varname,
-                                      DOMAIN)))
+        vd.get_significance_mask(significance=0.95, adj_autocorr=False)
+        vd.to_netcdf(
+            os.path.join('/', 'global', 'cscratch1', 'sd',
+                         'twhilton',
+                         '{}_d{:02d}_CLM_nourban_noautocorr.nc'.format(
+                             varname,
+                             DOMAIN)))
         print('done reading files ({})'.format(datetime.datetime.now() - t0))
         # vd.mask_land_or_water(mask_water=False)
     else:
@@ -70,7 +71,7 @@ if __name__ == "__main__":
             ncfile=os.path.join(
                 cscratchdir,
                 # '/Users/tim/work/Data/SummenWRF/',
-                '{varname}_d{DOMAIN:02d}_CLM_nourban.nc'.format(
+                '{varname}_d{DOMAIN:02d}_CLM_nourban_noautocorr.nc'.format(
                     varname=varname, DOMAIN=DOMAIN)))
         # for k in vd.data.keys():
         #     vd.data[k] = vd.data[k] * 100.0
@@ -102,69 +103,87 @@ if __name__ == "__main__":
             fig = plotter.plot(cb_orientation=cb_orientation,
                                vmin=None,
                                vmax=None,
-                               mask=vd.p > PVAL)
+                               mask=vd.p > PVAL,
+                               hatch_z_score=True)
                                # mask=None)
 
-    PFT_URBAN = 12  # modified MODIS-IGBP code for urban land use
-    wrfin = {'ctl': os.path.join('/', 'global', 'cscratch1', 'sd',
-                                 'twhilton', 'WRFv4.0_Sensitivity',
-                                 'WRFCLMv4.0_NCEPDOEp2', 'WRFV4',
-                                 'run', 'wrfinput_d02'),
-             'deurb': os.path.join('/', 'global', 'cscratch1', 'sd',
-                                   'twhilton', 'WRFv4.0_Sensitivity',
-                                   'WRFCLMv4.0_NCEPDOEp2_deurbanized',
-                                   'WRFV4', 'run', 'wrfinput_d02')}
-    vd_LUfrac = get_LUfrac_diff(PFT_URBAN, wrfin)
-    vd_LUfrac.calc_diff(0, 0)
+    # ##################################################
+    # code to make a data frame of lat, lon, p, z, fog fraction, urban
+    # fraction values
+    # ##################################################
 
-    fig = plt.figure()
-    ax = plt.axes()
-    # ax.scatter(vd_LUfrac.d.flatten(), vd.d.flatten())
-    # use convention that urban fraction decrease < 0.0
-    d_urban_LU_all = vd_LUfrac.d.flatten() * -1.0
-    d_fog_all = vd.d.flatten()
-    idx_valid = np.argwhere(np.logical_and(np.isfinite(d_fog_all),
-                                           np.isfinite(d_urban_LU_all)))
-    d_urban_LU = d_urban_LU_all[idx_valid].data.squeeze()
-    d_fog = d_fog_all[idx_valid].data.squeeze()
+    # PFT_URBAN = 12  # modified MODIS-IGBP code for urban land use
+    # wrfin = {'ctl': os.path.join('/', 'global', 'cscratch1', 'sd',
+    #                              'twhilton', 'WRFv4.0_Sensitivity',
+    #                              'WRFCLMv4.0_NCEPDOEp2', 'WRFV4',
+    #                              'run', 'wrfinput_d02'),
+    #          'deurb': os.path.join('/', 'global', 'cscratch1', 'sd',
+    #                                'twhilton', 'WRFv4.0_Sensitivity',
+    #                                'WRFCLMv4.0_NCEPDOEp2_deurbanized',
+    #                                'WRFV4', 'run', 'wrfinput_d02')}
+    # vd_LUfrac = get_LUfrac_diff(PFT_URBAN, wrfin)
+    # vd_LUfrac.calc_diff(0, 0)
 
-    fit = np.polyfit(d_urban_LU, d_fog, 1)
-    fit_fn = np.poly1d(fit)
+    # fig = plt.figure()
+    # ax = plt.axes()
+    # # ax.scatter(vd_LUfrac.d.flatten(), vd.d.flatten())
+    # # use convention that urban fraction decrease < 0.0
+    # d_urban_LU_all = vd_LUfrac.d.flatten() * -1.0
+    # d_fog_all = vd.d.flatten()
+    # idx_valid = np.argwhere(np.logical_and(np.isfinite(d_fog_all),
+    #                                        np.isfinite(d_urban_LU_all)))
+    # d_urban_LU = d_urban_LU_all[idx_valid].data.squeeze()
+    # d_fog = d_fog_all[idx_valid].data.squeeze()
 
-    ax.scatter(d_urban_LU, d_fog)
-    x = np.array([0.0, -1.0])
-    ax.plot(x, fit_fn(x), dashes=[3, 3], color='black')
-    ax.set_xlim((-1.0, 0.0))
-    ax.set_ylim((-1.0, 0.0))
-    ax.set_xlabel('urban fraction decrease')
-    ax.set_ylabel('fog change')
-    ax.set_title('significant at 95%')
-    fname = os.path.join(out_dir, 'deurbanize_fraction_vs_fog_change.pdf')
-    fig.savefig(fname)
-    print('wrote {}'.format(fname))
+    # fit = np.polyfit(d_urban_LU, d_fog, 1)
+    # fit_fn = np.poly1d(fit)
 
-    idx_all_urban_pixels = np.nonzero(d_urban_LU_all.data)[0]
-    fig = plt.figure()
-    ax = plt.axes()
-    # plt.scatter(np.arange(len(idx_all_urban_pixels)),
-    #             d_urban_LU_all[idx_all_urban_pixels].data)
-    plt.scatter(d_urban_LU_all[idx_all_urban_pixels].data,
-                d_fog_all[idx_all_urban_pixels].data)
-    fit = np.polyfit(d_urban_LU_all[idx_all_urban_pixels].data,
-                     d_fog_all[idx_all_urban_pixels].data, 1)
-    fit_fn = np.poly1d(fit)
-    x = np.array([0.0, -1.0])
-    ax.plot(x, fit_fn(x), dashes=[3, 3], color='black')
-    ax.set_xlabel('urban fraction decrease')
-    ax.set_ylabel('fog change')
-    ax.set_title('all pixels with some urban landuse')
-    ax.set_xlim((-1.0, 0.0))
+    # ax.scatter(d_urban_LU, d_fog)
+    # x = np.array([0.0, -1.0])
+    # ax.plot(x, fit_fn(x), dashes=[3, 3], color='black')
+    # ax.set_xlim((-1.0, 0.0))
+    # ax.set_ylim((-1.0, 0.0))
+    # ax.set_xlabel('urban fraction decrease')
+    # ax.set_ylabel('fog change')
+    # ax.set_title('significant at 95%')
+    # fname = os.path.join(out_dir, 'deurbanize_fraction_vs_fog_change.pdf')
+    # fig.savefig(fname)
+    # print('wrote {}'.format(fname))
 
-    print('done driver ({})'.format(datetime.datetime.now() - t0))
+    # idx_all_urban_pixels = np.nonzero(d_urban_LU_all.data)[0]
+    # fig = plt.figure()
+    # ax = plt.axes()
+    # # plt.scatter(np.arange(len(idx_all_urban_pixels)),
+    # #             d_urban_LU_all[idx_all_urban_pixels].data)
+    # plt.scatter(d_urban_LU_all[idx_all_urban_pixels].data,
+    #             d_fog_all[idx_all_urban_pixels].data)
+    # fit = np.polyfit(d_urban_LU_all[idx_all_urban_pixels].data,
+    #                  d_fog_all[idx_all_urban_pixels].data, 1)
+    # fit_fn = np.poly1d(fit)
+    # x = np.array([0.0, -1.0])
+    # ax.plot(x, fit_fn(x), dashes=[3, 3], color='black')
+    # ax.set_xlabel('urban fraction decrease')
+    # ax.set_ylabel('fog change')
+    # ax.set_title('all pixels with some urban landuse')
+    # ax.set_xlim((-1.0, 0.0))
 
-    df = pd.DataFrame({'d_urban_frac': vd_LUfrac.d.data.flatten(),
-                       'd_fog': vd.d.data.flatten(),
-                       'lat': vd.lat.flatten(),
-                       'lon': vd.lon.flatten(),
-                       'p': vd.p.flatten()})
-    df.to_csv('fog_change_data_frame_allpixels.csv.zip')
+    # print('done driver ({})'.format(datetime.datetime.now() - t0))
+
+    # df = pd.DataFrame({'d_urban_frac': vd_LUfrac.d.data.flatten(),
+    #                    'd_fog': vd.d.data.flatten(),
+    #                    'lat': vd.lat.flatten(),
+    #                    'lon': vd.lon.flatten(),
+    #                    'p': vd.p.flatten()})
+    #                    'z_score': vd.z_score.flatten()})
+    # df.to_csv('fog_change_data_frame_allpixels.csv.zip')
+
+    foo = vd.z_score
+    foo[np.isinf(foo)] = np.nan
+    plt.figure()
+    cm = plt.pcolormesh(np.int8(np.abs(foo) > 1.96))
+    plt.colorbar(cm)
+    plt.gca().set_title('Z > 1.96')
+    plt.figure()
+    cm = plt.pcolormesh(np.int8(vd.p.data < 0.05))
+    plt.colorbar(cm)
+    plt.gca().set_title('p < 0.05')
