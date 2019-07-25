@@ -118,10 +118,16 @@ def use_yatir_parameterization(fname_wrf):
 
     """
     nc = netCDF4.Dataset(fname_wrf, 'a')  # open in append mode
-    # for these files, only change NUM_LAND_CAT attribute
+    # I'm hard coding to 22 so I can test this routine repeatedly
+    # without incrementing NUM_LAND_CAT every time.
+    # type(nc.NUM_LAND_CAT)() casts the 22 to the same integer type
+    # that nc.NUM_LAND_CAT already is.  TODO: is there a better way to
+    # code this?
+    nc.NUM_LAND_CAT = type(nc.NUM_LAND_CAT)((22))
     if any([substr in fname_wrf for substr in ("wrfbdy",
                                                "wrflow",
                                                "wrfinput_d01")]):
+        # for these files, only change NUM_LAND_CAT attribute
         nc.close()
         return()
 
