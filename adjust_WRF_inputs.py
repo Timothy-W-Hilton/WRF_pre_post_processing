@@ -17,7 +17,7 @@ import numpy as np
 import numpy.ma as ma
 import glob
 import os
-
+import geopy.distance
 
 def deal_with_100pct_urban(landusef, f_urban):
     """replace urban land use in cells that are 100% urban
@@ -107,15 +107,36 @@ def remove_urban(fname_wrf):
     print('reduced urban fraction to 0.0 in {}'.format(fname_wrf))
 
 
-def use_yatir_parameterization(fname_wrf):
-    """change the landuse category for Yatir forest to 21
+def km_to_yatir(lon, lat):
+    """calculate kilometers from (lon, lat) to center of Yatir Forest
 
-    20 matches the new entry for Yatir Forest in VEGPARM.TBL and LANDUSE.TBL
+    This is a helper function for use_yatir_parameterization()
 
-    Yatir Forest occupies cell 34, 34 in the Yatir WRF domain I setup.
-    For now I am hard-coding this in to take advantage of free CPUs in
-    the NERSC cori flex queue for the next two weeks.
+    Yatir is at 35.052224 E, 31.345315 N
 
+    ARGUMENTS
+    lon (array-like): array of longitude values (degrees E)
+    lat (array-like): array of latitude values (degrees N)
+    """
+    arr_shape = lon.shape
+    if not (lat.shape == arr_shape):
+        raise ValueError('lon, lat must have same shape')
+    d_km = np.full(lon.flatten().shape, np.nan)
+    yatir_lon, yatir_lat = 35.052224, 31.345315
+    for i in range(lon.flatten().size):
+        d_km[i] = geopy.distance.geodesic((yatir_lat, yatir_lon),
+                                          (lat.flatten()[i], lon.flatten()[i])).km
+    return(d_km.reshape(arr_shape))
+
+
+def use_yatir_parameterization(fname_wrf, dist_cutoff=5):
+    """change the landuse category for Yatir forest to 20
+
+    changes LANDUSE all WRF pixels within dist_cutoff kilometers of
+    Yatir Forest to 20.
+
+    20 matches the new entry for Yatir Forest in VEGPARM.TBL and
+    LANDUSE.TBL
     """
     nc = netCDF4.Dataset(fname_wrf, 'a')  # open in append mode
     # I'm hard coding to 22 so I can test this routine repeatedly
@@ -132,8 +153,12 @@ def use_yatir_parameterization(fname_wrf):
         return()
 
     LU_YATIR = 20
-    YATIR_X = 34
-    YATIR_Y = 34
+    WRF_lon = nc.variables['XLONG_C'][...].squeeze()
+    WRF_lat = nc.variables['XLAT_C'][...].squeeze()
+    d_yatir = km_to_yatir(WRF_lon, WRF_lat)
+    idx_yatir = np.argwhere(d_yatir < 5)
+    YATIR_X = idx_yatir[:, 0]
+    YATIR_Y = idx_yatir[:, 1]
     landuse = nc.variables['LU_INDEX'][...]
     landuse[:, YATIR_X, YATIR_Y] = LU_YATIR
     nc.variables['LU_INDEX'][...] = landuse
@@ -151,7 +176,8 @@ def use_yatir_parameterization(fname_wrf):
     landusef[:, LU_YATIR - 1, YATIR_X, YATIR_Y] = 1.0
     nc.variables['LANDUSEF'][...] = landusef
     nc.history = ("created by metgrid_exe.  Land use set "
-                  "to Yatir in WRF pixel ({}, {}) ".format(YATIR_X, YATIR_Y))
+                  "to Yatir in WRF pixels within {} km"
+                  " of Yatir Forest").format(dist_cutoff)
     nc.close()
 
 
