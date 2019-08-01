@@ -144,7 +144,7 @@ def use_yatir_parameterization(fname_wrf, dist_cutoff=16):
     # type(nc.NUM_LAND_CAT)() casts the 22 to the same integer type
     # that nc.NUM_LAND_CAT already is.  TODO: is there a better way to
     # code this?
-    nc.NUM_LAND_CAT = type(nc.NUM_LAND_CAT)((22))
+    nc.NUM_LAND_CAT = type(nc.NUM_LAND_CAT)((21))
     if any([substr in fname_wrf for substr in ("wrfbdy",
                                                "wrflow",
                                                "wrfinput_d01")]):
