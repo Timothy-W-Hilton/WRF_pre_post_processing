@@ -129,7 +129,7 @@ def km_to_yatir(lon, lat):
     return(d_km.reshape(arr_shape))
 
 
-def use_yatir_parameterization(fname_wrf, dist_cutoff=5):
+def use_yatir_parameterization(fname_wrf, dist_cutoff=16):
     """change the landuse category for Yatir forest to 20
 
     changes LANDUSE all WRF pixels within dist_cutoff kilometers of
