@@ -153,10 +153,15 @@ def use_yatir_parameterization(fname_wrf, dist_cutoff=16):
         return()
 
     LU_YATIR = 20
-    WRF_lon = nc.variables['XLONG_C'][...].squeeze()
-    WRF_lat = nc.variables['XLAT_C'][...].squeeze()
+    try:
+        WRF_lon = nc.variables['XLONG_M'][...].squeeze()
+        WRF_lat = nc.variables['XLAT_M'][...].squeeze()
+    except KeyError:
+        print("XLONG_M, XLAT_M not found; trying XLONG, XLAT")
+        WRF_lon = nc.variables['XLONG'][...].squeeze()
+        WRF_lat = nc.variables['XLAT'][...].squeeze()
     d_yatir = km_to_yatir(WRF_lon, WRF_lat)
-    idx_yatir = np.argwhere(d_yatir < 5)
+    idx_yatir = np.argwhere(d_yatir < dist_cutoff)
     YATIR_X = idx_yatir[:, 0]
     YATIR_Y = idx_yatir[:, 1]
     landuse = nc.variables['LU_INDEX'][...]
