@@ -60,6 +60,11 @@ class WRF_restart_files(object):
         than 0 did not work; no sooner had I implemented this than WRF
         spit out a partial restart file with len(Times) of 1.
 
+        During the Yatir runs, WRF is hitting a sementation fault and
+        spitting out restart files that do not end on an even half
+        hour interval.  Also check that that the timestamp on the
+        restart file ends in 00 or 30.
+
         ARGS:
         fname_rst1 (string): full path of WRF restart file to be checked
         fname_rst0 (string): full path of WRF restart file preceding
@@ -73,7 +78,17 @@ class WRF_restart_files(object):
         sz0 = os.path.getsize(fname_rst0)
         diff_ratio = abs((sz1 - sz0) / sz1)
         # consider fname_rst1 complete if size is within 2% of fname_rst0
-        return(diff_ratio < 0.02)
+        restart_file_is_large_enough = (diff_ratio < 0.02)
+        if not restart_file_is_large_enough:
+            print("{} is not large enough.".format(fname_rst1))
+        # make sure fname_rst1 contains the correct 30-minute interval
+        restart_file_is_even_half_hour = ((fname_rst1[-2:] == "00") or
+                                          (fname_rst1[-2:] == "30"))
+        if not restart_file_is_even_half_hour:
+            print("{} is not an even 30-minutes.".format(fname_rst1))
+
+        return(restart_file_is_large_enough and
+               restart_file_is_even_half_hour)
 
     def get_last_restart_file(self, ndom, wildcard_str="wrfrst_d*[0-9][0-9]"):
         """search a directory for most recent WRF restart file
@@ -104,8 +119,9 @@ class WRF_restart_files(object):
                     restart_files[this_domain_str][n_last_rst - 2]):
                 return(self.get_tstamp(last_restart_file))
             else:
-                print('{} is incomplete.  Deleting and trying again'.format(
-                    last_restart_file))
+                print(('{} is not valid for restarting WRF.'
+                       '  Deleting and trying again'.format(
+                           last_restart_file)))
                 os.remove(last_restart_file)
                 return(self.get_last_restart_file(ndom, wildcard_str))
 
