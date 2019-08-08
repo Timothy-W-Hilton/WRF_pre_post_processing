@@ -274,6 +274,12 @@ if __name__ == "__main__":
                         default='namelist.input',
                         help=(('name of the namelist file to be updated'
                                '(default is namelist.input)')))
+    parser.add_argument('--default_wrf_timestep',
+                        dest='default_time_step',
+                        action='store',
+                        default=120,
+                        help=(('default value for WRF timestep (seconds)'
+                               '(default is 120)')))
     parser.add_argument('--parent_job_id',
                         dest='parent_job_id',
                         action='store',
@@ -299,6 +305,8 @@ if __name__ == "__main__":
             file=os.path.join(args.wrf_run_dir, args.fname),
             time=new_start_time))
         namelist_updates.update(nml.get_new_start_time(new_start_time))
-    namelist_updates.update(nml.get_new_timestep(args.wrf_run_dir,
-                                                 args.parent_job_id))
+    namelist_updates.update(nml.get_new_timestep(
+        args.wrf_run_dir,
+        args.parent_job_id,
+        default_time_step=args.default_time_step))
     nml.update_namelist(namelist_updates)
