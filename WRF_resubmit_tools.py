@@ -278,6 +278,7 @@ if __name__ == "__main__":
                         dest='default_time_step',
                         action='store',
                         default=120,
+                        type=int,
                         help=(('default value for WRF timestep (seconds)'
                                '(default is 120)')))
     parser.add_argument('--parent_job_id',
