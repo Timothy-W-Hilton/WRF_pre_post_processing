@@ -14,15 +14,17 @@ if __name__ == "__main__":
 
     cscratchdir = os.path.join('/', 'global', 'cscratch1', 'sd',
                                'twhilton')
-    rootdir = os.path.join(cscratchdir, 'WRFv4.1_Experiments', 'new')
+    rootdir = os.path.join(cscratchdir, 'WRFv4.1_Experiments')
     ctl_dir = os.path.join(rootdir,
-                           'WRFv4.1_yatir_2015Aug_Ctl_NCEPFNL_NOAHMP',
+                           ('WRFv4.1_yatir_2015Aug_CTL_'
+                            'NCEPFNL_NOAHMP_ndom3'),
                            'WRFV4', 'run',
-                           'yatir_2015Aug_ctl_NCEPFNL_NOAHMP')
+                           'yatir_2015Aug_CTL_NCEPFNL_NOAHMP_ndom3')
     exp_dir = os.path.join(rootdir,
-                           'WRFv4.1_yatir_2015Aug_yatirparams_Z050_NCEPFNL_NOAHMP',
+                           ('WRFv4.1_yatir_2015Aug_yatirparams_'
+                            'Z050_NCEPFNL_NOAHMP_ndom3'),
                            'WRFV4', 'run',
-                           'yatir_2015Aug_yatirparamsZ050_NCEPFNL_NOAHMP')
+                           'yatir_2015Aug_yatirparams_NCEPFNL_NOAHMP_ndom3')
     out_dir = os.path.join(cscratchdir, 'plots_temporary')
 
     # insignificant_pixels = ma.masked_invalid(means_diff_test.main(0.95)).mask
@@ -31,10 +33,10 @@ if __name__ == "__main__":
 
     read_data = False
     if read_data:
-        # wildcard_pat = "*d{:02d}02_2009-06-\{0[0-9],1[01]\}".format(DOMAIN)
         wildcard_pat = "*d{:02d}_2015-08-1[567]*".format(DOMAIN)
-        vd = var_diff(os.path.join(ctl_dir, wildcard_pat),
-                      os.path.join(exp_dir, wildcard_pat),
+        re_pat = "d{:02d}_2015-08-1[567].*\\.nc".format(DOMAIN)
+        vd = var_diff(os.path.join(ctl_dir, re_pat),
+                      os.path.join(exp_dir, re_pat),
                       label_A='ctl',
                       label_B='yatirZ050',
                       varname=varname)
