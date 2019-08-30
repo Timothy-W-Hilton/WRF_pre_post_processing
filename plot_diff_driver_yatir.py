@@ -29,12 +29,13 @@ if __name__ == "__main__":
 
     # insignificant_pixels = ma.masked_invalid(means_diff_test.main(0.95)).mask
 
-    varname = 'HFX'
+    varname = 'LH'
 
-    read_data = False
+    read_data = True
+
     if read_data:
         wildcard_pat = "*d{:02d}_2015-08-1[567]*".format(DOMAIN)
-        re_pat = "d{:02d}_2015-08-1[567].*\\.nc".format(DOMAIN)
+        re_pat = "d{:02d}_2015-08-[12].*\\.nc".format(DOMAIN)
         vd = var_diff(os.path.join(ctl_dir, re_pat),
                       os.path.join(exp_dir, re_pat),
                       label_A='ctl',
@@ -69,7 +70,7 @@ if __name__ == "__main__":
             t_end = 1
             pfx = pfx + '_timeavg'
             vd.aggregate_time(time_avg=True)
-            time_title_str = '15-17 Aug 2015'
+            time_title_str = '15-30 Aug 2015'
         for this_t in range(0, t_end):  #
             plotter = VarDiffPlotter(vd, t_idx=this_t, layer=0,
                                      domain=DOMAIN,
@@ -83,7 +84,7 @@ if __name__ == "__main__":
             else:
                 cb_orientation = 'vertical'
             fig = plotter.plot(cb_orientation=cb_orientation,
-                               mask=(vd.p < 0.95))
+                               mask=None)  # (vd.p < 0.95))
                                # vmin=-0.0000001,
                                # vmax=1.0000001)
 
