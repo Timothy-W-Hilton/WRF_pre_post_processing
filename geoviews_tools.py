@@ -1,6 +1,8 @@
 import os
 import xarray as xr
-
+import holoviews as hv
+import geoviews as gv
+import geoviews.feature as gf
 
 
 def yatir_to_xarray(fname, varname, groupname=None, timerange=None):
@@ -24,40 +26,45 @@ def yatir_to_xarray(fname, varname, groupname=None, timerange=None):
                             'groupname': groupname})
     return(var)
 
-def build_geoviews_comparison(ds1, ds2):
+
+def build_geoviews_comparison(ds1, ds2, pad=[0.1, 1.0]):
+    lon1 = ds1.lon.values
+    lat1 = ds1.lat.values
+    lon2 = ds2.lon.values
+    lat2 = ds2.lat.values
     map_d02 = hv.Overlay((gf.land.options(scale='50m'),
                           gf.coastline.options(scale='50m'),
                           gf.borders.options(scale='50m'),
-                          gv.Dataset(LHytr_d02).to(gv.QuadMesh,
-                                                   groupby='time').opts(
-                                                       xlim=(lat_d02.min() - pad02,
-                                                             lat_d02.max() + pad02),
-                                                       ylim=(lon_d02.min() - pad02,
-                                                             lon_d02.max() + pad02)),
-                          hv.Bounds((lat_d03.min(),
-                                     lon_d03.min(),
-                                     lat_d03.max(),
-                                     lon_d03.max())).opts(color='blue')),
-                         group=groupname,
-                         label='d02')
+                          gv.Dataset(ds1).to(gv.QuadMesh,
+                                             groupby='time').opts(
+                                                 xlim=(lat1.min() - pad[0],
+                                                       lat1.max() + pad[0]),
+                                                 ylim=(lon1.min() - pad[0],
+                                                       lon1.max() + pad[0])),
+                          hv.Bounds((lat2.min(),
+                                     lon2.min(),
+                                     lat2.max(),
+                                     lon2.max())).opts(color='blue')),
+                         group=ds1.groupname,
+                         label=ds1.varname)
     map_d03 = hv.Overlay((gf.land.options(scale='50m'),
                           gf.ocean.options(scale='50m'),
                           gf.coastline.options(scale='50m'),
                           gf.borders.options(scale='50m'),
-                          gv.Dataset(LHytr_d03,
-                                     group=groupname,
+                          gv.Dataset(ds2,
+                                     group=ds2.groupname,
                                      label='d03').to(gv.QuadMesh,
                                                      groupby='time').opts(
-                                                         xlim=(lat_d03.min() - pad03,
-                                                               lat_d03.max() + pad03),
-                                                         ylim=(lon_d03.min() - pad03,
-                                                               lon_d03.max() + pad03)),
-                          hv.Bounds((lat_d03.min(),
-                                     lon_d03.min(),
-                                     lat_d03.max(),
-                                     lon_d03.max())).opts(color='blue')),
-                         group=groupname,
-                         label='d03')
+                                                         xlim=(lat2.min() - pad[1],
+                                                               lat2.max() + pad[1]),
+                                                         ylim=(lon2.min() - pad[1],
+                                                               lon2.max() + pad[1])),
+                          hv.Bounds((lat2.min(),
+                                     lon2.min(),
+                                     lat2.max(),
+                                     lon2.max())).opts(color='blue')),
+                         group=ds2.groupname,
+                         label=ds2.varname)
     return(map_d02, map_d03)
 
 
