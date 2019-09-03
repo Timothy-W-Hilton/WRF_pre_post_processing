@@ -27,44 +27,36 @@ def yatir_to_xarray(fname, varname, groupname=None, timerange=None):
     return(var)
 
 
-def build_geoviews_comparison(ds1, ds2, pad=[0.1, 1.0]):
-    lon1 = ds1.lon.values
-    lat1 = ds1.lat.values
-    lon2 = ds2.lon.values
-    lat2 = ds2.lat.values
-    map_d02 = hv.Overlay((gf.land.options(scale='50m'),
-                          gf.coastline.options(scale='50m'),
-                          gf.borders.options(scale='50m'),
-                          gv.Dataset(ds1).to(gv.QuadMesh,
-                                             groupby='time').opts(
-                                                 xlim=(lat1.min() - pad[0],
-                                                       lat1.max() + pad[0]),
-                                                 ylim=(lon1.min() - pad[0],
-                                                       lon1.max() + pad[0])),
-                          hv.Bounds((lat2.min(),
-                                     lon2.min(),
-                                     lat2.max(),
-                                     lon2.max())).opts(color='blue')),
-                         group=ds1.groupname,
-                         label=ds1.varname)
-    map_d03 = hv.Overlay((gf.land.options(scale='50m'),
-                          gf.ocean.options(scale='50m'),
-                          gf.coastline.options(scale='50m'),
-                          gf.borders.options(scale='50m'),
-                          gv.Dataset(ds2,
-                                     group=ds2.groupname,
-                                     label='d03').to(gv.QuadMesh,
-                                                     groupby='time').opts(
-                                                         xlim=(lat2.min() - pad[1],
-                                                               lat2.max() + pad[1]),
-                                                         ylim=(lon2.min() - pad[1],
-                                                               lon2.max() + pad[1])),
-                          hv.Bounds((lat2.min(),
-                                     lon2.min(),
-                                     lat2.max(),
-                                     lon2.max())).opts(color='blue')),
-                         group=ds2.groupname,
-                         label=ds2.varname)
+def get_quadmesh(data, pad):
+    qm = (gv.Dataset(data).to(gv.QuadMesh, groupby='time').opts(
+        xlim=(data.lat.values.min() - pad,
+              data.lat.values.max() + pad),
+        ylim=(data.lon.values.min() - pad,
+              data.lon.values.max() + pad)))
+    return(qm)
+
+
+def build_geoviews_comparison(ds_d02, ds_d03, pad=[1.0, 0.1]):
+    """build four maps showing a WRF variable for [control, Yatir] and [d02, d03]
+    """
+    # overlay land, oceans, coasts, political borders
+    map_background = (gf.land.options(scale='50m'),
+                      gf.ocean.options(scale='50m'),
+                      gf.coastline.options(scale='50m'),
+                      gf.borders.options(scale='50m'))
+    # make bounding box for inner-most nested domain
+    d03_bb = hv.Bounds((ds_d03.lat.values.min(),
+                        ds_d03.lon.values.min(),
+                        ds_d03.lat.values.max(),
+                        ds_d03.lon.values.max())).opts(color='blue')
+    map_d02 = hv.Overlay(map_background +
+                         (get_quadmesh(ds_d02, pad[0]), d03_bb),
+                         group=ds_d02.groupname,
+                         label=ds_d02.varname)
+    map_d03 = hv.Overlay(map_background +
+                         (get_quadmesh(ds_d03, pad[1]), d03_bb),
+                         group=ds_d03.groupname,
+                         label=ds_d03.varname)
     return(map_d02, map_d03)
 
 
