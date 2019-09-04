@@ -40,21 +40,25 @@ def build_geoviews_comparison(ds_d02, ds_d03, pad=[1.0, 0.1]):
     """build four maps showing a WRF variable for [control, Yatir] and [d02, d03]
     """
     # overlay land, oceans, coasts, political borders
-    map_background = (gf.land.options(scale='50m'),
-                      gf.ocean.options(scale='50m'),
-                      gf.coastline.options(scale='50m'),
+    # map_background = (gf.land.options(scale='50m'),
+    #                   gf.ocean.options(scale='50m'),
+    #                   gf.coastline.options(scale='50m'),
+    #                   gf.borders.options(scale='50m'))
+    map_background = (gf.coastline.options(scale='50m'),
                       gf.borders.options(scale='50m'))
     # make bounding box for inner-most nested domain
     d03_bb = hv.Bounds((ds_d03.lat.values.min(),
                         ds_d03.lon.values.min(),
                         ds_d03.lat.values.max(),
                         ds_d03.lon.values.max())).opts(color='blue')
-    map_d02 = hv.Overlay(map_background +
-                         (get_quadmesh(ds_d02, pad[0]), d03_bb),
+    map_d02 = hv.Overlay((get_quadmesh(ds_d02, pad[0]), ) +
+                         map_background +
+                         (d03_bb, ),
                          group=ds_d02.groupname,
                          label=ds_d02.varname)
-    map_d03 = hv.Overlay(map_background +
-                         (get_quadmesh(ds_d03, pad[1]), d03_bb),
+    map_d03 = hv.Overlay((get_quadmesh(ds_d03, pad[1]), ) +
+                         map_background +
+                         (d03_bb, ),
                          group=ds_d03.groupname,
                          label=ds_d03.varname)
     return(map_d02, map_d03)
