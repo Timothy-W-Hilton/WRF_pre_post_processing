@@ -23,7 +23,8 @@ def yatir_to_xarray(fname, varname, groupname=None, timerange=None):
                              'lat': (['x', 'y'], ds_all.lon),
                              'lon': (['x', 'y'], ds_all.lat)},
                      attrs={'varname': varname,
-                            'groupname': groupname})
+                            'groupname': groupname,
+                            'units': ds_all.units})
     return(var)
 
 
