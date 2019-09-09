@@ -1,3 +1,4 @@
+import numpy as np
 import os
 import xarray as xr
 import holoviews as hv
@@ -21,7 +22,11 @@ def yatir_to_xarray(fname, varname, groupname=None, timerange=None):
                      coords={'time': (['time'],
                                       ds_all.time[slice(timerange), ...]),
                              'lat': (['x', 'y'], ds_all.lon),
-                             'lon': (['x', 'y'], ds_all.lat)},
+                             'lon': (['x', 'y'], ds_all.lat),
+                             'x': (['x'], np.arange(
+                                 ds_grp.variables[varname].shape[1])),
+                             'y': (['y'], np.arange(
+                                 ds_grp.variables[varname].shape[2]))},
                      attrs={'varname': varname,
                             'groupname': groupname,
                             'units': ds_all.units})
