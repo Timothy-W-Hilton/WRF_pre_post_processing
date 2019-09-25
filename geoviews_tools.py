@@ -10,7 +10,9 @@ import pandas as pd
 from adjust_WRF_inputs import km_to_yatir
 
 
-def yatir_mask(xarr, d_threshold=5):
+def yatir_mask(xarr, d_threshold=5,
+               lonvar='lon', latvar='lat',
+               hdim1='x', hdim2='y'):
     """add a variable identifying WRF cells in Yatir parameterization
 
     The new variable is boolean, True for cells in Yatir, False otherwise.
@@ -20,9 +22,13 @@ def yatir_mask(xarr, d_threshold=5):
        contain variables 'lon' and 'lat'
     d_threshold [int]: distance threshold (in kilometers) to be
        considered "in Yatir".  Default is 5 km.
+    lonvar (str): name of the longitude variable in xarr
+    latvar (str): name of the latitude variable in xarr
+    hdim1 (str): name of the first horizontal dimension in xarr
+    hdim2 (str): name of the second horizontal dimension in xarr
     """
-    d_to_yatir = km_to_yatir(xarr['lat'].values, xarr['lon'].values)
-    xarr['yatir_mask'] = (('x', 'y'), d_to_yatir < d_threshold)
+    d_to_yatir = km_to_yatir(xarr[latvar].values, xarr[lonvar].values)
+    xarr['yatir_mask'] = ((hdim1, hdim2), d_to_yatir < d_threshold)
     return(xarr)
 
 
@@ -42,11 +48,16 @@ def get_data_file(data_paths):
                      'XLAT_U', 'XLONG_U',
                      'XLAT_V', 'XLONG_V']:
         dsxr[this_var] = dsxr[this_var].sel(Time=dsxr['Time'][1])
+        dsxr[this_var] = dsxr[this_var].sel(WRFrun=dsxr['WRFrun'][0])
     # put in coordinate values for north/south and east/west
     # directions.  This seems to be necessary for GeoViews to properly
     # interpret the dataset when cast as a GeoViews Dataset.
     dsxr = dsxr.assign_coords(south_north=range(dsxr.south_north.size))
     dsxr = dsxr.assign_coords(west_east=range(dsxr.west_east.size))
+    # get a mask for which pixels are parameterized to Yatir Forest
+    dsxr = yatir_mask(dsxr,
+                      lonvar='XLONG', latvar='XLAT',
+                      hdim1='west_east', hdim2='south_north')
     # calculate differences between WRF runs
     # dsxr['d'] = dsxr.diff(dim='WRFrun').sel(WRFrun=
     # cast the xarray dataset to a GeoViews dataset
@@ -163,16 +174,32 @@ def overlay_roughness_realization_timeseries(dsxr, varname):
 
 
 if __name__ == '__main__':
+    test_get_data_file = False
+    test_get_xarray = False
 
-    LHctl = yatir_to_xarray(os.path.join('/', 'Users', 'tim', 'work',
-                                         'Data', 'SummenWRF', 'yatir',
-                                         'LH_d03_yatirZ50.nc'),
-                            varname='LH',
-                            groupname='ctl',
-                            timerange=10)
-    LHytr = yatir_to_xarray(os.path.join('/', 'Users', 'tim', 'work',
-                                         'Data', 'SummenWRF', 'yatir',
-                                         'LH_d03_yatirZ50.nc'),
-                            varname='LH',
-                            groupname='yatirZ050',
-                            timerange=10)
+    if test_get_data_file:
+        roughness_data_dir = os.path.join('/', 'Users',
+                                          'tim', 'work',
+                                          'Data', 'SummenWRF',
+                                          'yatir', 'roughness_experiments')
+        fnames = {'ctl': 'energyfluxes_control_d03.nc',
+                  'yatir': 'energyfluxes_yatir_run_d03.nc',
+                  'vegparm_z0_10': 'energyfluxes_vegparm_z0_10_d03.nc',
+                  'landuse_z0_500': 'energyfluxes_landuse_z0_500_d03.nc'}
+        data_paths = {k: os.path.join(roughness_data_dir, v)
+                      for k, v in fnames.items()}
+        dsgv, dsxr = get_data_file(data_paths)
+
+    if test_get_xarray:
+        LHctl = yatir_to_xarray(os.path.join('/', 'Users', 'tim', 'work',
+                                             'Data', 'SummenWRF', 'yatir',
+                                             'LH_d03_yatirZ50.nc'),
+                                varname='LH',
+                                groupname='ctl',
+                                timerange=10)
+        LHytr = yatir_to_xarray(os.path.join('/', 'Users', 'tim', 'work',
+                                             'Data', 'SummenWRF', 'yatir',
+                                             'LH_d03_yatirZ50.nc'),
+                                varname='LH',
+                                groupname='yatirZ050',
+                                timerange=10)
