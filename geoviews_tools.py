@@ -5,6 +5,7 @@ import holoviews as hv
 from holoviews import opts
 import geoviews as gv
 import geoviews.feature as gf
+import pandas as pd
 
 from adjust_WRF_inputs import km_to_yatir
 
@@ -23,6 +24,36 @@ def yatir_mask(xarr, d_threshold=5):
     d_to_yatir = km_to_yatir(xarr['lat'].values, xarr['lon'].values)
     xarr['yatir_mask'] = (('x', 'y'), d_to_yatir < d_threshold)
     return(xarr)
+
+
+def get_data_file(data_paths):
+
+    data = {k: xr.open_dataset(v).set_index(Time='XTIME')
+            for k, v in data_paths.items()}
+
+    datasets = list(data.values())
+
+    dsxr = xr.concat(datasets,
+                     dim=pd.Index(list(data.keys()), name='WRFrun'))
+    # remove Time variation from latitude, longtitude arrays.  They
+    # are in fact constant in time, and keeping the non-varying time
+    # dimension around makes plotting more painful.
+    for this_var in ['XLAT', 'XLONG',
+                     'XLAT_U', 'XLONG_U',
+                     'XLAT_V', 'XLONG_V']:
+        dsxr[this_var] = dsxr[this_var].sel(Time=dsxr['Time'][1])
+    # put in coordinate values for north/south and east/west
+    # directions.  This seems to be necessary for GeoViews to properly
+    # interpret the dataset when cast as a GeoViews Dataset.
+    dsxr = dsxr.assign_coords(south_north=range(dsxr.south_north.size))
+    dsxr = dsxr.assign_coords(west_east=range(dsxr.west_east.size))
+    # calculate differences between WRF runs
+    # dsxr['d'] = dsxr.diff(dim='WRFrun').sel(WRFrun=
+    # cast the xarray dataset to a GeoViews dataset
+    dsgv = gv.Dataset(data=dsxr,
+                      kdims=['Time', 'WRFrun', 'west_east', 'south_north'],
+                      vdims=['XLAT', 'XLONG', 'HFX', 'LH', 'U', 'V', 'W'])
+    return(dsgv, dsxr)
 
 
 def yatir_to_xarray(fname, varname, groupname=None, timerange=None):
@@ -145,13 +176,3 @@ if __name__ == '__main__':
                             varname='LH',
                             groupname='yatirZ050',
                             timerange=10)
-
-
-# LH = xr.open_dataset('/Users/tim/work/Data/SummenWRF/yatir/LH_d03_yatirZ50.nc')
-# LHctl = xr.open_dataset('/Users/tim/work/Data/SummenWRF/yatir/LH_d03_yatirZ50.nc',
-#                         group='ctl')
-# ntime = 10
-# LH_byhand = xr.Dataset(data_vars={'LH': (['time', 'x', 'y'], LHctl.LH[:ntime, ...])},
-#                       coords={'time': (['time'], np.arange(ntime)), # np.arange(LHctl.time.size)),
-#                              'lat': (['x', 'y'], LH.lat),
-#                               'lon': (['x', 'y'], LH.lon)})
