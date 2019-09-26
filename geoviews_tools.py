@@ -7,6 +7,8 @@ import geoviews as gv
 import geoviews.feature as gf
 import pandas as pd
 
+from map_tools_twh.map_tools_twh import get_IGBP_modMODIS_21Category_PFTs_table
+
 from adjust_WRF_inputs import km_to_yatir
 
 
@@ -185,6 +187,8 @@ def yatir_landuse_to_xarray():
     """
     dir_path = os.path.join('/', 'Users', 'tim', 'work',
                             'Data', 'SummenWRF', 'yatir')
+    ctable = get_IGBP_modMODIS_21Category_PFTs_table()
+    land_cat_names = list(ctable['long_name'])
     dict_runs = {}
     for WRFdomain in ['d02', 'd03']:
         dict_runs[WRFdomain] = xr.concat((xr.open_dataset(
@@ -192,12 +196,30 @@ def yatir_landuse_to_xarray():
                 run=WRFrun, dom=WRFdomain)).squeeze()
                                           for WRFrun in ['ctl', 'ytr']),
                                          dim='WRFdomain')
+        # remove the hyphen from z dimension name.  '-' also being an
+        # operator messes up assign_coords()
+        dict_runs[WRFdomain] = dict_runs[WRFdomain].rename(
+            {'z-dimension0021': 'zdimension0021'})
+        dict_runs[WRFdomain] = dict_runs[WRFdomain].assign_coords(
+            WRFrun=['ctl', 'ytr'],
+            zdimension0021=land_cat_names)
+        # assign integral coordinate values to spatial coordinate
+        # variables
+        for this_var in ['south_north', 'south_north_stag',
+                         'west_east', 'west_east_stag']:
+            dict_runs[WRFdomain] = dict_runs[WRFdomain].assign_coords(
+                {this_var: range(dict_runs[WRFdomain][this_var].size)})
+
     return(dict_runs)
 
 
 if __name__ == '__main__':
+    test_get_landuse_to_xarray = True
     test_get_data_file = False
     test_get_xarray = False
+
+    if test_get_landuse_to_xarray:
+        dict_runs = yatir_landuse_to_xarray()
 
     if test_get_data_file:
         roughness_data_dir = os.path.join('/', 'Users',
