@@ -27,6 +27,7 @@ def yatir_mask(xarr, d_threshold=5,
     hdim1 (str): name of the first horizontal dimension in xarr
     hdim2 (str): name of the second horizontal dimension in xarr
     """
+
     d_to_yatir = km_to_yatir(xarr[latvar].values, xarr[lonvar].values)
     xarr['yatir_mask'] = ((hdim1, hdim2), d_to_yatir < d_threshold)
     return(xarr)
@@ -56,7 +57,7 @@ def get_data_file(data_paths):
     dsxr = dsxr.assign_coords(west_east=range(dsxr.west_east.size))
     # get a mask for which pixels are parameterized to Yatir Forest
     dsxr = yatir_mask(dsxr,
-                      lonvar='XLONG', latvar='XLAT',
+                      latvar='XLONG', lonvar='XLAT',
                       hdim1='west_east', hdim2='south_north')
     # calculate differences between WRF runs
     # dsxr['d'] = dsxr.diff(dim='WRFrun').sel(WRFrun=
@@ -149,7 +150,7 @@ def xrvar_to_hvdim(var):
         raise
 
 
-def overlay_roughness_realization_timeseries(dsxr, varname):
+def overlay_roughness_realization_timeseries(dsxr, varname, mask=None):
     """create a HoloViews Overlay showing one variable's timeseries
 
     to create a timeseries from two-dimensional data, the data are
@@ -159,6 +160,8 @@ def overlay_roughness_realization_timeseries(dsxr, varname):
       hvOverlay object containing timeseries for all WRF runs in the experiment
 
     """
+    if mask is not None:
+        dsxr = dsxr.where(mask)
     df_var = dsxr.mean(dim=['west_east', 'south_north'],
                        skipna=True)[varname].to_dataframe()
     vert_dim = xrvar_to_hvdim(dsxr[varname])
@@ -171,6 +174,25 @@ def overlay_roughness_realization_timeseries(dsxr, varname):
         dsxr[varname].description)
     hvol = hv.Overlay(crv_list).opts(OLopts).relabel(label)
     return(hvol)
+
+
+def yatir_landuse_to_xarray():
+    """parse land use data for Yatir, Control runs for domains d02 and d03
+
+    RETURNS:
+      dict keyed by ['d02', 'd03']; values are xarray.DataSet objects
+      containing land use data concatenated on new dimension WRFrun
+    """
+    dir_path = os.path.join('/', 'Users', 'tim', 'work',
+                            'Data', 'SummenWRF', 'yatir')
+    dict_runs = {}
+    for WRFdomain in ['d02', 'd03']:
+        dict_runs[WRFdomain] = xr.concat((xr.open_dataset(
+            os.path.join(dir_path, 'land_data_{run}_{dom}.nc').format(
+                run=WRFrun, dom=WRFdomain)).squeeze()
+                                          for WRFrun in ['ctl', 'ytr']),
+                                         dim='WRFdomain')
+    return(dict_runs)
 
 
 if __name__ == '__main__':
