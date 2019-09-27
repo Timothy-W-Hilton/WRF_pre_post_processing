@@ -204,8 +204,7 @@ def yatir_landuse_to_xarray():
         # assign integral coordinate values to spatial coordinate
         # variables
         new_coords = {this_var: range(dict_runs[WRFdomain][this_var].size) for
-                      this_var in ['south_north', 'south_north_stag',
-                                   'west_east', 'west_east_stag']}
+                      this_var in ['south_north', 'west_east']}
         new_coords = {**new_coords,
                       'WRFrun': ['ctl', 'ytr'],
                       'z-dimension0021': land_cat_names}
