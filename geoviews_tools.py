@@ -195,21 +195,21 @@ def yatir_landuse_to_xarray():
             os.path.join(dir_path, 'land_data_{run}_{dom}.nc').format(
                 run=WRFrun, dom=WRFdomain)).squeeze()
                                           for WRFrun in ['ctl', 'ytr']),
-                                         dim='WRFdomain')
+                                         dim='WRFrun')
         # remove the hyphen from z dimension name.  '-' also being an
         # operator messes up assign_coords()
-        dict_runs[WRFdomain] = dict_runs[WRFdomain].rename(
-            {'z-dimension0021': 'zdimension0021'})
-        dict_runs[WRFdomain] = dict_runs[WRFdomain].assign_coords(
-            WRFrun=['ctl', 'ytr'],
-            zdimension0021=land_cat_names)
+        # dict_runs[WRFdomain] = dict_runs[WRFdomain].rename(
+        #     {'z-dimension0021': 'zdimension0021'})
+
         # assign integral coordinate values to spatial coordinate
         # variables
-        for this_var in ['south_north', 'south_north_stag',
-                         'west_east', 'west_east_stag']:
-            dict_runs[WRFdomain] = dict_runs[WRFdomain].assign_coords(
-                {this_var: range(dict_runs[WRFdomain][this_var].size)})
-
+        new_coords = {this_var: range(dict_runs[WRFdomain][this_var].size) for
+                      this_var in ['south_north', 'south_north_stag',
+                                   'west_east', 'west_east_stag']}
+        new_coords = {**new_coords,
+                      'WRFrun': ['ctl', 'ytr'],
+                      'z-dimension0021': land_cat_names}
+        dict_runs[WRFdomain] = dict_runs[WRFdomain].assign_coords(new_coords)
     return(dict_runs)
 
 
