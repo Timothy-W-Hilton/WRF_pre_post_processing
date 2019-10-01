@@ -207,8 +207,14 @@ def yatir_landuse_to_xarray():
                       this_var in ['south_north', 'west_east']}
         new_coords = {**new_coords,
                       'WRFrun': ['ctl', 'ytr'],
-                      'z-dimension0021': land_cat_names}
+                      'z-dimension0021': land_cat_names,
+                      'lat': (('west_east', 'south_north'),
+                              dict_runs[WRFdomain]['CLAT'][0, ...].values),
+                      'lon': (('west_east', 'south_north'),
+                              dict_runs[WRFdomain]['CLONG'][0, ...].values)}
         dict_runs[WRFdomain] = dict_runs[WRFdomain].assign_coords(new_coords)
+        dict_runs[WRFdomain] = dict_runs[WRFdomain].rename(
+            {'z-dimension0021': 'PFT'})
     return(dict_runs)
 
 
