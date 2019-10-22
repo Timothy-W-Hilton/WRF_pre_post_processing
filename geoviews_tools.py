@@ -189,6 +189,8 @@ def yatir_landuse_to_xarray():
                             'Data', 'SummenWRF', 'yatir')
     ctable = get_IGBP_modMODIS_21Category_PFTs_table()
     land_cat_names = list(ctable['long_name'])
+    land_cat_names = [x if x != 'BareGroundTundra' else 'Yatir'
+                      for x in land_cat_names]
     dict_runs = {}
     for WRFdomain in ['d02', 'd03']:
         dict_runs[WRFdomain] = xr.concat((xr.open_dataset(
