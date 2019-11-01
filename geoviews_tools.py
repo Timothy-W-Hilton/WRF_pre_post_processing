@@ -98,6 +98,43 @@ def yatir_to_xarray(fname, varname, groupname=None, timerange=None):
     return(var)
 
 
+def yatir_WRF_to_xarray(fname):
+    """read Yatir forest WRF output to xarray
+
+    returns an xarray suitable for plotting with
+    [GeoViews](http://geoviews.org/user_guide/)
+    """
+    ds = xr.open_dataset(fname)
+    for dim in ['XLAT', 'XLONG']:
+        ds[dim] = ds[dim].sel(Time=0)
+    return(ds)
+
+def WRF_daily_daylight_avg(fname):
+    """read Yatir forest WRF output to xarray containing daily means
+
+    returns an xarray suitable for plotting with
+    [GeoViews](http://geoviews.org/user_guide/)
+    """
+    ds = yatir_WRF_to_xarray(fname)
+    is_daytime = ds['SWDOWN'] > 0.1
+    ds_day_mean = ds.where(is_daytime, drop=True).groupby('XTIME.hour').mean(keep_attrs=True)
+    return(ds_day_mean)
+
+
+def define_dims(ds):
+    dims = {k: hv.Dimension(k, label=v.attrs['description'], unit=v.attrs['units'])
+        for k, v in ds.data_vars.items()}
+    dims['date'] = hv.Dimension('XTIME', label='date', unit='UTC')
+    dims['hour'] = hv.Dimension('hour', label='hour of day', unit='UTC')
+    dims['lon'] = hv.Dimension('XLONG', label='longitude', unit='deg E')
+    dims['lat'] = hv.Dimension('XLAT', label='latitude', unit='deg N')
+    return(dims)
+
+# def yatir_WRF_diff(ds1, ds2, varname):
+#     """calculate difference in a variable between ds1 and ds2
+#     """
+#     ds_diff = xr.concat(
+
 def get_quadmesh(data, pad):
     qm = (gv.Dataset(data).to(gv.QuadMesh, groupby='time').opts(
         xlim=(data.lat.values.min() - pad,
@@ -221,9 +258,10 @@ def yatir_landuse_to_xarray():
 
 
 if __name__ == '__main__':
-    test_get_landuse_to_xarray = True
+    test_get_landuse_to_xarray = False
     test_get_data_file = False
     test_get_xarray = False
+    test_get_xarray_daily = True
 
     if test_get_landuse_to_xarray:
         dict_runs = yatir_landuse_to_xarray()
@@ -242,15 +280,25 @@ if __name__ == '__main__':
         dsgv, dsxr = get_data_file(data_paths)
 
     if test_get_xarray:
-        LHctl = yatir_to_xarray(os.path.join('/', 'Users', 'tim', 'work',
-                                             'Data', 'SummenWRF', 'yatir',
-                                             'LH_d03_yatirZ50.nc'),
-                                varname='LH',
-                                groupname='ctl',
-                                timerange=10)
-        LHytr = yatir_to_xarray(os.path.join('/', 'Users', 'tim', 'work',
-                                             'Data', 'SummenWRF', 'yatir',
-                                             'LH_d03_yatirZ50.nc'),
-                                varname='LH',
-                                groupname='yatirZ050',
-                                timerange=10)
+        # LHctl = yatir_to_xarray(os.path.join('/', 'Users', 'tim', 'work',
+        #                                      'Data', 'SummenWRF', 'yatir',
+        #                                      'LH_d03_yatirZ50.nc'),
+        #                         varname='LH',
+        #                         groupname='ctl',
+        #                         timerange=10)
+        # LHytr = yatir_to_xarray(os.path.join('/', 'Users', 'tim', 'work',
+        #                                      'Data', 'SummenWRF', 'yatir',
+        #                                      'LH_d03_yatirZ50.nc'),
+        #                         varname='LH',
+        #                         groupname='yatirZ050',
+        #                         timerange=10)
+
+        ctl = yatir_WRF_to_xarray('/Users/tim/work/Data/SummenWRF/yatir/fluxes_ctl_run_d03.nc')
+        ytr = yatir_WRF_to_xarray('/Users/tim/work/Data/SummenWRF/yatir/fluxes_yatir_run_d03.nc')
+
+    if test_get_xarray_daily:
+        ctl = yatir_WRF_to_xarray('/Users/tim/work/Data/SummenWRF/yatir/fluxes_ctl_run_d03.nc')
+        ytr = yatir_WRF_to_xarray('/Users/tim/work/Data/SummenWRF/yatir/fluxes_yatir_run_d03.nc')
+        ctlday = WRF_daily_daylight_avg('/Users/tim/work/Data/SummenWRF/yatir/fluxes_ctl_run_d03.nc')
+        ytrday = WRF_daily_daylight_avg('/Users/tim/work/Data/SummenWRF/yatir/fluxes_yatir_run_d03.nc')
+        dims = define_dims(ctl)
