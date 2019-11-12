@@ -133,9 +133,9 @@ def use_yatir_parameterization(fname_wrf, dist_cutoff=16):
     """change the landuse category for Yatir forest to 20
 
     changes LANDUSE all WRF pixels within dist_cutoff kilometers of
-    Yatir Forest to 20.
+    Yatir Forest to 22.
 
-    20 matches the new entry for Yatir Forest in VEGPARM.TBL and
+    22 matches the new entry for Yatir Forest in VEGPARM.TBL and
     LANDUSE.TBL
     """
     nc = netCDF4.Dataset(fname_wrf, 'a')  # open in append mode
@@ -144,7 +144,7 @@ def use_yatir_parameterization(fname_wrf, dist_cutoff=16):
     # type(nc.NUM_LAND_CAT)() casts the 22 to the same integer type
     # that nc.NUM_LAND_CAT already is.  TODO: is there a better way to
     # code this?
-    nc.NUM_LAND_CAT = type(nc.NUM_LAND_CAT)((21))
+    nc.NUM_LAND_CAT = type(nc.NUM_LAND_CAT)((23))
     if any([substr in fname_wrf for substr in ("wrfbdy",
                                                "wrflow",
                                                "wrfinput_d01")]):
