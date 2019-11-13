@@ -139,9 +139,9 @@ def use_yatir_parameterization(fname_wrf, dist_cutoff=16):
     LANDUSE.TBL
     """
     nc = netCDF4.Dataset(fname_wrf, 'a')  # open in append mode
-    # I'm hard coding to 22 so I can test this routine repeatedly
+    # I'm hard coding to 21 so I can test this routine repeatedly
     # without incrementing NUM_LAND_CAT every time.
-    # type(nc.NUM_LAND_CAT)() casts the 22 to the same integer type
+    # type(nc.NUM_LAND_CAT)() casts the 21 to the same integer type
     # that nc.NUM_LAND_CAT already is.  TODO: is there a better way to
     # code this?
     nc.NUM_LAND_CAT = type(nc.NUM_LAND_CAT)((23))
@@ -152,7 +152,7 @@ def use_yatir_parameterization(fname_wrf, dist_cutoff=16):
         nc.close()
         return()
 
-    LU_YATIR = 20
+    LU_YATIR = 21
     try:
         WRF_lon = nc.variables['XLONG_M'][...].squeeze()
         WRF_lat = nc.variables['XLAT_M'][...].squeeze()
@@ -167,7 +167,8 @@ def use_yatir_parameterization(fname_wrf, dist_cutoff=16):
     landuse = nc.variables['LU_INDEX'][...]
     landuse[:, YATIR_X, YATIR_Y] = LU_YATIR
     nc.variables['LU_INDEX'][...] = landuse
-    print("modified LU_INDEX for Yatir in {fname_wrf}".format(fname_wrf=fname_wrf))
+    print("modified LU_INDEX for"
+          "Yatir in {fname_wrf}".format(fname_wrf=fname_wrf))
 
     # LANDUSEF specifies a fraction for all land use types in each
     # pixel.  Set all urban fraction in LANDUSEF to (1.0 -
@@ -180,6 +181,21 @@ def use_yatir_parameterization(fname_wrf, dist_cutoff=16):
     # set Yatir LU fraction to 1.0 in Yatir pixel
     landusef[:, LU_YATIR - 1, YATIR_X, YATIR_Y] = 1.0
     nc.variables['LANDUSEF'][...] = landusef
+
+    # set vegetation fraction to the maximum fraction present in Yatir
+    for var in ['SHDMAX', 'SHDMIN', 'VEGFRA', 'FVEG', 'GREENFRAC']:
+        try:
+            data = nc.variables[var][...]
+            yatir_max = data[..., YATIR_X, YATIR_Y].max()
+            if var == 'FVEG':   # set manually because it is getting overwritten somewhere
+                yatir_max = 0.4
+            data[..., YATIR_X, YATIR_Y] = yatir_max
+            nc.variables[var][...] = data
+            print("Yatir {} set to {} in {}".format(
+                var, yatir_max, os.path.basename(fname_wrf)))
+        except KeyError:
+            print("{} not found in {}".format(
+                var, os.path.basename(fname_wrf)))
     nc.history = ("created by metgrid_exe.  Land use set "
                   "to Yatir in WRF pixels within {} km"
                   " of Yatir Forest").format(dist_cutoff)
