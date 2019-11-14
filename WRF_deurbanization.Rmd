@@ -1,0 +1,88 @@
+---
+jupyter:
+  jupytext:
+    text_representation:
+      extension: .Rmd
+      format_name: rmarkdown
+      format_version: '1.1'
+      jupytext_version: 1.2.4
+  kernelspec:
+    display_name: Python 3
+    language: python
+    name: python3
+---
+
+```{python}
+# %autosave 0
+```
+
+WRF Deurbanization experiment plots
+
+```{python}
+import xarray as xr
+import pandas as pd
+import numpy as np
+import holoviews as hv
+import geoviews as gv
+import geoviews.feature as gf
+from cartopy import crs as ccrs
+from timutils.git_tools import print_cwd_git_version
+```
+
+```{python}
+print('git: ', end='')
+print_cwd_git_version()
+gv.extension('bokeh')
+```
+
+```{python}
+ctl = xr.open_dataset('/Users/tim/work/Data/SummenWRF/deurbanized/d02_ctl_mean_vals.nc')
+deurb = xr.open_dataset('/Users/tim/work/Data/SummenWRF/deurbanized/d02_deurb_mean_vals.nc')
+d = ctl - deurb
+dsgv = {k: gv.Dataset(this_data, kdims=['latitude', 'longitude'], vdims=list(ctl.data_vars))
+        for k, this_data in zip(('urban', 'd'), (ctl, d))}
+```
+
+```{python}
+dim_lon = hv.Dimension('longitude', label='lon', unit='deg E')
+dim_lat = hv.Dimension('latitude', label='lat', unit='deg N')
+```
+
+```{python}
+
+```
+
+```{python}
+def make_layout(urban, d, varname):
+    """return a Layout object showing urban, difference next to one another"""
+    dmax = np.abs(d[varname]).max()
+    return(hv.Layout([urban.to(gv.QuadMesh, 
+                               kdims=[dim_lon, dim_lat], 
+                               vdims=varname).opts(cmap='Viridis', 
+                                                   title='URBAN', 
+                                                   colorbar=True,
+                                                   colorbar_opts={'title':varname},
+                                                   width=400)
+                      * gf.coastline * gf.borders,
+                      d.to(gv.QuadMesh, 
+                           kdims=[dim_lon, dim_lat], 
+                           vdims=varname).opts(cmap='RdBu', 
+                                               title='URBAN - NOURBAN', 
+                                               colorbar=True,
+                                               colorbar_opts={'title':'d{}'.format(varname)},
+                                               clim=(-1.0 * dmax, dmax),
+                                               width=400)
+                     * gf.coastline * gf.borders]))
+```
+
+```{python}
+make_layout(dsgv['urban'], dsgv['d'], 'PBLH')
+```
+
+```{python}
+make_layout(dsgv['urban'], dsgv['d'], 'HFX')
+```
+
+```{python}
+make_layout(dsgv['urban'], dsgv['d'], 'LH')
+```
