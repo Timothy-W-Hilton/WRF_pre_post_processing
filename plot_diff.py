@@ -1027,6 +1027,7 @@ class VarDiffPlotter(object):
                  domain=self.domain,
                  tstamp=self.time_title_str.replace(':', ''),
                  ext=self.fig_type))
+        self.fname = self.fname.replace(' ', '_')
 
     def _get_layer_id(self):
         """return string identifying the vertical layer of the plot

@@ -129,22 +129,22 @@ def km_to_yatir(lon, lat):
     return(d_km.reshape(arr_shape))
 
 
-def use_yatir_parameterization(fname_wrf, dist_cutoff=5):
+def use_yatir_parameterization(fname_wrf, dist_cutoff=16):
     """change the landuse category for Yatir forest to 20
 
     changes LANDUSE all WRF pixels within dist_cutoff kilometers of
-    Yatir Forest to 20.
+    Yatir Forest to 22.
 
-    20 matches the new entry for Yatir Forest in VEGPARM.TBL and
+    22 matches the new entry for Yatir Forest in VEGPARM.TBL and
     LANDUSE.TBL
     """
     nc = netCDF4.Dataset(fname_wrf, 'a')  # open in append mode
-    # I'm hard coding to 22 so I can test this routine repeatedly
+    # I'm hard coding to 21 so I can test this routine repeatedly
     # without incrementing NUM_LAND_CAT every time.
-    # type(nc.NUM_LAND_CAT)() casts the 22 to the same integer type
+    # type(nc.NUM_LAND_CAT)() casts the 21 to the same integer type
     # that nc.NUM_LAND_CAT already is.  TODO: is there a better way to
     # code this?
-    nc.NUM_LAND_CAT = type(nc.NUM_LAND_CAT)((22))
+    nc.NUM_LAND_CAT = type(nc.NUM_LAND_CAT)((23))
     if any([substr in fname_wrf for substr in ("wrfbdy",
                                                "wrflow",
                                                "wrfinput_d01")]):
@@ -152,17 +152,23 @@ def use_yatir_parameterization(fname_wrf, dist_cutoff=5):
         nc.close()
         return()
 
-    LU_YATIR = 20
-    WRF_lon = nc.variables['XLONG_C'][...].squeeze()
-    WRF_lat = nc.variables['XLAT_C'][...].squeeze()
+    LU_YATIR = 21
+    try:
+        WRF_lon = nc.variables['XLONG_M'][...].squeeze()
+        WRF_lat = nc.variables['XLAT_M'][...].squeeze()
+    except KeyError:
+        print("XLONG_M, XLAT_M not found; trying XLONG, XLAT")
+        WRF_lon = nc.variables['XLONG'][...].squeeze()
+        WRF_lat = nc.variables['XLAT'][...].squeeze()
     d_yatir = km_to_yatir(WRF_lon, WRF_lat)
-    idx_yatir = np.argwhere(d_yatir < 5)
+    idx_yatir = np.argwhere(d_yatir < dist_cutoff)
     YATIR_X = idx_yatir[:, 0]
     YATIR_Y = idx_yatir[:, 1]
     landuse = nc.variables['LU_INDEX'][...]
     landuse[:, YATIR_X, YATIR_Y] = LU_YATIR
     nc.variables['LU_INDEX'][...] = landuse
-    print("modified LU_INDEX for Yatir in {fname_wrf}".format(fname_wrf=fname_wrf))
+    print("modified LU_INDEX for"
+          "Yatir in {fname_wrf}".format(fname_wrf=fname_wrf))
 
     # LANDUSEF specifies a fraction for all land use types in each
     # pixel.  Set all urban fraction in LANDUSEF to (1.0 -
@@ -175,6 +181,21 @@ def use_yatir_parameterization(fname_wrf, dist_cutoff=5):
     # set Yatir LU fraction to 1.0 in Yatir pixel
     landusef[:, LU_YATIR - 1, YATIR_X, YATIR_Y] = 1.0
     nc.variables['LANDUSEF'][...] = landusef
+
+    # set vegetation fraction to the maximum fraction present in Yatir
+    for var in ['SHDMAX', 'SHDMIN', 'VEGFRA', 'FVEG', 'GREENFRAC']:
+        try:
+            data = nc.variables[var][...]
+            yatir_max = data[..., YATIR_X, YATIR_Y].max()
+            if var == 'FVEG':   # set manually because it is getting overwritten somewhere
+                yatir_max = 0.4
+            data[..., YATIR_X, YATIR_Y] = yatir_max
+            nc.variables[var][...] = data
+            print("Yatir {} set to {} in {}".format(
+                var, yatir_max, os.path.basename(fname_wrf)))
+        except KeyError:
+            print("{} not found in {}".format(
+                var, os.path.basename(fname_wrf)))
     nc.history = ("created by metgrid_exe.  Land use set "
                   "to Yatir in WRF pixels within {} km"
                   " of Yatir Forest").format(dist_cutoff)
