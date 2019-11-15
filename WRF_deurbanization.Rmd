@@ -74,30 +74,35 @@ def make_layout(urban, d, varname):
 ```
 
 ```{python}
-all_plots = []
+all_plots = {}
 for this_var in ctl.data_vars:
     try:
-        all_plots.append(make_layout(dsgv['urban'], dsgv['d'], this_var))
+        all_plots[this_var] = make_layout(dsgv['urban'], dsgv['d'], this_var)
     except ValueError:
         print('unable to plot {}'.format(this_var))
 ```
 
 ```{python}
-hv.Layout(all_plots).cols(2)
+#TODO units on colobars
+#TODO better labels on colorbars (or somewhere)
 ```
 
 ```{python}
-make_layout(dsgv['urban'], dsgv['d'], 'TSK')
+all_plots['TSK']
 ```
 
 ```{python}
-make_layout(dsgv['urban'], dsgv['d'], 'PBLH')
+all_plots['PBLH']
 ```
 
 ```{python}
-make_layout(dsgv['urban'], dsgv['d'], 'HFX')
+all_plots['HFX']
 ```
 
 ```{python}
-make_layout(dsgv['urban'], dsgv['d'], 'LH')
+all_plots['LH']
+```
+
+```{python}
+all_plots['SWDNB']
 ```
