@@ -16,7 +16,8 @@ jupyter:
 # %autosave 0
 ```
 
-WRF Deurbanization experiment plots
+#### WRF Deurbanization experiment plots
+1 to 9 June 2009 temporal averages.  _**Note these plots show the first nine days of the WRF runs.**_
 
 ```{python}
 import xarray as xr
@@ -26,7 +27,14 @@ import holoviews as hv
 import geoviews as gv
 import geoviews.feature as gf
 from cartopy import crs as ccrs
+import cartopy.feature as cf
 from timutils.git_tools import print_cwd_git_version
+```
+
+```{python}
+us_states = cf.NaturalEarthFeature(category='cultural', 
+                                   name='admin_1_states_provinces_lines',
+                                   scale='10m')
 ```
 
 ```{python}
@@ -60,8 +68,10 @@ def make_layout(urban, d, varname):
                                                    title='URBAN', 
                                                    colorbar=True,
                                                    colorbar_opts={'title':varname},
-                                                   width=400)
-                      * gf.coastline * gf.borders,
+                                                   width=400) * 
+                      gf.coastline.options(scale='50m') * 
+                      gf.borders.options(scale='50m') *
+                      gv.Feature(us_states, group='Lines').opts(color=None),
                       d.to(gv.QuadMesh, 
                            kdims=[dim_lon, dim_lat], 
                            vdims=varname).opts(cmap='RdBu', 
@@ -69,8 +79,10 @@ def make_layout(urban, d, varname):
                                                colorbar=True,
                                                colorbar_opts={'title':'d{}'.format(varname)},
                                                clim=(-1.0 * dmax, dmax),
-                                               width=400)
-                     * gf.coastline * gf.borders]))
+                                               width=400) *
+                      gf.coastline.options(scale='50m') * 
+                      gf.borders.options(scale='50m') *
+                      gv.Feature(us_states, group='Lines').opts(color=None)]))
 ```
 
 ```{python}
@@ -85,6 +97,8 @@ for this_var in ctl.data_vars:
 ```{python}
 #TODO units on colobars
 #TODO better labels on colorbars (or somewhere)
+#TODO [x] higher resolution coastlines
+#TODO [x] US state outlines
 ```
 
 ```{python}
