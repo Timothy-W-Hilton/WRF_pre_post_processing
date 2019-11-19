@@ -43,8 +43,8 @@ cscratch_path = os.path.join('/', 'global', 'cscratch1', 'sd', 'twhilton')
 cscratch_path = '/Users/tim/work/Data/SummenWRF/yatir/'
 fluxes_ytr = gt.yatir_WRF_to_xarray(os.path.join(cscratch_path, 'fluxes_yatir_run_d03.nc'))
 fluxes_ctl = gt.yatir_WRF_to_xarray(os.path.join(cscratch_path, 'fluxes_ctl_run_d03.nc'))
-ctlday = gt.WRF_daily_daylight_avg(os.path.join(cscratch_path, 'fluxes_ctl_run_d03.nc'))
-ytrday = gt.WRF_daily_daylight_avg(os.path.join(cscratch_path, 'fluxes_yatir_run_d03.nc'))
+ctlday = gt.WRF_daily_daylight_avg(os.path.join(cscratch_path, 'ctl_run_d03_diag.nc'))
+ytrday = gt.WRF_daily_daylight_avg(os.path.join(cscratch_path, 'yatir_run_d03_diag.nc'))
 ```
 
 ```{python}
@@ -86,19 +86,22 @@ def make_var_layout(ds, varname, ncols=2):
                                                 title=WRFrun)
                              for WRFrun in ['control', 'yatir', 'difference']]).cols(
         ncols).opts(title=dims[varname].label)
-    return(var_layout)
+    layout_with_map = var_layout * gf.borders(scale='50m') * gf.coastline(scale='50m') * gf.ocean(scale='50m')
+    return(layout_with_map)
 ```
 
-Show vegetation fraction output by WRF for the control run and Yatir parameterization run.  WRF is setting the vegetation fraction for Yatir Forest to 0.0.
+Show vegetation fraction output by WRF for the control run and Yatir parameterization run.  *Finally* WRF is setting the vegetation fraction for Yatir Forest to 0.40.  I chose 0.40 to match the (approximate) most densly vegetated pixels in this region in the MODIS data ('control' panel below).
 
 ```{python}
-hv.Layout([gv.Dataset(ds.sel(hour=10), 
+this_layout = hv.Layout([gv.Dataset(ds.sel(hour=10), # hour is arbitrary for vegetation fraction
                       kdims=[dims['lon'], dims['lat']]).to(gv.QuadMesh, 
                                           kdims=[dims['lon'], dims['lat']], 
                                           vdims=dims['FVEG']).opts(cmap=cmaps['FVEG'], 
                                                                    colorbar=True,
                                                                    title=label)
-           for label, ds in dict(zip(['control', 'Yatir'], [ctlday, ytrday])).items()]).opts(title=dims['FVEG'].label)
+           for label, ds in dict(zip(['control', 'Yatir'], [ctlday, ytrday])).items()]).opts(
+    title=dims['FVEG'].label)
+this_layout * gf.borders(scale='50m') * gf.coastline(scale='50m') * gf.ocean(scale='50m')
 ```
 
 The plots show surface energy and carbon fluxes simulated by WRF for the control run, the Yatir parameterization run, and the difference between the two runs for daylight hours.  The runs should constrast more after the vegetation fraction problem is fixed.
