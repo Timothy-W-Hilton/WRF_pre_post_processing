@@ -1,0 +1,98 @@
+---
+jupyter:
+  jupytext:
+    text_representation:
+      extension: .Rmd
+      format_name: rmarkdown
+      format_version: '1.1'
+      jupytext_version: 1.2.4
+  kernelspec:
+    display_name: Python 3
+    language: python
+    name: python3
+---
+
+### Test for lat, lon plots ###
+
+```{python}
+import xarray as xr
+import numpy as np
+import holoviews as hv
+from holoviews import opts
+import geoviews as gv
+import geoviews.feature as gf
+from cartopy import crs as ccrs
+```
+
+```{python}
+hv.extension('bokeh', 'matplotlib')
+gv.extension('matplotlib', 'bokeh')
+gv.output(dpi=120, fig='svg')
+```
+
+```{python}
+dummy1d = xr.Dataset(data_vars={'data': (['x', 'y'], np.arange(100).reshape((10, 10)))},
+                        coords={'lat1d': (['x'], np.arange(0, 90, 9)),
+                               'lon1d': (['y'], np.arange(0, 90, 9))})
+```
+
+```{python}
+dummy2d = xr.Dataset(data_vars={'data': (['x', 'y'], np.arange(100).reshape((10, 10)))},
+                        coords={'lat2d': (['x', 'y'], 
+                                          np.tile(np.arange(0, 90, 9), (10, 1))),
+                               'lon2d': (['x', 'y'], 
+                                         np.transpose(np.tile(np.arange(0, 90, 9), (10, 1))))})
+```
+
+```{python}
+dummy3d = xr.Dataset(data_vars={'data': (['time', 'x', 'y'], np.arange(1000).reshape((10, 10, 10)))},
+                        coords={'time': (['time'], np.arange(10)),
+                            'lat2d': (['x', 'y'], 
+                                          np.tile(np.arange(0, 90, 9), (10, 1))),
+                               'lon2d': (['x', 'y'], 
+                                         np.transpose(np.tile(np.arange(0, 90, 9), (10, 1))))})
+```
+
+```{python}
+gf.land + gf.ocean + gf.ocean * gf.land
+```
+
+### 2D plot ###
+
+```{python}
+gf.ocean * gf.land  * gv.Dataset(dummy2d.data).to(gv.QuadMesh).opts(xlim=(-20, 100), ylim=(-20, 90))
+```
+
+### 3D plot ###
+
+```{python}
+gf.ocean * gv.Dataset(dummy3d.data).to(gv.QuadMesh, groupby='time')
+```
+
+### attempt real data ###
+
+```{python}
+LH = xr.open_dataset('/Users/tim/work/Data/SummenWRF/yatir/LH_d03_yatirZ50.nc')
+LHctl = xr.open_dataset('/Users/tim/work/Data/SummenWRF/yatir/LH_d03_yatirZ50.nc', 
+                        group='ctl')
+ntime = 10
+LH_byhand = xr.Dataset(data_vars={'LH': (['time', 'x', 'y'], LHctl.LH[:ntime, ...])},
+                      coords={'time': (['time'], np.arange(ntime)), # np.arange(LHctl.time.size)),
+                             'lat': (['x', 'y'], LH.lon),
+                             'lon': (['x', 'y'], LH.lat)})
+```
+
+```{python}
+gv.output(max_frames=LH_byhand['time'].size)
+(gf.land.options(scale='50m') * 
+ gf.ocean.options(scale='50m') *
+ gf.coastline.options(scale='50m') * 
+ gf.borders.options(scale='50m') * 
+ gv.Dataset(LH_byhand.LH).to(gv.QuadMesh, groupby='time').opts(xlim=(34.5, 35.5), ylim=(31.00, 31.75)))
+```
+
+```{python}
+tiles = gv.tile_sources.EsriImagery
+qmeshes = gv.Dataset(LH_byhand.LH).to(gv.QuadMesh, groupby='time')
+tiles.opts(zoom=1) * qmeshes.opts(projection=ccrs.GOOGLE_MERCATOR)
+```

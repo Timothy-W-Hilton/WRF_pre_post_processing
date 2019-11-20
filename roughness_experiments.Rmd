@@ -1,0 +1,88 @@
+---
+jupyter:
+  jupytext:
+    text_representation:
+      extension: .Rmd
+      format_name: rmarkdown
+      format_version: '1.1'
+      jupytext_version: 1.2.4
+  kernelspec:
+    display_name: Python [conda env:WRFhv] *
+    language: python
+    name: conda-env-WRFhv-py
+---
+
+# Roughness length experiment results
+
+```{python}
+# print any git repository info too (thanks to Travis O'Brien for this code snippet)
+import git
+try:
+    _repo = git.Repo(search_parent_directories=True)
+    _git_sha = _repo.head.object.hexsha
+    _git_short_sha = _repo.git.rev_parse(_git_sha, short=7)
+    _git_branch = _repo.active_branch
+    print("On branch {} at rev {}".format(_git_branch,_git_short_sha))
+except:
+    print("No repository detected.")
+```
+
+```{python}
+import holoviews as hv
+import os
+
+from geoviews_tools import get_data_file, overlay_roughness_realization_timeseries, xrvar_to_hvdim
+```
+
+```{python}
+hv.extension('bokeh')
+```
+
+```{python}
+roughness_data_dir = os.path.join('/Users/tim/work/Data/SummenWRF/yatir/roughness_experiments/')
+fnames = {'ctl': 'energyfluxes_control_d03.nc',
+          'yatir': 'energyfluxes_yatir_run_d03.nc',
+          'vegparm_z0_10': 'energyfluxes_vegparm_z0_10_d03.nc',
+          'landuse_z0_500': 'energyfluxes_landuse_z0_500_d03.nc'}
+data_paths = {k: os.path.join(roughness_data_dir, v)
+              for k, v in fnames.items()}
+dsgv, dsxr = get_data_file(data_paths)
+```
+
+```{python}
+vars = ['HFX', 'LH', 'FSA', 'FIRA']
+yatir_curves = [overlay_roughness_realization_timeseries(dsxr, 
+                                                         this_var, 
+                                                         mask=dsxr.yatir_mask) 
+                for this_var in vars]
+```
+
+```{python}
+import numpy as np
+desert_curves = [overlay_roughness_realization_timeseries(dsxr, 
+                                                          this_var, 
+                                                          mask=np.logical_not(dsxr.yatir_mask))
+                for this_var in vars]
+```
+
+```{python}
+hv.Layout(yatir_curves).cols(1).relabel('Yatir WRf cells pixels only')
+```
+
+```{python}
+hv.Layout(desert_curves).cols(1).relabel('Desert WRf cells pixels only')
+```
+
+```{python}
+import geoviews as gv
+import geoviews.feature as gf
+lat_dim = hv.Dimension('XLAT', label='Latitude', unit='deg N')
+lon_dim = hv.Dimension('XLONG', label='Longitude', unit='deg E')
+gv.Overlay([gv.QuadMesh(dsxr.yatir_mask, [lon_dim, lat_dim]).opts(colorbar=True, 
+                                                                  cmap='RdBu_r', 
+                                                                  width=600, 
+                                                                  height=600, 
+                                                                  padding=1.0),
+            gf.borders.options(scale='50m'),
+            gf.ocean.options(scale='50m')])
+```

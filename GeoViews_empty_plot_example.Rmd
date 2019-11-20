@@ -1,0 +1,47 @@
+---
+jupyter:
+  jupytext:
+    text_representation:
+      extension: .Rmd
+      format_name: rmarkdown
+      format_version: '1.1'
+      jupytext_version: 1.2.4
+  kernelspec:
+    display_name: Python 3
+    language: python
+    name: python3
+---
+
+```{python}
+import geoviews as gv
+import geoviews.feature as gf
+
+gv.extension('bokeh')
+```
+
+create a world map using the 50m resolution dataset, and draw it.  So far so good.
+
+```{python}
+img1 = gf.land.options(scale='50m')
+
+img1
+```
+
+show the same map zoomed in to the San Francisco, California, USA area.  So far so good.
+
+```{python}
+img1.opts(xlim=(-122, -123),  ylim=(37, 38))
+```
+
+show oceans, land masses, and (oceans, coastlines, land masses) overlaid.  So far so good.
+
+```{python}
+(gf.ocean + gf.land + gf.ocean * gf.land * gf.coastline * gf.borders)
+```
+
+Now show a single panel with land and oceans overlaid.  This produces a blank plot.
+
+```{python}
+img2 = gf.land.options(scale='50m') * gf.ocean.options(scale='50m')
+img2
+```

@@ -1,0 +1,42 @@
+---
+jupyter:
+  jupytext:
+    text_representation:
+      extension: .Rmd
+      format_name: rmarkdown
+      format_version: '1.1'
+      jupytext_version: 1.2.4
+  kernelspec:
+    display_name: Python 3
+    language: python
+    name: python3
+---
+
+```{python}
+import numpy as np
+import geoviews as gv
+gv.extension('bokeh')
+```
+
+```{python}
+from bokeh.models import FixedTicker
+min_val = 0
+max_val = 20
+number_strings = ['zero', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten',
+                 'eleven', 'twelve', 'thirteen', 'fourteen', 'fifteen', 'sixteen', 'seventeen', 
+                 'eightteen', 'nineteen', 'twenty', 'twentyone']
+foo = np.random.randint(min_val, max_val, (10, 10))
+colorbar_opts={'major_label_overrides': {x: number_strings[x] for x in range(max_val)},
+              'ticker': FixedTicker(ticks=np.linspace(min_val + 0.5, max_val - 0.5, (max_val - min_val) + 1.0)),
+              'major_label_text_align': 'left'}
+gv.Image(foo).opts(colorbar=True, cmap='glasbey_dark', colorbar_opts=colorbar_opts, color_levels=max_val)
+```
+
+```{python}
+tick_locs = np.linspace(min_val + 0.5, max_val - 0.5, (max_val - min_val) + 1.0)
+tick_labels = {this_tick: "{:0.2f}asdf".format(this_tick) for this_tick in tick_locs}
+colorbar_opts={'major_label_overrides': tick_labels,
+              'ticker': FixedTicker(ticks=tick_locs),
+              'major_label_text_align': 'left'}
+gv.Image(foo).opts(width=400, height=300, colorbar=True, color_levels=max_val, cmap='glasbey_dark', colorbar_opts=colorbar_opts)
+```
