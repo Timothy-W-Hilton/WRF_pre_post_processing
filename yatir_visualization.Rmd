@@ -58,6 +58,14 @@ cmaps = {'GPP': 'Greens',
         'SWDOWN': 'YlOrRd',
         'FSA': 'YlOrRd',
         'FIRA': 'YlOrRd'}
+newdict = {}
+for k, v in cmaps.items():
+    for run in ['control', 'yatir', 'difference']:
+        if run in ['control', 'yatir']:
+            newdict[(k, run)] = cmaps[k]
+        else:
+            newdict[(k, run)] = 'BrBG'
+
 ```
 
 ```{python}
@@ -83,7 +91,7 @@ def make_var_layout(ds, varname, ncols=2):
                             kdims=[dims['lon'], dims['lat']], 
                             vdims=varname).opts(colorbar=True, 
                                                 padding=0.1,
-                                                cmap=cmaps[varname],
+                                                cmap=newdict[varname, WRFrun],
                                                 title=WRFrun)
                              for WRFrun in ['control', 'yatir', 'difference']]).cols(
         ncols).opts(title=dims[varname].label)
@@ -112,11 +120,6 @@ The plots show surface energy and carbon fluxes simulated by WRF for the control
 # times per plot; disable warmings for the time being.
 import warnings
 warnings.filterwarnings('ignore')
-```
-
-```{python}
-foo = make_var_layout(ds, 'SWDOWN')
-print(foo.HoloMap.III)
 ```
 
 ```{python}
