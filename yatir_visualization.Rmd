@@ -7,9 +7,9 @@ jupyter:
       format_version: '1.1'
       jupytext_version: 1.2.4
   kernelspec:
-    display_name: Python 3
+    display_name: WRF_cori_jupyter2
     language: python
-    name: python3
+    name: wrf_cori_jupyter2
 ---
 
 ```{python ein.hycell=FALSE, ein.tags=worksheet-0, slideshow={'slide_type': '-'}}
@@ -31,7 +31,7 @@ from timutils.git_tools import print_cwd_git_version
 ```{python ein.hycell=FALSE, ein.tags=worksheet-0, slideshow={'slide_type': '-'}}
 print('git: ', end='')
 print_cwd_git_version()
-gv.extension('bokeh')
+gv.extension('matplotlib')
 ```
 
 # Yatir Parameterizaton WRF results
@@ -39,8 +39,9 @@ gv.extension('bokeh')
 A collection of plots showing WRF-simulated surface energy and carbon fluxes for two different simulations of Yatir Forest in Israel.  The first WRF run is a control run using 'out of the box' NOAH-MP land surface parameterizations derived from MODIS land cover types.  The second WRF run is an experimental run that set a 15-km radius surrounding Yatir Forest to a lower albedo and higher surface roughness length relative to both the open shrubland PFT that occupies the area in the control run as well as the desert surrounding the forest.
 
 ```{python ein.hycell=FALSE, ein.tags=worksheet-0, slideshow={'slide_type': '-'}}
-cscratch_path = os.path.join('/', 'global', 'cscratch1', 'sd', 'twhilton')
-cscratch_path = '/Users/tim/work/Data/SummenWRF/yatir/'
+cscratch_path = os.path.join('/', 'global', 'cscratch1', 'sd', 'twhilton', 
+                             'yatir_output_collected')
+#cscratch_path = '/Users/tim/work/Data/SummenWRF/yatir/'
 fluxes_ytr = gt.yatir_WRF_to_xarray(os.path.join(cscratch_path, 'fluxes_yatir_run_d03.nc'))
 fluxes_ctl = gt.yatir_WRF_to_xarray(os.path.join(cscratch_path, 'fluxes_ctl_run_d03.nc'))
 ctlday = gt.WRF_daily_daylight_avg(os.path.join(cscratch_path, 'ctl_run_d03_diag.nc'))
@@ -49,7 +50,7 @@ ytrday = gt.WRF_daily_daylight_avg(os.path.join(cscratch_path, 'yatir_run_d03_di
 
 ```{python}
 #define some holoviews dimensions
-dims = gt.define_dims(fluxes_ctl)
+dims = gt.define_dims(ctlday)
 cmaps = {'GPP': 'Greens',
         'LH': 'Blues',
         'HFX': 'Reds',
@@ -105,6 +106,18 @@ this_layout * gf.borders(scale='50m') * gf.coastline(scale='50m') * gf.ocean(sca
 ```
 
 The plots show surface energy and carbon fluxes simulated by WRF for the control run, the Yatir parameterization run, and the difference between the two runs for daylight hours.  The runs should constrast more after the vegetation fraction problem is fixed.
+
+```{python}
+#holoviews triggers a matplotlib deprecation warning that prints out a million 
+# times per plot; disable warmings for the time being.
+import warnings
+warnings.filterwarnings('ignore')
+```
+
+```{python}
+foo = make_var_layout(ds, 'SWDOWN')
+print(foo.HoloMap.III)
+```
 
 ```{python}
 make_var_layout(ds, 'SWDOWN')
