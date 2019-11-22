@@ -7,9 +7,9 @@ jupyter:
       format_version: '1.1'
       jupytext_version: 1.2.4
   kernelspec:
-    display_name: WRF_cori_jupyter2
+    display_name: wrfhv
     language: python
-    name: wrf_cori_jupyter2
+    name: wrfhv
 ---
 
 ```{python ein.hycell=FALSE, ein.tags=worksheet-0, slideshow={'slide_type': '-'}}
@@ -23,6 +23,7 @@ from holoviews import opts
 import geoviews as gv
 import geoviews.feature as gf
 import matplotlib.pyplot as plt
+import cartopy.crs as ccrs
 
 import geoviews_tools as gt
 from timutils.git_tools import print_cwd_git_version
@@ -31,7 +32,7 @@ from timutils.git_tools import print_cwd_git_version
 ```{python ein.hycell=FALSE, ein.tags=worksheet-0, slideshow={'slide_type': '-'}}
 print('git: ', end='')
 print_cwd_git_version()
-gv.extension('matplotlib')
+gv.extension('bokeh')
 ```
 
 # Yatir Parameterizaton WRF results
@@ -118,14 +119,16 @@ def make_var_layout(ds, varname, ncols=2):
     #TODO: use a diverging colormap for the difference plots
     var_layout = hv.Layout([ds[WRFrun, varname].to(gv.QuadMesh, 
                             kdims=[dims['lon'], dims['lat']], 
-                            vdims=varname).opts(colorbar=True, 
+                            vdims=varname,
+                            dynamic=True).opts(colorbar=True, 
                                                 padding=0.1,
                                                 clim=clims[WRFrun],
                                                 cmap=get_cmaps()[varname, WRFrun],
-                                                title=WRFrun)
+                                                title=WRFrun,
+                                                projection=ccrs.PlateCarree())
                              for WRFrun in ['control', 'yatir', 'difference']]).cols(
         ncols).opts(title=dims[varname].label)
-    layout_with_map = var_layout * gf.borders(scale='50m') * gf.coastline(scale='50m') * gf.ocean(scale='50m')
+    layout_with_map = var_layout * gf.borders(scale='50m') * gf.coastline(scale='50m')# * gf.ocean(scale='50m')
     return(layout_with_map)
 ```
 
@@ -138,10 +141,11 @@ this_layout = hv.Layout([gv.Dataset(ds.sel(hour=10), # hour is arbitrary for veg
                                           vdims=dims['FVEG']).opts(cmap=get_cmaps()['FVEG', 
                                                                                     'control'], 
                                                                    colorbar=True,
-                                                                   title=label)
+                                                                   title=label,
+                                                                   projection=ccrs.PlateCarree())
            for label, ds in dict(zip(['control', 'Yatir'], [ctlday, ytrday])).items()]).opts(
     title=dims['FVEG'].label)
-this_layout * gf.borders(scale='50m') * gf.coastline(scale='50m') * gf.ocean(scale='50m')
+this_layout * gf.borders(scale='50m') * gf.coastline(scale='50m') #* gf.ocean(scale='50m')
 ```
 
 The plots show surface energy and carbon fluxes simulated by WRF for the control run, the Yatir parameterization run, and the difference between the two runs for daylight hours.  The runs constrast more now that the vegetation fraction problem is fixed.
@@ -188,71 +192,6 @@ vegparm_str = format_vegparm()
 landparm_str = format_landparm()
 # print these two strings and paste them into a markdown cell to get a nicely formatted version
 ```
-
-<!-- #region {"ein.tags": "worksheet-0", "slideshow": {"slide_type": "-"}} -->
-#### VEGPARM.TBL ####
-|    |   ALBD |      SLMO |      SFEM |      SFZ0 |    THERIN |      SCFX |      SFHC |  LANDCOVER                           |
-|---:|-------:|----------:|----------:|----------:|----------:|----------:|----------:|:-------------------------------------|
-|  1 |     12 |      0.3  |     0.95  |     50    |       4   |      3.33 |  2.92e+06 | 'Evergreen Needleleaf Forest'        |
-|  2 |     12 |      0.5  |     0.95  |     50    |       5   |      1.67 |  2.92e+06 | 'Evergreen Broadleaf Forest'         |
-|  3 |     14 |      0.3  |     0.94  |     50    |       4   |      2.86 |  2.5e+06  | 'Deciduous Needleleaf Forest'        |
-|  4 |     16 |      0.3  |     0.93  |     50    |       4   |      2.63 |  2.5e+06  | 'Deciduous Broadleaf Forest'         |
-|  5 |     13 |      0.3  |     0.97  |     50    |       4   |      2.11 |  4.18e+06 | 'Mixed Forests'                      |
-|  6 |     22 |      0.1  |     0.93  |      5    |       3   |      1.56 |  2.08e+06 | 'Closed Shrublands'                  |
-|  7 |     20 |      0.15 |     0.95  |      6    |       3   |      2.14 |  2.08e+06 | 'Open Shrublands'                    |
-|  8 |     22 |      0.1  |     0.93  |      5    |       3   |      1.56 |  2.08e+06 | 'Woody Savannas'                     |
-|  9 |     20 |      0.15 |     0.92  |     15    |       3   |      2    |  2.5e+06  | 'Savannas'                           |
-| 10 |     19 |      0.15 |     0.96  |     12    |       3   |      2.37 |  2.08e+06 | 'Grasslands'                         |
-| 11 |     14 |      0.42 |     0.95  |     30    |       5.5 |      1.32 |  3.55e+06 | 'Permanent wetlands'                 |
-| 12 |     17 |      0.3  |     0.985 |     15    |       4   |      2.71 |  2.5e+06  | 'Croplands'                          |
-| 13 |     15 |      0.1  |     0.88  |     80    |       3   |      1.67 |  1.89e+06 | 'Urban and Built-Up'                 |
-| 14 |     18 |      0.25 |     0.98  |     14    |       4   |      2.56 |  2.5e+06  | 'cropland/natural vegetation mosaic' |
-| 15 |     55 |      0.95 |     0.95  |      0.1  |       5   |      0    |  9e+25    | 'Snow and Ice'                       |
-| 16 |     25 |      0.02 |     0.9   |      1    |       2   |      0.81 |  1.2e+06  | 'Barren or Sparsely Vegetated'       |
-| 17 |      8 |      1    |     0.98  |      0.01 |       6   |      0    |  9e+25    | 'Water'                              |
-| 18 |     15 |      0.5  |     0.93  |     30    |       5   |      2.67 |  9e+25    | 'Wooded Tundra'                      |
-| 19 |     15 |      0.5  |     0.92  |     15    |       5   |      2.67 |  9e+25    | 'Mixed Tundra'                       |
-| 20 |     12 |      0.02 |     0.97  |     50    |       3   |      1.67 |  1.89e+06 | 'Yatir'                              |
-| 21 |     15 |      0.02 |     0.88  |     80    |       3   |      1.67 |  1.89e+06 | 'Unassigned'                         |
-| 22 |     15 |      0.02 |     0.88  |     80    |       3   |      1.67 |  1.89e+06 | 'Unassigned'                         |
-| 23 |     15 |      0.02 |     0.88  |     80    |       3   |      1.67 |  1.89e+06 | 'Unassigned'                         |
-| 24 |     15 |      0.02 |     0.88  |     80    |       3   |      1.67 |  1.89e+06 | 'Unassigned'                         |
-| 25 |     15 |      0.02 |     0.88  |     80    |       3   |      1.67 |  1.89e+06 | 'Unassigned'                         |
-| 26 |     15 |      0.02 |     0.88  |     80    |       3   |      1.67 |  1.89e+06 | 'Unassigned'                         |
-| 27 |     15 |      0.02 |     0.88  |     80    |       3   |      1.67 |  1.89e+06 | 'Unassigned'                         |
-| 28 |     15 |      0.02 |     0.88  |     80    |       3   |      1.67 |  1.89e+06 | 'Unassigned'                         |
-| 29 |     15 |      0.02 |     0.88  |     80    |       3   |      1.67 |  1.89e+06 | 'Unassigned'                         |
-| 30 |     15 |      0.02 |     0.88  |     80    |       3   |      1.67 |  1.89e+06 | 'Unassigned'                         |
-| 31 |     10 |      0.1  |     0.97  |     80    |       3   |      1.67 |  1.89e+06 | 'Low Intensity Residential '         |
-| 32 |     10 |      0.1  |     0.97  |     80    |       3   |      1.67 |  1.89e+06 | 'High Intensity Residential'         |
-| 33 |     10 |      0.1  |     0.97  |     80    |       3   |      1.67 |  1.89e+06 | 'Industrial or Commercial'           |
-<!-- #endregion -->
-
-<!-- #region {"ein.tags": "worksheet-0", "slideshow": {"slide_type": "-"}} -->
-#### LANDPARM.TBL ####
-|    |   SHDFAC |    NROOT |      RS |         RGL |         HS |         SNUP |     MAXALB |      LAIMIN |     LAIMAX |      EMISSMIN |    EMISSMAX |    ALBEDOMIN |    ALBEDOMAX |      Z0MIN |      Z0MAX |      ZTOPV |       ZBOTV |  LANDCOVER'                          |
-|---:|---------:|---------:|--------:|------------:|-----------:|-------------:|-----------:|------------:|-----------:|--------------:|------------:|-------------:|-------------:|-----------:|-----------:|-----------:|------------:|:-------------------------------------|
-|  1 |     0.7  |        4 |     125 |          30 |      47.35 |        0.08  |         52 |        5    |       6.4  |          0.95 |       0.95  |         0.12 |         0.12 |     0.5    |     0.5    |      17    |        8.5  | 'Evergreen Needleleaf Forest'        |
-|  2 |     0.95 |        4 |     150 |          30 |      41.69 |        0.08  |         35 |        3.08 |       6.48 |          0.95 |       0.95  |         0.12 |         0.12 |     0.5    |     0.5    |      35    |        1    | 'Evergreen Broadleaf Forest'         |
-|  3 |     0.7  |        4 |     150 |          30 |      47.35 |        0.08  |         54 |        1    |       5.16 |          0.93 |       0.94  |         0.14 |         0.15 |     0.5    |     0.5    |      14    |        7    | 'Deciduous Needleleaf Forest'        |
-|  4 |     0.8  |        4 |     100 |          30 |      54.53 |        0.08  |         58 |        1.85 |       3.31 |          0.93 |       0.93  |         0.16 |         0.17 |     0.5    |     0.5    |      20    |       11.5  | 'Deciduous Broadleaf Forest'         |
-|  5 |     0.8  |        4 |     125 |          30 |      51.93 |        0.08  |         53 |        2.8  |       5.5  |          0.93 |       0.97  |         0.17 |         0.25 |     0.2    |     0.5    |      18    |       10    | 'Mixed Forests'                      |
-|  6 |     0.7  |        3 |     300 |         100 |      42    |        0.03  |         60 |        0.5  |       3.66 |          0.93 |       0.93  |         0.25 |         0.3  |     0.01   |     0.05   |       0.5  |        0.1  | 'Closed Shrublands'                  |
-|  7 |     0.7  |        3 |     170 |         100 |      39.18 |        0.035 |         65 |        0.6  |       2.6  |          0.93 |       0.95  |         0.22 |         0.3  |     0.01   |     0.06   |       0.5  |        0.1  | 'Open Shrublands'                    |
-|  8 |     0.7  |        3 |     300 |         100 |      42    |        0.03  |         60 |        0.5  |       3.66 |          0.93 |       0.93  |         0.25 |         0.3  |     0.01   |     0.05   |       0.5  |        0.1  | 'Woody Savannas'                     |
-|  9 |     0.5  |        3 |      70 |          65 |      54.53 |        0.04  |         50 |        0.5  |       3.66 |          0.92 |       0.92  |         0.2  |         0.2  |     0.15   |     0.15   |       0.5  |        0.1  | 'Savannas'                           |
-| 10 |     0.8  |        3 |      40 |         100 |      36.35 |        0.04  |         70 |        0.52 |       2.9  |          0.92 |       0.96  |         0.19 |         0.23 |     0.1    |     0.12   |       0.5  |        0.01 | 'Grasslands'                         |
-| 11 |     0.6  |        2 |      70 |          65 |      55.97 |        0.015 |         59 |        1.75 |       5.72 |          0.95 |       0.95  |         0.14 |         0.14 |     0.3    |     0.3    |       0    |        0    | 'Permanent wetlands'                 |
-| 12 |     0.8  |        3 |      40 |         100 |      36.25 |        0.04  |         66 |        1.56 |       5.68 |          0.92 |       0.985 |         0.17 |         0.23 |     0.05   |     0.15   |       0.5  |        0.01 | 'Croplands'                          |
-| 13 |     0.1  |        1 |     200 |         999 |     999    |        0.04  |         46 |        1    |       1    |          0.88 |       0.88  |         0.15 |         0.15 |     0.5    |     0.5    |       0    |        0    | 'Urban and Built-Up'                 |
-| 14 |     0.8  |        3 |      40 |         100 |      36.25 |        0.04  |         68 |        2.29 |       4.29 |          0.92 |       0.98  |         0.18 |         0.23 |     0.05   |     0.14   |       0.5  |        0.01 | 'cropland/natural vegetation mosaic' |
-| 15 |     0    |        1 |     999 |         999 |     999    |        0.02  |         82 |        0.01 |       0.01 |          0.95 |       0.95  |         0.55 |         0.7  |     0.001  |     0.001  |       0    |        0    | 'Snow and Ice'                       |
-| 16 |     0.01 |        1 |     999 |         999 |     999    |        0.02  |         75 |        0.1  |       0.75 |          0.9  |       0.9   |         0.38 |         0.38 |     0.01   |     0.01   |       0.02 |        0.01 | 'Barren or Sparsely Vegetated'       |
-| 17 |     0    |        0 |     100 |          30 |      51.75 |        0.01  |         70 |        0.01 |       0.01 |          0.98 |       0.98  |         0.08 |         0.08 |     0.0001 |     0.0001 |       0    |        0    | 'Water'                              |
-| 18 |     0.6  |        3 |     150 |         100 |      42    |        0.025 |         55 |        0.41 |       3.35 |          0.93 |       0.93  |         0.15 |         0.2  |     0.3    |     0.3    |      10    |        0.1  | 'Wooded Tundra'                      |
-| 19 |     0.6  |        3 |     150 |         100 |      42    |        0.025 |         60 |        0.41 |       3.35 |          0.92 |       0.92  |         0.15 |         0.2  |     0.15   |     0.15   |       5    |        0.1  | 'Mixed Tundra'                       |
-| 20 |     0.56 |        4 |     286 |          30 |      47.35 |        0.08  |         52 |        3    |       3    |          0.97 |       0.97  |         0.12 |         0.12 |     2      |     2      |      10    |        1    | 'Yatir'                              |
-<!-- #endregion -->
 
 <!-- #region {"ein.tags": "worksheet-0", "slideshow": {"slide_type": "-"}} -->
 # Sensible Heat #
