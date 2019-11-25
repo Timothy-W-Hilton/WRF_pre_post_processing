@@ -262,10 +262,11 @@ def yatir_landuse_to_xarray():
 
 
 if __name__ == '__main__':
-    test_get_landuse_to_xarray = False
+    test_get_landuse_to_xarray = True
     test_get_data_file = False
     test_get_xarray = False
-    test_get_xarray_daily = True
+    test_get_xarray_daily = False
+    test_merge = True
 
     if test_get_landuse_to_xarray:
         dict_runs = yatir_landuse_to_xarray()
@@ -306,3 +307,23 @@ if __name__ == '__main__':
         ctlday = WRF_daily_daylight_avg('/Users/tim/work/Data/SummenWRF/yatir/fluxes_ctl_run_d03.nc')
         ytrday = WRF_daily_daylight_avg('/Users/tim/work/Data/SummenWRF/yatir/fluxes_yatir_run_d03.nc')
         dims = define_dims(ctl)
+
+    if test_merge:
+        cscratch_path = os.path.join('/', 'global', 'cscratch1', 'sd',
+                                     'twhilton','yatir_output_collected')
+        ctlday = WRF_daily_daylight_avg(os.path.join(cscratch_path,
+                                                     'ctl_run_d03_diag.nc'))
+        ytrday = WRF_daily_daylight_avg(os.path.join(cscratch_path,
+                                                     'yatir_run_d03_diag.nc'))
+        landuse_data = yatir_landuse_to_xarray()
+
+        ytrday = ytrday.assign(
+            {'LU_INDEX':
+             landuse_data['d03'].sel(WRFrun='ytr')['LU_INDEX']})
+        ytrday = ytrday.assign_attrs(
+            PFTs=list(landuse_data['d03'].sel(WRFrun='ytr')['PFT'].data))
+        ctlday = ctlday.assign(
+            {'LU_INDEX':
+             landuse_data['d03'].sel(WRFrun='ctl')['LU_INDEX']})
+        ctlday = ctlday.assign_attrs(
+            PFTs=list(landuse_data['d03'].sel(WRFrun='ctl')['PFT'].data))
