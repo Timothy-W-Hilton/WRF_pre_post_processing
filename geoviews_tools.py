@@ -1,5 +1,6 @@
 import numpy as np
 import os
+import socket
 import xarray as xr
 import holoviews as hv
 from holoviews import opts
@@ -8,7 +9,6 @@ import geoviews.feature as gf
 import pandas as pd
 
 from map_tools_twh.map_tools_twh import get_IGBP_modMODIS_21Category_PFTs_table
-
 from adjust_WRF_inputs import km_to_yatir
 
 
@@ -222,8 +222,12 @@ def yatir_landuse_to_xarray():
       dict keyed by ['d02', 'd03']; values are xarray.DataSet objects
       containing land use data concatenated on new dimension WRFrun
     """
-    dir_path = os.path.join('/', 'Users', 'tim', 'work',
-                            'Data', 'SummenWRF', 'yatir')
+    if 'MacBook' in socket.gethostname():
+        dir_path = os.path.join('/', 'Users', 'tim', 'work',
+                                'Data', 'SummenWRF', 'yatir')
+    elif 'cori' in socket.gethostname():
+        dir_path = os.path.join('/', 'global', 'cscratch1', 'sd',
+                                'twhilton', 'yatir_land_use')
     ctable = get_IGBP_modMODIS_21Category_PFTs_table()
     land_cat_names = list(ctable['long_name'])
     land_cat_names = [x if x != 'BareGroundTundra' else 'Yatir'
