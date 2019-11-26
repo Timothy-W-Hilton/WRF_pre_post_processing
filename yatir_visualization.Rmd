@@ -63,7 +63,7 @@ ds_diff = xr.concat([ctlday, ytrday, ctl_minus_ytr],
 ```
 
 ```{python}
-yatir_idx = list(ds_diff['PFT'].values).index('Yatir')  
+yatir_idx = 21  # list(ds_diff['PFT'].values).index('Yatir')  
 ds_diff = ds_diff.assign(yatir_mask=ds_diff.sel(WRFrun='yatir')['LU_INDEX'] == yatir_idx)
 ```
 
@@ -211,15 +211,12 @@ Yatir sensible heat flux in late August 2015 was 368.8 to 434.4 W m$^{-2}$ ([Bru
 <!-- #endregion -->
 
 ```{python}
-t_dim = hv.Dimension('time', label='date', unit='y/m/d')
-hfx_dim = hv.Dimension('HFX', label='sensible heat flux', unit='W m-2')
-area_dim = hv.Dimension('area', label='parameterization', values=['Yatir cells', 'Desert cells'])
-WRFrun_dim = hv.Dimension('WRFrun', label='WRF run', values=['Yatir WRF run', 'Control WRF run'])
-```
-
-```{python ein.hycell=FALSE, ein.tags=worksheet-0, slideshow={'slide_type': '-'}}
-dscombined = xr.concat((HFXytr_d03, HFXctl_d03), dim=pd.Index(['Yatir WRF run', 'Control WRF run'], name='WRFrun'))
-hvds = hv.Dataset(dscombined, kdims=['time', 'x', 'y', 'WRFrun'], vdims=['HFX', 'lat', 'lon'])
+is_yatir = ds_diff.yatir_mask
+is_desert = np.logical_not(is_yatir)
+means = xr.concat([ds_diff.where(mask).mean(dim=['south_north', 'west_east'])
+                   for mask in [is_yatir, is_desert]],
+                  dim=pd.Index(['yatir', 'desert',], name='area'))
+hv.Dataset(means['HFX']).to(hv.Curve, kdims='hour').opts(xlim=(0, 24)).overlay('WRFrun').layout('area')
 ```
 
 ```{python}
