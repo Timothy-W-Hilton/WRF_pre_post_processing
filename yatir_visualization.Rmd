@@ -32,7 +32,7 @@ from timutils.git_tools import print_cwd_git_version
 ```{python ein.hycell=FALSE, ein.tags=worksheet-0, slideshow={'slide_type': '-'}}
 print('git: ', end='')
 print_cwd_git_version()
-gv.extension('bokeh')
+gv.extension('matplotlib')
 ```
 
 # Yatir Parameterizaton WRF results
@@ -40,13 +40,7 @@ gv.extension('bokeh')
 A collection of plots showing WRF-simulated surface energy and carbon fluxes for two different simulations of Yatir Forest in Israel.  The first WRF run is a control run using 'out of the box' NOAH-MP land surface parameterizations derived from MODIS land cover types.  The second WRF run is an experimental run that set a 15-km radius surrounding Yatir Forest to a lower albedo and higher surface roughness length relative to both the open shrubland PFT that occupies the area in the control run as well as the desert surrounding the forest.
 
 ```{python ein.hycell=FALSE, ein.tags=worksheet-0, slideshow={'slide_type': '-'}}
-cscratch_path = os.path.join('/', 'global', 'cscratch1', 'sd', 'twhilton', 
-                             'yatir_output_collected')
-#cscratch_path = '/Users/tim/work/Data/SummenWRF/yatir/'
-fluxes_ytr = gt.yatir_WRF_to_xarray(os.path.join(cscratch_path, 'fluxes_yatir_run_d03.nc'))
-fluxes_ctl = gt.yatir_WRF_to_xarray(os.path.join(cscratch_path, 'fluxes_ctl_run_d03.nc'))
-ctlday = gt.WRF_daily_daylight_avg(os.path.join(cscratch_path, 'ctl_run_d03_diag.nc'))
-ytrday = gt.WRF_daily_daylight_avg(os.path.join(cscratch_path, 'yatir_run_d03_diag.nc'))
+ctlday, ytrday, ctl_minus_ytr = gt.merge_yatir_fluxes_landuse()
 ```
 
 ```{python}
@@ -57,7 +51,8 @@ dims['hour'] = hv.Dimension('hour', label='hour of day', unit='UTC', default=9)
 ```
 
 ```{python}
-ds_diff = xr.concat([ctlday, ytrday, ctlday - ytrday], dim=pd.Index(['control', 'yatir', 'difference'], name='WRFrun'))
+ds_diff = xr.concat([ctlday, ytrday, ctl_minus_ytr], 
+                    dim=pd.Index(['control', 'yatir', 'difference'], name='WRFrun'))
 ```
 
 ```{python}
@@ -66,7 +61,8 @@ ds = {(WRFrun, var): gv.Dataset(ds_diff.sel(WRFrun=WRFrun)[var],
                                 kdims=[dims['hour'], dims['lon'], dims['lat']], 
                                 vdims=[dims[var]])
        for WRFrun in list(ds_diff.WRFrun.values)
-       for var in ctlday.data_vars}
+       for var in ['SWDOWN', 'HFX', 'LH', 'GPP', 'FVEG', 'FSA', 'FIRA']}
+# need to skip the two landuse variables in creating the dict because they do not have an 'hours' dimension
 ```
 
 ```{python}
