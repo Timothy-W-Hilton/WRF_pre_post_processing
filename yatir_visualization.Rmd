@@ -217,20 +217,13 @@ Parse Yatir Forest eddy covariance data
 
 ```{python}
 df_ytr = gt.parse_yatir_EC_observations()
-df_ytr.replace()
-hv_ytr = hv.Table(df_ytr)
-cv_obs = hv_ytr.to.curve('time', 'H', [], label='observed')
-cv_obs.opts(width=600)
-```
 
-```{python}
-df_ytr = pd.read_csv('/Users/tim/work/Data/Yatir_Forest_Data/EFDC_L2_Flx_ILYat_2015_v03_30m.txt',
-                    na_values=[-9999])
-df_ytr['time'] = pd.to_datetime(df_ytr['TIMESTAMP_START'], format='%Y%m%d%H%M')
 df_ytr.replace()
 hv_ytr = hv.Table(df_ytr)
 cv_obs = hv_ytr.to.curve('time', 'H', [], label='observed')
-cv_obs.opts(width=600)
+df_ytr[['H', 'time', 'hour']]
+df_ytr[['H', 'LE', 'hour']].groupby('hour').mean()
+
 ```
 
 Plot HFX for both WRF runs (Control, Yatir) overlaid on a single axes.

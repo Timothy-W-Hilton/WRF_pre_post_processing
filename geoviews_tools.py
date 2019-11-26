@@ -240,6 +240,25 @@ def overlay_roughness_realization_timeseries(dsxr, varname, mask=None):
     return(hvol)
 
 
+def parse_yatir_EC_observations():
+    """parse Yatir forest eddy covariance observations to a pandas data frame
+    """
+    if 'MacBook' in socket.gethostname():
+        dir_path = os.path.join('/', 'Users', 'tim', 'work', 'Data',
+                                'Yatir_Forest_Data')
+    elif 'cori' in socket.gethostname():
+        dir_path = os.path.join('/', 'project', 'projectdirs',
+                                'm2319', 'Data', 'Yatir_Forest_Data')
+    df_ytr = pd.read_csv(os.path.join(dir_path,
+                                      'EFDC_L2_Flx_ILYat_2015_v03_30m.txt'),
+                         na_values=[-9999])
+    df_ytr['time'] = pd.to_datetime(df_ytr['TIMESTAMP_START'],
+                                    format='%Y%m%d%H%M')
+    df_ytr['hour'] = pd.DatetimeIndex(df_ytr['time']).hour
+    return(df_ytr)
+
+
+
 def yatir_landuse_to_xarray():
     """parse land use data for Yatir, Control runs for domains d02 and d03
 
