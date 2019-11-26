@@ -194,13 +194,6 @@ make_var_layout(ds, 'LH')
 # Yatir parameterization #
 <!-- #endregion -->
 
-```{python}
-from yatir_land_parameters import format_landparm, format_vegparm
-vegparm_str = format_vegparm()
-landparm_str = format_landparm()
-# print these two strings and paste them into a markdown cell to get a nicely formatted version
-```
-
 <!-- #region {"ein.tags": "worksheet-0", "slideshow": {"slide_type": "-"}} -->
 # Sensible Heat #
 <!-- #endregion -->
