@@ -209,36 +209,19 @@ is_desert = np.logical_not(is_yatir)
 means = xr.concat([ds_diff.where(mask).mean(dim=['south_north', 'west_east'])
                    for mask in [is_yatir, is_desert]],
                   dim=pd.Index(['yatir', 'desert',], name='area'))
-hv.Dataset(means['HFX']).to(hv.Curve, kdims='hour').opts(xlim=(0, 24)).overlay('WRFrun').layout('area')
-```
-
-```{python}
-hfx_yatir = dscombined.where(dscombined.yatir_mask).mean(dim=['x', 'y'])
-hfx_desert = dscombined.where(np.logical_not(dscombined.yatir_mask)).mean(dim=['x', 'y'])
-hfx = xr.concat((hfx_yatir, hfx_desert), dim=pd.Index(['Yatir cells', 'Desert cells'], name='area'))
-hfxds = hv.Dataset(hfx, [WRFrun_dim, area_dim, t_dim], hfx_dim)
-#hfxds.to(hv.Curve, [t_dim], [hfx_dim]).opts(width=600).overlay('area')
-```
-
-```{python}
-from holoviews.plotting.links import RangeToolLink
-hfx_curve = hfxds.to(hv.Curve, [t_dim], [hfx_dim]).overlay('area')
-hfx_all = hfx_curve.relabel('HFX').opts(width=600, labelled=['y'], toolbar='above')
-hfx_zoomed = hfx_curve.opts(width=600, height=200, default_tools=[], toolbar='disable')
-RangeToolLink(source=hfx_all.data[('Yatir WRF run',)][('Yatir cells',)], 
-              target=hfx_zoomed.data[('Yatir WRF run',)][('Yatir cells',)], 
-              axes=['x', 'y'])
-layout = (hfx_all + hfx_zoomed).cols(1)
-layout.opts(opts.Layout(shared_axes=False, merge_tools=False))
-```
-
-```{python ein.hycell=FALSE, ein.tags=worksheet-0, slideshow={'slide_type': '-'}}
-# %matplotlib inline
-HFX_masked = dscombined.where(dscombined.yatir_mask)
-gv.Dataset(HFX_masked, kdims=['WRFrun', 'time', 'lon', 'lat']).to(hv.QuadMesh, ['lon', 'lat'])[:, ::10, :, :]
+plots = hv.Dataset(means['HFX']).to(hv.Curve, kdims='hour').opts(xlim=(0, 24))
+plots.overlay('WRFrun').layout('area')
 ```
 
 Parse Yatir Forest eddy covariance data
+
+```{python}
+df_ytr = gt.parse_yatir_EC_observations()
+df_ytr.replace()
+hv_ytr = hv.Table(df_ytr)
+cv_obs = hv_ytr.to.curve('time', 'H', [], label='observed')
+cv_obs.opts(width=600)
+```
 
 ```{python}
 df_ytr = pd.read_csv('/Users/tim/work/Data/Yatir_Forest_Data/EFDC_L2_Flx_ILYat_2015_v03_30m.txt',
