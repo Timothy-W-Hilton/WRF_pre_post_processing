@@ -48,11 +48,23 @@ ctlday, ytrday, ctl_minus_ytr = gt.merge_yatir_fluxes_landuse()
 dims = gt.define_dims(ctlday)
 # provide a default value for time dimension; this determines initial slider position
 dims['hour'] = hv.Dimension('hour', label='hour of day', unit='UTC', default=9)
+dims['time'] = hv.Dimension('time', label='date', unit='y/m/d')
+dims['area'] =  hv.Dimension('area', 
+                             label='parameterization', 
+                             values=['Yatir cells', 'Desert cells'])
+dims['WRFrun'] = hv.Dimension('WRFrun', 
+                              label='WRF run',
+                              values=['Yatir WRF run', 'Control WRF run'])
 ```
 
 ```{python}
 ds_diff = xr.concat([ctlday, ytrday, ctl_minus_ytr], 
                     dim=pd.Index(['control', 'yatir', 'difference'], name='WRFrun'))
+```
+
+```{python}
+yatir_idx = list(ds_diff['PFT'].values).index('Yatir')  
+ds_diff = ds_diff.assign(yatir_mask=ds_diff.sel(WRFrun='yatir')['LU_INDEX'] == yatir_idx)
 ```
 
 ```{python}
