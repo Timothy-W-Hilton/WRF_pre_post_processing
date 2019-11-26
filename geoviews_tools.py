@@ -12,6 +12,31 @@ from map_tools_twh.map_tools_twh import get_IGBP_modMODIS_21Category_PFTs_table
 from adjust_WRF_inputs import km_to_yatir
 
 
+def merge_yatir_fluxes_landuse():
+    """merge WRF fluxes and landuse into single xarray dataset
+    """
+    cscratch_path = os.path.join('/', 'global', 'cscratch1', 'sd',
+                                 'twhilton', 'yatir_output_collected')
+    ctlday = WRF_daily_daylight_avg(os.path.join(cscratch_path,
+                                                 'ctl_run_d03_diag.nc'))
+    ytrday = WRF_daily_daylight_avg(os.path.join(cscratch_path,
+                                                 'yatir_run_d03_diag.nc'))
+    landuse_data = yatir_landuse_to_xarray()
+
+    ytrday = ytrday.assign(
+        {'LU_INDEX':
+         landuse_data['d03'].sel(WRFrun='ytr')['LU_INDEX']})
+    ctlday, ytrday = (this_dataset.assign(
+        {'LU_INDEX':
+         landuse_data['d03'].sel(WRFrun=this_key)['LU_INDEX'],
+         'LANDUSEF':
+         landuse_data['d03'].sel(WRFrun=this_key)['LANDUSEF']})
+                      for (this_dataset, this_key) in
+                      zip((ctlday, ytrday), ('ctl', 'ytr')))
+    ds_diff =  (ctlday - ytrday).assign_coords({'WRFrun': 'control - Yatir'})
+    return(ctlday, ytrday, ds_diff)
+
+
 def yatir_mask(xarr, d_threshold=5,
                lonvar='lon', latvar='lat',
                hdim1='x', hdim2='y'):
@@ -309,21 +334,4 @@ if __name__ == '__main__':
         dims = define_dims(ctl)
 
     if test_merge:
-        cscratch_path = os.path.join('/', 'global', 'cscratch1', 'sd',
-                                     'twhilton','yatir_output_collected')
-        ctlday = WRF_daily_daylight_avg(os.path.join(cscratch_path,
-                                                     'ctl_run_d03_diag.nc'))
-        ytrday = WRF_daily_daylight_avg(os.path.join(cscratch_path,
-                                                     'yatir_run_d03_diag.nc'))
-        landuse_data = yatir_landuse_to_xarray()
-
-        ytrday = ytrday.assign(
-            {'LU_INDEX':
-             landuse_data['d03'].sel(WRFrun='ytr')['LU_INDEX']})
-        ytrday = ytrday.assign_attrs(
-            PFTs=list(landuse_data['d03'].sel(WRFrun='ytr')['PFT'].data))
-        ctlday = ctlday.assign(
-            {'LU_INDEX':
-             landuse_data['d03'].sel(WRFrun='ctl')['LU_INDEX']})
-        ctlday = ctlday.assign_attrs(
-            PFTs=list(landuse_data['d03'].sel(WRFrun='ctl')['PFT'].data))
+        ctlday, ytrday = merge_yatir_fluxes_landuse()
