@@ -59,7 +59,7 @@ dims['WRFrun'] = hv.Dimension('WRFrun',
 
 ```{python}
 ds_diff = xr.concat([ctlday, ytrday, ctl_minus_ytr], 
-                    dim=pd.Index(['control', 'yatir', 'difference'], name='WRFrun'))
+                    dim=pd.Index(['control', 'yatir', 'control - Yatir'], name='WRFrun'))
 ```
 
 ```{python}
@@ -81,12 +81,12 @@ ds = {(WRFrun, var): gv.Dataset(ds_diff.sel(WRFrun=WRFrun)[var],
 def get_cmaps():
     """define colormaps by WRFrun and variable
     
-    WRF runs: ['control', 'yatir, 'difference']
+    WRF runs: ['control', 'yatir, 'control - Yatir']
     variables: ['GPP', 'LH', 'HFX', 'FVEG', 'SWDOWN', 'FSA', 'FIRA']
     
     sets a sequential colormap for each variable 
     for yatir and control runs and a diverging
-    colormap for the differences
+    colormap for the control - Yatir difference
     """
     var_cmaps = {'GPP': 'Greens',
                 'LH': 'Blues',
@@ -97,7 +97,7 @@ def get_cmaps():
                 'FIRA': 'YlOrRd'}
     cmaps = {}
     for k, v in var_cmaps.items():
-        for run in ['control', 'yatir', 'difference']:
+        for run in ['control', 'yatir', 'control - Yatir']:
             if run in ['control', 'yatir']:
                 cmaps[(k, run)] = var_cmaps[k]
             else:
@@ -107,7 +107,7 @@ def get_cmaps():
 
 ```{python}
 def make_var_layout(ds, varname, ncols=2):
-    """make HoloViews layout showing Yatir, Control, and difference
+    """make HoloViews layout showing Yatir, Control, and control - Yatir
     """
     this_min = {k: v.data.to_array().values.min() for k, v in ds.items()}
     this_max = {k: v.data.to_array().values.max() for k, v in ds.items()}
@@ -116,15 +116,15 @@ def make_var_layout(ds, varname, ncols=2):
                              this_min['yatir', varname]),
                          max(this_max['control', varname],
                              this_max['yatir', varname])),
-             'difference': (this_absmax['difference', varname] * -1.0,
-                            this_absmax['difference', varname])}
+             'control - Yatir': (this_absmax['control - Yatir', varname] * -1.0,
+                            this_absmax['control - Yatir', varname])}
     clims['yatir'] = clims['control']
              
     cbar_sym = {'control': False,
                 'yatir': False,
-                'difference': True}
-    #TODO: adjust the colorscale limits for the difference plot
-    #TODO: use a diverging colormap for the difference plots
+                'control - Yatir': True}
+    #TODO: adjust the colorscale limits for the control - Yatir plot
+    #TODO: use a diverging colormap for the control - Yatir plots
     var_layout = hv.Layout([ds[WRFrun, varname].to(gv.QuadMesh, 
                             kdims=[dims['lon'], dims['lat']], 
                             vdims=varname,
@@ -134,7 +134,7 @@ def make_var_layout(ds, varname, ncols=2):
                                                 cmap=get_cmaps()[varname, WRFrun],
                                                 title=WRFrun,
                                                 projection=ccrs.PlateCarree())
-                             for WRFrun in ['control', 'yatir', 'difference']]).cols(
+                             for WRFrun in ['control', 'yatir', 'control - Yatir']]).cols(
         ncols).opts(title=dims[varname].label)
     layout_with_map = var_layout * gf.borders(scale='50m') * gf.coastline(scale='50m')# * gf.ocean(scale='50m')
     return(layout_with_map)
@@ -156,7 +156,7 @@ this_layout = hv.Layout([gv.Dataset(ds.sel(hour=10), # hour is arbitrary for veg
 this_layout * gf.borders(scale='50m') * gf.coastline(scale='50m') #* gf.ocean(scale='50m')
 ```
 
-The plots show surface energy and carbon fluxes simulated by WRF for the control run, the Yatir parameterization run, and the difference between the two runs for daylight hours.  The runs constrast more now that the vegetation fraction problem is fixed.
+The plots show surface energy and carbon fluxes simulated by WRF for the control run, the Yatir parameterization run, and the control - Yatir between the two runs for daylight hours.  The runs constrast more now that the vegetation fraction problem is fixed.
 
 ```{python}
 #holoviews triggers a matplotlib deprecation warning that prints out a million 
@@ -217,41 +217,37 @@ Parse Yatir Forest eddy covariance data
 
 ```{python}
 df_ytr = gt.parse_yatir_EC_observations()
-
-df_ytr.replace()
 hv_ytr = hv.Table(df_ytr)
 cv_obs = hv_ytr.to.curve('time', 'H', [], label='observed')
 df_ytr[['H', 'time', 'hour']]
-df_ytr[['H', 'LE', 'hour']].groupby('hour').mean()
-
+obs_mean = df_ytr[['H', 'LE', 'hour']].groupby('hour').mean()
+hv.Table(obs_mean.reset_index()[['hour', 'H']]).to(hv.Curve, kdims=['hour'], vdims=['H'])
 ```
 
-Plot HFX for both WRF runs (Control, Yatir) overlaid on a single axes.
-
 ```{python ein.hycell=FALSE, ein.tags=worksheet-0, slideshow={'slide_type': '-'}}
-hv.extension('bokeh')
-hfx_dim_zoomed = hv.Dimension('HFX_zoomed', label='sensible heat flux', unit='W m-2')
-def two_panel_energy_flux_plot(ds, obs, t_str=""):
-    """make a plot of Yatir surface energy fluxes"""
-    gvds = gv.Dataset(ds, kdims=['WRFrun',  'time', 'x', 'y'])
-    WRF_run_labels = ds['WRFrun'].values
-    line_styles = ['solid', 'dashed']
-    cv = [hv.Curve(gvds.reduce(['x', 'y'], 
-                               function=np.nanmean).select(WRFrun=this_run), 
-                   t_dim, this_v_dim,
-                   label=this_run).opts(opts.Curve(line_dash=this_linestyle, line_width=1))
-          for this_run, this_linestyle, this_v_dim in zip(WRF_run_labels, 
-                                                          line_styles, 
-                                                         [hfx_dim, hfx_dim_zoomed])]
-    overlay_opts=opts.Overlay(frame_width=690, 
-                              legend_position='right', 
-                              ylim=(0, 450),
-                             title_format=t_str)
-    cv_hfx = hv.Overlay(cv).opts(overlay_opts)
-    overlay_opts=opts.Overlay(frame_width=690, legend_position='right', ylim=(350, 450))
-    cv_hfx_zoomed = hv.Overlay(cv).opts(overlay_opts)
-    hvly = hv.Layout([cv_hfx, cv_hfx_zoomed]).cols(1).opts(norm={'axiswise': True})
-    return(hvly, cv_hfx, cv_hfx_zoomed)
+# hv.extension('bokeh')
+# hfx_dim_zoomed = hv.Dimension('HFX_zoomed', label='sensible heat flux', unit='W m-2')
+# def two_panel_energy_flux_plot(ds, obs, t_str=""):
+#     """make a plot of Yatir surface energy fluxes"""
+#     gvds = gv.Dataset(ds, kdims=['WRFrun',  'time', 'x', 'y'])
+#     WRF_run_labels = ds['WRFrun'].values
+#     line_styles = ['solid', 'dashed']
+#     cv = [hv.Curve(gvds.reduce(['x', 'y'], 
+#                                function=np.nanmean).select(WRFrun=this_run), 
+#                    t_dim, this_v_dim,
+#                    label=this_run).opts(opts.Curve(line_dash=this_linestyle, line_width=1))
+#           for this_run, this_linestyle, this_v_dim in zip(WRF_run_labels, 
+#                                                           line_styles, 
+#                                                          [hfx_dim, hfx_dim_zoomed])]
+#     overlay_opts=opts.Overlay(frame_width=690, 
+#                               legend_position='right', 
+#                               ylim=(0, 450),
+#                              title_format=t_str)
+#     cv_hfx = hv.Overlay(cv).opts(overlay_opts)
+#     overlay_opts=opts.Overlay(frame_width=690, legend_position='right', ylim=(350, 450))
+#     cv_hfx_zoomed = hv.Overlay(cv).opts(overlay_opts)
+#     hvly = hv.Layout([cv_hfx, cv_hfx_zoomed]).cols(1).opts(norm={'axiswise': True})
+#     return(hvly, cv_hfx, cv_hfx_zoomed)
 ```
 
 ```{python}
