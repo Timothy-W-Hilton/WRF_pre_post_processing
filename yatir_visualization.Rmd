@@ -217,14 +217,22 @@ Parse Yatir Forest eddy covariance data
 
 ```{python}
 df_ytr = gt.parse_yatir_EC_observations()
+# make Yatir Fluxnet variable names match WRF variable names
+df_ytr = df_ytr.rename(columns={'H': 'HFX',
+                                'LE': 'LH'})
 hv_ytr = hv.Table(df_ytr)
-cv_obs = hv_ytr.to.curve('time', 'H', [], label='observed')
-df_ytr[['H', 'time', 'hour']]
-obs_mean = df_ytr[['H', 'LE', 'hour']].groupby('hour').mean()
+cv_obs = hv_ytr.to.curve('time', dims['HFX'], [], label='Yatir observed')
+df_ytr[['HFX', 'time', 'hour']]
+obs_mean = df_ytr[['HFX', 'LH', 'hour']].groupby('hour').mean()
 ```
 
 ```{python}
-ds_obs_mean = xr.DataArray(data=obs_mean['H'].values[np.newaxis, np.newaxis, :], 
+hv.extension('bokeh')
+cv_obs.opts(width=600)
+```
+
+```{python}
+ds_obs_mean = xr.DataArray(data=obs_mean['HFX'].values[np.newaxis, np.newaxis, :], 
                            coords={'hour': (['hour'], obs_mean.reset_index()['hour']),
                                    'area': (['area'], ['yatir']),
                                    'WRFrun': (['WRFrun'], ['Yatir obs'])},
