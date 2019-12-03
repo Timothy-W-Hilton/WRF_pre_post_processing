@@ -221,7 +221,19 @@ hv_ytr = hv.Table(df_ytr)
 cv_obs = hv_ytr.to.curve('time', 'H', [], label='observed')
 df_ytr[['H', 'time', 'hour']]
 obs_mean = df_ytr[['H', 'LE', 'hour']].groupby('hour').mean()
-hv.Table(obs_mean.reset_index()[['hour', 'H']]).to(hv.Curve, kdims=['hour'], vdims=['H'])
+```
+
+```{python}
+ds_obs_mean = xr.DataArray(data=obs_mean['H'].values[np.newaxis, np.newaxis, :], 
+                           coords={'hour': (['hour'], obs_mean.reset_index()['hour']),
+                                   'area': (['area'], ['yatir']),
+                                   'WRFrun': (['WRFrun'], ['Yatir obs'])},
+                           dims=('area', 'WRFrun', 'hour'))
+means_with_obs = xr.concat((means['HFX'], ds_obs_mean), dim='WRFrun')
+```
+
+```{python}
+hv.Dataset(means_with_obs).to(hv.Curve, kdims='hour', vdims=dims['HFX']).overlay('WRFrun').layout('area')
 ```
 
 ```{python ein.hycell=FALSE, ein.tags=worksheet-0, slideshow={'slide_type': '-'}}
@@ -248,10 +260,6 @@ hv.Table(obs_mean.reset_index()[['hour', 'H']]).to(hv.Curve, kdims=['hour'], vdi
 #     cv_hfx_zoomed = hv.Overlay(cv).opts(overlay_opts)
 #     hvly = hv.Layout([cv_hfx, cv_hfx_zoomed]).cols(1).opts(norm={'axiswise': True})
 #     return(hvly, cv_hfx, cv_hfx_zoomed)
-```
-
-```{python}
-all_d03_cells_time_series, cv_hfx, cv_hfx_zoomed = two_panel_energy_flux_plot(dscombined, cv_obs, "all WRF d03 cells")
 ```
 
 [Brugger et al (2018)](https://doi.org/10.1007/s10546-018-0371-5).  Question from Michael - why are the units W m$^{-1}$ and not W m$^{-2}$?
