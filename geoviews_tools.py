@@ -12,7 +12,7 @@ from map_tools_twh.map_tools_twh import get_IGBP_modMODIS_21Category_PFTs_table
 from adjust_WRF_inputs import km_to_yatir
 
 
-def daily_cycle_mean_overlay_layout(df_obs, ds_WRF, varname):
+def daily_cycle_mean_overlay_layout(df_obs, ds_WRF, varname, dims=None):
     """plot daily cycles for Yatir obs and WRF in two panels
 
     Left panel shows WRF desert cells, right panel shows WRF Yatir cells.
@@ -24,12 +24,23 @@ def daily_cycle_mean_overlay_layout(df_obs, ds_WRF, varname):
     RETURNS:
     holoviews.HoloMap containing the plots
     """
+
+    if dims is None:
+        hour_dim = 'hour'
+        var_dim = varname
+    else:
+        hour_dim = dims['hour']
+        var_dim = dims[varname]
+
     # place curves for the requested variable in a holomap indexed by
     # area (desert, Yatir), "WRFrun" (control, Yatir, observations)
     ds_dc = combine_yatir_obs_WRF(df_obs, ds_WRF, varname)
     hm_cv = hv.Dataset(ds_dc).to(hv.Curve,
-                                          kdims='hour',
-                                          vdims=varname)
+                                 kdims=[hour_dim],
+                                 vdims=[var_dim])
+    # hm_cv = hv.Curve(hv.Dataset(ds_dc),
+    #                  kdims=hour_dim,
+    #                  vdims=var_dim)
     opts_curve = opts.Curve(width=400)
     opts_ovly = opts.Overlay(legend_position='right')
     # place the holomap of curves into a holomap containing an
