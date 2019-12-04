@@ -11,15 +11,50 @@ import pandas as pd
 from map_tools_twh.map_tools_twh import get_IGBP_modMODIS_21Category_PFTs_table
 from adjust_WRF_inputs import km_to_yatir
 
+
+def daily_cycle_mean_overlay_layout(ds_dc, varname):
+    """plot daily cycles for Yatir obs and WRF in two panels
+
+    Left panel shows WRF desert cells, right panel shows WRF Yatir cells.
+
+    ARGS:
+    ds_dc (xarray.Dataset): xarray dataset ("ds") containing mean
+       daily cycles ("dc".  Must have dimensions [area, hour, WRFrun].
+
+    RETURNS:
+    holoviews.HoloMap containing the plots
+    """
+    # place curves for the requested variable in a holomap indexed by
+    # area (desert, Yatir), "WRFrun" (control, Yatir, observations)
+    hm_cv = hv.Dataset(ds_dc).to(hv.Curve,
+                                          kdims='hour',
+                                          vdims=varname)
+    opts_curve = opts.Curve(width=400)
+    opts_ovly = opts.Overlay(legend_position='right')
+    # place the holomap of curves into a holomap containing an
+    # NdOverlay, indexed by WRFrun
+    hm_ndovly = hm_cv.opts(opts_curve).overlay('WRFrun')
+    # rearrange the holomap into an NdLayout
+    ndovly = hm_ndovly.opts(opts_ovly).layout('area')
+
+    hm_ndovly = hm_cv.overlay('WRFrun')
+    # rearrange the holomap into an NdLayout
+    ndovly = hm_ndovly.layout('area')
+
+    return(ndovly)
+
+
 def combine_yatir_obs_WRF(df_obs, ds_WRF, varname):
     """combine WRF output and Yatir observations into an xarray dataset
     """
     # create xarray DataArray from pandas dataframe column for varname and time
-    da_obs = xr.DataArray(data=df_obs[varname].values[np.newaxis, np.newaxis, :],
-                               coords={'hour': (['hour'], df_obs.reset_index()['hour']),
-                                       'area': (['area'], ['yatir']),
-                                       'WRFrun': (['WRFrun'], ['Yatir obs'])},
-                               dims=('area', 'WRFrun', 'hour'))
+    da_obs = xr.DataArray(
+        data=df_obs[varname].values[np.newaxis, np.newaxis, :],
+        coords={'hour': (['hour'], df_obs.reset_index()['hour']),
+                'area': (['area'], ['yatir']),
+                'WRFrun': (['WRFrun'], ['Yatir obs'])},
+        dims=('area', 'WRFrun', 'hour')
+    )
     WRF_with_obs = xr.concat((da_obs, ds_WRF[varname]), dim='WRFrun')
     # not sure why I need this, but seems to be necessary to give the
     # DataArray a name

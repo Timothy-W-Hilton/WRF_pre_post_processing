@@ -248,7 +248,12 @@ means_with_obs = gt.combine_yatir_obs_WRF(obs_mean, means, 'HFX')
 ```
 
 ```{python}
-hv.Dataset(means_with_obs.rename('HFX')).to(hv.Curve, kdims='hour', vdims=dims['HFX']).opts(width=400).overlay('WRFrun').opts(legend_position='right').layout('area')
+foo = hv.Dataset(means_with_obs.rename('HFX')).to(hv.Curve, kdims='hour', vdims=dims['HFX']).opts(width=400).overlay('WRFrun').opts(legend_position='right').layout('area')
+foo
+```
+
+```{python}
+gt.daily_cycle_mean_overlay_layout(means_with_obs, 'HFX')
 ```
 
 ```{python}
