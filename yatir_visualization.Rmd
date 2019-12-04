@@ -244,31 +244,22 @@ hv.Layout(cv_obs).cols(1)
 # calculate hour mean Yatir Fluxnet observations and place in xarray dataset alongside WRF output
 var_list = ['HFX', 'LH', 'SWDOWN', 'FIRA', 'hour']
 obs_mean = df_ytr[var_list].groupby('hour').mean()
-means_with_obs = gt.combine_yatir_obs_WRF(obs_mean, means, 'HFX')
 ```
 
 ```{python}
-foo = hv.Dataset(means_with_obs.rename('HFX')).to(hv.Curve, kdims='hour', vdims=dims['HFX']).opts(width=400).overlay('WRFrun').opts(legend_position='right').layout('area')
-foo
+gt.daily_cycle_mean_overlay_layout(obs_mean, means, 'HFX')
 ```
 
 ```{python}
-gt.daily_cycle_mean_overlay_layout(means_with_obs, 'HFX')
+gt.daily_cycle_mean_overlay_layout(obs_mean, means, 'LH')
 ```
 
 ```{python}
-means_with_obs = gt.combine_yatir_obs_WRF(obs_mean, means, 'LH')
-hv.Dataset(means_with_obs).to(hv.Curve, kdims='hour', vdims=dims['LH']).overlay('WRFrun').layout('area')
+gt.daily_cycle_mean_overlay_layout(obs_mean, means, 'SWDOWN')
 ```
 
 ```{python}
-means_with_obs = gt.combine_yatir_obs_WRF(obs_mean, means, 'SWDOWN')
-hv.Dataset(means_with_obs).to(hv.Curve, kdims='hour', vdims=dims['SWDOWN']).overlay('WRFrun').layout('area')
-```
-
-```{python}
-means_with_obs = gt.combine_yatir_obs_WRF(obs_mean, means, 'FIRA')
-hv.Dataset(means_with_obs).to(hv.Curve, kdims='hour', vdims=dims['FIRA']).overlay('WRFrun').layout('area')
+gt.daily_cycle_mean_overlay_layout(obs_mean, means, 'FIRA')
 ```
 
 ```{python ein.hycell=FALSE, ein.tags=worksheet-0, slideshow={'slide_type': '-'}}
