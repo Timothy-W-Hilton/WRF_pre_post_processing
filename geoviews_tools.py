@@ -79,9 +79,9 @@ def merge_yatir_fluxes_landuse():
     cscratch_path = os.path.join('/', 'global', 'cscratch1', 'sd',
                                  'twhilton', 'yatir_output_collected')
     ctlday = WRF_daily_daylight_avg(os.path.join(cscratch_path,
-                                                 'ctl_run_d03_diag.nc'))
+                                                 'ctl_run_d03_diag_latest.nc'))
     ytrday = WRF_daily_daylight_avg(os.path.join(cscratch_path,
-                                                 'yatir_run_d03_diag.nc'))
+                                                 'yatir_run_d03_diag_latest.nc'))
     landuse_data = yatir_landuse_to_xarray()
 
     ytrday = ytrday.assign(
@@ -323,6 +323,8 @@ def parse_yatir_EC_observations():
                          na_values=[-9999])
     df_ytr['time'] = pd.to_datetime(df_ytr['TIMESTAMP_START'],
                                     format='%Y%m%d%H%M')
+    # convert Yatir obversation timestamps from local time to UTC
+    df_ytr['time'] = df_ytr['time'] - pd.Timedelta('2 hours')
     df_ytr['hour'] = pd.DatetimeIndex(df_ytr['time']).hour
     return(df_ytr)
 
