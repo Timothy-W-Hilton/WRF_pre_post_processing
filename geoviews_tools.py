@@ -11,6 +11,20 @@ import pandas as pd
 from map_tools_twh.map_tools_twh import get_IGBP_modMODIS_21Category_PFTs_table
 from adjust_WRF_inputs import km_to_yatir
 
+def combine_yatir_obs_WRF(df_obs, ds_WRF, varname):
+    """combine WRF output and Yatir observations into an xarray dataset
+    """
+    # create xarray DataArray from pandas dataframe column for varname and time
+    da_obs = xr.DataArray(data=df_obs[varname].values[np.newaxis, np.newaxis, :],
+                               coords={'hour': (['hour'], df_obs.reset_index()['hour']),
+                                       'area': (['area'], ['yatir']),
+                                       'WRFrun': (['WRFrun'], ['Yatir obs'])},
+                               dims=('area', 'WRFrun', 'hour'))
+    WRF_with_obs = xr.concat((da_obs, ds_WRF[varname]), dim='WRFrun')
+    # not sure why I need this, but seems to be necessary to give the
+    # DataArray a name
+    WRF_with_obs = WRF_with_obs.rename(varname)
+    return(WRF_with_obs)
 
 def merge_yatir_fluxes_landuse():
     """merge WRF fluxes and landuse into single xarray dataset
@@ -133,6 +147,14 @@ def yatir_WRF_to_xarray(fname):
     for dim in ['XLAT', 'XLONG']:
         ds[dim] = ds[dim].sel(Time=0)
     return(ds)
+
+
+def WRF_yatir_desert_timeseries(fname):
+    """calculate mean time series for Yatir, desert WRF cells
+
+    TODO: implement )
+    """
+
 
 def WRF_daily_daylight_avg(fname):
     """read Yatir forest WRF output to xarray containing daily means

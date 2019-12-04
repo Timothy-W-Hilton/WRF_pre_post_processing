@@ -216,32 +216,54 @@ plots.overlay('WRFrun').layout('area')
 Parse Yatir Forest eddy covariance data
 
 ```{python}
+hv.extension('bokeh')
+```
+
+```{python}
 df_ytr = gt.parse_yatir_EC_observations()
 # make Yatir Fluxnet variable names match WRF variable names
 df_ytr = df_ytr.rename(columns={'H': 'HFX',
-                                'LE': 'LH'})
+                                'LE': 'LH',
+                               'SW_IN': 'SWDOWN',
+                               'FC': 'GPP',
+                               'NETRAD': 'FIRA'})
 hv_ytr = hv.Table(df_ytr)
-cv_obs = hv_ytr.to.curve('time', dims['HFX'], [], label='Yatir observed')
-df_ytr[['HFX', 'time', 'hour']]
-obs_mean = df_ytr[['HFX', 'LH', 'hour']].groupby('hour').mean()
+cv_obs = [hv_ytr.to.curve('time', dims[this_var], [], label='Yatir observed').opts(width=600)
+          for this_var in ['HFX', 'LH', 'SWDOWN', 'FIRA']]
+
 ```
+
+#### Yatir Fluxnet observations
 
 ```{python}
 hv.extension('bokeh')
-cv_obs.opts(width=600)
+hv.Layout(cv_obs).cols(1)
 ```
 
 ```{python}
-ds_obs_mean = xr.DataArray(data=obs_mean['HFX'].values[np.newaxis, np.newaxis, :], 
-                           coords={'hour': (['hour'], obs_mean.reset_index()['hour']),
-                                   'area': (['area'], ['yatir']),
-                                   'WRFrun': (['WRFrun'], ['Yatir obs'])},
-                           dims=('area', 'WRFrun', 'hour'))
-means_with_obs = xr.concat((means['HFX'], ds_obs_mean), dim='WRFrun')
+# calculate hour mean Yatir Fluxnet observations and place in xarray dataset alongside WRF output
+var_list = ['HFX', 'LH', 'SWDOWN', 'FIRA', 'hour']
+obs_mean = df_ytr[var_list].groupby('hour').mean()
+means_with_obs = gt.combine_yatir_obs_WRF(obs_mean, means, 'HFX')
 ```
 
 ```{python}
-hv.Dataset(means_with_obs).to(hv.Curve, kdims='hour', vdims=dims['HFX']).overlay('WRFrun').layout('area')
+hv.Dataset(means_with_obs.rename('HFX')).to(hv.Curve, kdims='hour', vdims=dims['HFX']).opts(width=400).overlay('WRFrun').opts(legend_position='right').layout('area')
+```
+
+```{python}
+means_with_obs = gt.combine_yatir_obs_WRF(obs_mean, means, 'LH')
+hv.Dataset(means_with_obs).to(hv.Curve, kdims='hour', vdims=dims['LH']).overlay('WRFrun').layout('area')
+```
+
+```{python}
+means_with_obs = gt.combine_yatir_obs_WRF(obs_mean, means, 'SWDOWN')
+hv.Dataset(means_with_obs).to(hv.Curve, kdims='hour', vdims=dims['SWDOWN']).overlay('WRFrun').layout('area')
+```
+
+```{python}
+means_with_obs = gt.combine_yatir_obs_WRF(obs_mean, means, 'FIRA')
+hv.Dataset(means_with_obs).to(hv.Curve, kdims='hour', vdims=dims['FIRA']).overlay('WRFrun').layout('area')
 ```
 
 ```{python ein.hycell=FALSE, ein.tags=worksheet-0, slideshow={'slide_type': '-'}}
