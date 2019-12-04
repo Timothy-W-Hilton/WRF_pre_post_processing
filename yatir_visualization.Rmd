@@ -73,7 +73,7 @@ ds = {(WRFrun, var): gv.Dataset(ds_diff.sel(WRFrun=WRFrun)[var],
                                 kdims=[dims['hour'], dims['lon'], dims['lat']], 
                                 vdims=[dims[var]])
        for WRFrun in list(ds_diff.WRFrun.values)
-       for var in ['SWDOWN', 'HFX', 'LH', 'GPP', 'FVEG', 'FSA', 'FIRA']}
+       for var in ['SWDOWN', 'HFX', 'LH', 'GPP', 'FVEG', 'FSA', 'FIRA', 'RSSUN', 'RSSHA']}
 # need to skip the two landuse variables in creating the dict because they do not have an 'hours' dimension
 ```
 
@@ -236,6 +236,7 @@ cv_obs = [hv_ytr.to.curve('time', dims[this_var], [], label='Yatir observed').op
 #### Yatir Fluxnet observations
 
 ```{python}
+# demonstrate that hv.Layout(cv_obs) skips a plot?!?!?!?!?
 # foo = cv_obs[0] + cv_obs[1] + cv_obs[2] + cv_obs[3]
 # print(foo)
 # bar = hv.Layout([c for c in cv_obs])
@@ -254,6 +255,10 @@ var_list = ['HFX', 'LH', 'SWDOWN', 'FIRA', 'hour']
 obs_mean = df_ytr[var_list].groupby('hour').mean()
 ```
 
+#### Yatir observations overlaid on WRF results, mean daily cycle 15-19 Aug 2015
+"area: desert" shows mean daily cycle of WRF desert cells only<BR>
+"area: yatir"  shows mean daily cycle of WRF Yatir-parameterized cells only
+
 ```{python}
 gt.daily_cycle_mean_overlay_layout(obs_mean, means, 'HFX')
 ```
@@ -266,8 +271,22 @@ gt.daily_cycle_mean_overlay_layout(obs_mean, means, 'LH')
 gt.daily_cycle_mean_overlay_layout(obs_mean, means, 'SWDOWN')
 ```
 
+"FIRA" (completely counter to intuitiion) abbreviates "total net longwave rad"
+
 ```{python}
 gt.daily_cycle_mean_overlay_layout(obs_mean, means, 'FIRA')
+```
+
+WRF-NOAHMP simulated stomatal resistance, sunlit and shaded (s/m)
+
+```{python}
+plots = hv.Dataset(means['RSSUN']).to(hv.Curve, kdims='hour').opts(xlim=(0, 24))
+plots.overlay('WRFrun').layout('area')
+```
+
+```{python}
+plots = hv.Dataset(means['RSSHA']).to(hv.Curve, kdims='hour').opts(xlim=(0, 24))
+plots.overlay('WRFrun').layout('area')
 ```
 
 ```{python ein.hycell=FALSE, ein.tags=worksheet-0, slideshow={'slide_type': '-'}}
@@ -297,4 +316,4 @@ gt.daily_cycle_mean_overlay_layout(obs_mean, means, 'FIRA')
 ```
 
 [Brugger et al (2018)](https://doi.org/10.1007/s10546-018-0371-5).  Question from Michael - why are the units W m$^{-1}$ and not W m$^{-2}$?
-<img src="./Brugger_etal_2018_table3.jpg" width=900/>
+<img src="./brugger_etal_2018_table3.jpg" width=900/>
