@@ -236,8 +236,16 @@ cv_obs = [hv_ytr.to.curve('time', dims[this_var], [], label='Yatir observed').op
 #### Yatir Fluxnet observations
 
 ```{python}
-hv.extension('bokeh')
-hv.Layout(cv_obs).cols(1)
+# foo = cv_obs[0] + cv_obs[1] + cv_obs[2] + cv_obs[3]
+# print(foo)
+# bar = hv.Layout([c for c in cv_obs])
+# print(bar)
+# print((len(cv_obs)))
+# print(len([c for c in cv_obs]))
+```
+
+```{python}
+hv.Layout(cv_obs[0] + cv_obs[1] + cv_obs[2] + cv_obs[3]).cols(1)
 ```
 
 ```{python}
