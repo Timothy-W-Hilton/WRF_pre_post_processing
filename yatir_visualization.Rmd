@@ -215,6 +215,11 @@ plots = hv.Dataset(means['HFX']).to(hv.Curve, kdims='hour').opts(xlim=(0, 24))
 plots.overlay('WRFrun').layout('area').cols(2)
 ```
 
+```{python}
+
+
+```
+
 Parse Yatir Forest eddy covariance data
 
 ```{python}
@@ -283,12 +288,12 @@ WRF-NOAHMP simulated stomatal resistance, sunlit and shaded (s/m)
 
 ```{python}
 plots = hv.Dataset(means['RSSUN']).to(hv.Curve, kdims='hour').opts(xlim=(0, 24))
-plots.overlay('WRFrun').layout('area')
+plots.overlay('WRFrun').layout('area').cols(2)
 ```
 
 ```{python}
 plots = hv.Dataset(means['RSSHA']).to(hv.Curve, kdims='hour').opts(xlim=(0, 24))
-plots.overlay('WRFrun').layout('area')
+plots.overlay('WRFrun').layout('area').cols(2)
 ```
 
 ```{python ein.hycell=FALSE, ein.tags=worksheet-0, slideshow={'slide_type': '-'}}

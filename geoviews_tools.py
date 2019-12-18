@@ -51,7 +51,7 @@ def daily_cycle_mean_overlay_layout(df_obs, ds_WRF, varname, dims=None):
 
     hm_ndovly = hm_cv.overlay('WRFrun')
     # rearrange the holomap into an NdLayout
-    ndovly = hm_ndovly.layout('area')
+    ndovly = hm_ndovly.layout('area').cols(2)
 
     return(ndovly)
 
