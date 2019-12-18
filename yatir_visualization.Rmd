@@ -206,11 +206,13 @@ Yatir sensible heat flux in late August 2015 was 368.8 to 434.4 W m$^{-2}$ ([Bru
 ```{python}
 is_yatir = ds_diff.yatir_mask
 is_desert = np.logical_not(is_yatir)
+is_desert_veg = is_desert & (ds_diff.FVEG > 0.01)
+is_desert_bare = is_desert & (ds_diff.FVEG < 0.01)
 means = xr.concat([ds_diff.where(mask).mean(dim=['south_north', 'west_east'])
-                   for mask in [is_yatir, is_desert]],
-                  dim=pd.Index(['yatir', 'desert',], name='area'))
+                   for mask in [is_yatir, is_desert, is_desert_veg, is_desert_bare]],
+                  dim=pd.Index(['yatir', 'desert', 'desert vegetated', 'desert bare'], name='area'))
 plots = hv.Dataset(means['HFX']).to(hv.Curve, kdims='hour').opts(xlim=(0, 24))
-plots.overlay('WRFrun').layout('area')
+plots.overlay('WRFrun').layout('area').cols(2)
 ```
 
 Parse Yatir Forest eddy covariance data
