@@ -444,3 +444,4 @@ if __name__ == '__main__':
          ctl_minus_ytr_TP) = merge_yatir_fluxes_landuse(
              fname_ctl='ctl_run_d03_diag_TP.nc',
              fname_yatir='yatir_run_d03_diag_TP.nc')
+        ctlall = xr.merge((ctlday, ctlday_TP))
