@@ -41,6 +41,15 @@ A collection of plots showing WRF-simulated surface energy and carbon fluxes for
 
 ```{python ein.hycell=FALSE, ein.tags=worksheet-0, slideshow={'slide_type': '-'}}
 ctlday, ytrday, ctl_minus_ytr = gt.merge_yatir_fluxes_landuse()
+ctlday_TP, ytrday_TP, ctl_minus_ytr_TP = gt.merge_yatir_fluxes_landuse(
+    fname_ctl='ctl_run_d03_diag_TP.nc',
+    fname_yatir='yatir_run_d03_diag_TP.nc')
+```
+
+```{python}
+ctlday = xr.merge((ctlday, ctlday_TP))
+ytrday = xr.merge((ytrday, ytrday_TP))
+ctl_minus_ytr = xr.merge((ctl_minus_ytr, ctl_minus_ytr_TP))
 ```
 
 ```{python}
@@ -73,7 +82,7 @@ ds = {(WRFrun, var): gv.Dataset(ds_diff.sel(WRFrun=WRFrun)[var],
                                 kdims=[dims['hour'], dims['lon'], dims['lat']], 
                                 vdims=[dims[var]])
        for WRFrun in list(ds_diff.WRFrun.values)
-       for var in ['SWDOWN', 'HFX', 'LH', 'GPP', 'FVEG', 'FSA', 'FIRA', 'RSSUN', 'RSSHA']}
+       for var in ['SWDOWN', 'HFX', 'LH', 'GPP', 'FVEG', 'FSA', 'FIRA', 'RSSUN', 'RSSHA', 'W']}
 # need to skip the two landuse variables in creating the dict because they do not have an 'hours' dimension
 ```
 
