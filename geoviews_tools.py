@@ -1,3 +1,6 @@
+# 22,Yatir Forest,DarkSeaGreen1,#C1FFC1
+# 23,Redwood Forest,Maroon,#800000
+
 import numpy as np
 import os
 import socket
@@ -73,15 +76,14 @@ def combine_yatir_obs_WRF(df_obs, ds_WRF, varname):
     WRF_with_obs = WRF_with_obs.rename(varname)
     return(WRF_with_obs)
 
-def merge_yatir_fluxes_landuse():
+def merge_yatir_fluxes_landuse(fname_ctl='ctl_run_d03_diag_latest.nc',
+                               fname_yatir='yatir_run_d03_diag_latest.nc'):
     """merge WRF fluxes and landuse into single xarray dataset
     """
     cscratch_path = os.path.join('/', 'global', 'cscratch1', 'sd',
                                  'twhilton', 'yatir_output_collected')
-    ctlday = WRF_daily_daylight_avg(os.path.join(cscratch_path,
-                                                 'ctl_run_d03_diag_latest.nc'))
-    ytrday = WRF_daily_daylight_avg(os.path.join(cscratch_path,
-                                                 'yatir_run_d03_diag_latest.nc'))
+    ctlday = WRF_daily_daylight_avg(os.path.join(cscratch_path, fname_ctl))
+    ytrday = WRF_daily_daylight_avg(os.path.join(cscratch_path, fname_yatir))
     landuse_data = yatir_landuse_to_xarray()
 
     ytrday = ytrday.assign(
@@ -210,8 +212,9 @@ def WRF_daily_daylight_avg(fname):
     [GeoViews](http://geoviews.org/user_guide/)
     """
     ds = yatir_WRF_to_xarray(fname)
-    is_daytime = ds['SWDOWN'] > 0.1
-    ds_day_mean = ds.where(is_daytime, drop=True).groupby('XTIME.hour').mean(keep_attrs=True)
+    # is_daytime = ds['SWDOWN'] > 0.1
+    # ds_day_mean = ds.where(is_daytime, drop=True).groupby('XTIME.hour').mean(keep_attrs=True)
+    ds_day_mean = ds.groupby('XTIME.hour').mean(keep_attrs=True)
     return(ds_day_mean)
 
 
