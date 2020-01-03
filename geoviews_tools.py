@@ -214,6 +214,17 @@ def WRF_daily_daylight_avg(fname):
     ds = yatir_WRF_to_xarray(fname)
     # is_daytime = ds['SWDOWN'] > 0.1
     # ds_day_mean = ds.where(is_daytime, drop=True).groupby('XTIME.hour').mean(keep_attrs=True)
+    for this_var in ds.data_vars:
+        vertical_dim = [d for d in ds[this_var].dims if 'bottom_top' in d]
+        if any(vertical_dim):
+            if len(vertical_dim) > 1:
+                raise(ValueError('{} has more than one '
+                                 'vertical dimension'.format(this_var)))
+            else:
+                vertical_dim = vertical_dim[0]
+            # keep only the surface value
+            bottom_level_only = ds[this_var].sel({vertical_dim: 0})
+            ds[this_var] = bottom_level_only
     ds_day_mean = ds.groupby('XTIME.hour').mean(keep_attrs=True)
     return(ds_day_mean)
 
@@ -427,4 +438,9 @@ if __name__ == '__main__':
         dims = define_dims(ctl)
 
     if test_merge:
-        ctlday, ytrday = merge_yatir_fluxes_landuse()
+        ctlday, ytrday, ctl_minus_ytr = merge_yatir_fluxes_landuse()
+        (ctlday_TP,
+         ytrday_TP,
+         ctl_minus_ytr_TP) = merge_yatir_fluxes_landuse(
+             fname_ctl='ctl_run_d03_diag_TP.nc',
+             fname_yatir='yatir_run_d03_diag_TP.nc')
