@@ -40,17 +40,10 @@ gv.extension('matplotlib')
 
 A collection of plots showing WRF-simulated surface energy and carbon fluxes for two different simulations of Yatir Forest in Israel.  The first WRF run is a control run using 'out of the box' NOAH-MP land surface parameterizations derived from MODIS land cover types.  The second WRF run is an experimental run that set a 15-km radius surrounding Yatir Forest to a lower albedo and higher surface roughness length relative to both the open shrubland PFT that occupies the area in the control run as well as the desert surrounding the forest.
 
-```{python ein.hycell=FALSE, ein.tags="worksheet-0", slideshow={'slide_type': '-'}}
-ctlday, ytrday, ctl_minus_ytr = gt.merge_yatir_fluxes_landuse()
-ctlday_TP, ytrday_TP, ctl_minus_ytr_TP = gt.merge_yatir_fluxes_landuse(
-    fname_ctl='ctl_run_d03_diag_TP.nc',
-    fname_yatir='yatir_run_d03_diag_TP.nc')
-```
-
 ```{python}
-ctlday = xr.merge((ctlday, ctlday_TP))
-ytrday = xr.merge((ytrday, ytrday_TP))
-ctl_minus_ytr = xr.merge((ctl_minus_ytr, ctl_minus_ytr_TP))
+ctlday, ytrday, ctl_minus_ytr = gt.merge_yatir_fluxes_landuse(
+    fname_ctl='ctl_d03_postprocessed.nc',
+    fname_yatir='ytr_d03_postprocessed.nc')
 ```
 
 ```{python}
@@ -83,12 +76,8 @@ ds = {(WRFrun, var): gv.Dataset(ds_diff.sel(WRFrun=WRFrun)[var],
                                 kdims=[dims['hour'], dims['lon'], dims['lat']], 
                                 vdims=[dims[var]])
        for WRFrun in list(ds_diff.WRFrun.values)
-       for var in ['W', 'T', 'SWDOWN', 'HFX', 'LH', 'GPP', 'FVEG', 'FSA', 'FIRA', 'RSSUN', 'RSSHA']}
+       for var in ['theta', 'height', 'height_agl', 'W', 'T', 'SWDOWN', 'HFX', 'LH', 'GPP', 'FVEG', 'FSA', 'FIRA', 'RSSUN', 'RSSHA']}
 # need to skip the two landuse variables in creating the dict because they do not have an 'hours' dimension
-```
-
-```{python}
-
 ```
 
 ```{python}
@@ -110,7 +99,8 @@ def get_cmaps():
                 'FSA': 'YlOrRd',
                 'FIRA': 'YlOrRd',
                 'W': 'PuOr',
-                'T': 'coolwarm'}
+                'T': 'coolwarm',
+                'theta': 'coolwarm'}
     cmaps = {}
     for k, v in var_cmaps.items():
         for run in ['control', 'yatir', 'control - Yatir']:
@@ -208,6 +198,10 @@ make_var_layout(ds, 'W')
 ```{python}
 gv.extension('matplotlib')
 make_var_layout(ds, 'T')
+```
+
+```{python}
+make_var_layout(ds, 'theta')
 ```
 
 # WRF domain setup
