@@ -4,21 +4,22 @@ jupyter:
     text_representation:
       extension: .Rmd
       format_name: rmarkdown
-      format_version: '1.1'
-      jupytext_version: 1.2.4
+      format_version: '1.2'
+      jupytext_version: 1.3.1
   kernelspec:
     display_name: wrfhv
     language: python
     name: wrfhv
 ---
 
-```{python ein.hycell=FALSE, ein.tags=worksheet-0, slideshow={'slide_type': '-'}}
+```{python ein.hycell=FALSE, ein.tags="worksheet-0", slideshow={'slide_type': '-'}}
 import os
 import numpy as np
 import xarray as xr
 import pandas as pd
 import seaborn as sns
 import holoviews as hv
+import hvplot.xarray
 from holoviews import opts
 import geoviews as gv
 import geoviews.feature as gf
@@ -29,7 +30,7 @@ import geoviews_tools as gt
 from timutils.git_tools import print_cwd_git_version
 ```
 
-```{python ein.hycell=FALSE, ein.tags=worksheet-0, slideshow={'slide_type': '-'}}
+```{python ein.hycell=FALSE, ein.tags="worksheet-0", slideshow={'slide_type': '-'}}
 print('git: ', end='')
 print_cwd_git_version()
 gv.extension('matplotlib')
@@ -39,7 +40,7 @@ gv.extension('matplotlib')
 
 A collection of plots showing WRF-simulated surface energy and carbon fluxes for two different simulations of Yatir Forest in Israel.  The first WRF run is a control run using 'out of the box' NOAH-MP land surface parameterizations derived from MODIS land cover types.  The second WRF run is an experimental run that set a 15-km radius surrounding Yatir Forest to a lower albedo and higher surface roughness length relative to both the open shrubland PFT that occupies the area in the control run as well as the desert surrounding the forest.
 
-```{python ein.hycell=FALSE, ein.tags=worksheet-0, slideshow={'slide_type': '-'}}
+```{python ein.hycell=FALSE, ein.tags="worksheet-0", slideshow={'slide_type': '-'}}
 ctlday, ytrday, ctl_minus_ytr = gt.merge_yatir_fluxes_landuse()
 ctlday_TP, ytrday_TP, ctl_minus_ytr_TP = gt.merge_yatir_fluxes_landuse(
     fname_ctl='ctl_run_d03_diag_TP.nc',
@@ -82,8 +83,12 @@ ds = {(WRFrun, var): gv.Dataset(ds_diff.sel(WRFrun=WRFrun)[var],
                                 kdims=[dims['hour'], dims['lon'], dims['lat']], 
                                 vdims=[dims[var]])
        for WRFrun in list(ds_diff.WRFrun.values)
-       for var in ['SWDOWN', 'HFX', 'LH', 'GPP', 'FVEG', 'FSA', 'FIRA', 'RSSUN', 'RSSHA', 'W']}
+       for var in ['W', 'T', 'SWDOWN', 'HFX', 'LH', 'GPP', 'FVEG', 'FSA', 'FIRA', 'RSSUN', 'RSSHA']}
 # need to skip the two landuse variables in creating the dict because they do not have an 'hours' dimension
+```
+
+```{python}
+
 ```
 
 ```{python}
@@ -103,7 +108,9 @@ def get_cmaps():
                 'FVEG': 'Greens',
                 'SWDOWN': 'YlOrRd',
                 'FSA': 'YlOrRd',
-                'FIRA': 'YlOrRd'}
+                'FIRA': 'YlOrRd',
+                'W': 'PuOr',
+                'T': 'coolwarm'}
     cmaps = {}
     for k, v in var_cmaps.items():
         for run in ['control', 'yatir', 'control - Yatir']:
@@ -194,20 +201,29 @@ make_var_layout(ds, 'HFX')
 make_var_layout(ds, 'LH')
 ```
 
+```{python}
+make_var_layout(ds, 'W')
+```
+
+```{python}
+gv.extension('matplotlib')
+make_var_layout(ds, 'T')
+```
+
 # WRF domain setup
 
 
 <img src="./yatir_show_dom.pdf" width=900/>
 
-<!-- #region {"ein.tags": "worksheet-0", "slideshow": {"slide_type": "-"}} -->
+<!-- #region ein.tags="worksheet-0" slideshow={"slide_type": "-"} -->
 # Yatir parameterization #
 <!-- #endregion -->
 
-<!-- #region {"ein.tags": "worksheet-0", "slideshow": {"slide_type": "-"}} -->
+<!-- #region ein.tags="worksheet-0" slideshow={"slide_type": "-"} -->
 # Sensible Heat #
 <!-- #endregion -->
 
-<!-- #region {"ein.tags": "worksheet-0", "slideshow": {"slide_type": "-"}} -->
+<!-- #region ein.tags="worksheet-0" slideshow={"slide_type": "-"} -->
 Yatir sensible heat flux in late August 2015 was 368.8 to 434.4 W m$^{-2}$ ([Brugger et al 2018](https://doi.org/10.1007/s10546-018-0371-5). Table 3).  There was a strong diurnal cycle for both sites (forest and desert).  Note the figure units are K m s$^{-1}$.  Figure from [Banerjee et al, 2018]([www.atmos-chem-phys.net/18/10025/2018/).
             <img src="./Banergee_etal_ACP_2018_fig3.pdf" width=900/>
 <!-- #endregion -->
@@ -222,11 +238,6 @@ means = xr.concat([ds_diff.where(mask).mean(dim=['south_north', 'west_east'])
                   dim=pd.Index(['yatir', 'desert', 'desert vegetated', 'desert bare'], name='area'))
 plots = hv.Dataset(means['HFX']).to(hv.Curve, kdims='hour').opts(xlim=(0, 24))
 plots.overlay('WRFrun').layout('area').cols(2)
-```
-
-```{python}
-
-
 ```
 
 Parse Yatir Forest eddy covariance data
@@ -305,7 +316,7 @@ plots = hv.Dataset(means['RSSHA']).to(hv.Curve, kdims='hour').opts(xlim=(0, 24))
 plots.overlay('WRFrun').layout('area').cols(2)
 ```
 
-```{python ein.hycell=FALSE, ein.tags=worksheet-0, slideshow={'slide_type': '-'}}
+```{python ein.hycell=FALSE, ein.tags="worksheet-0", slideshow={'slide_type': '-'}}
 # hv.extension('bokeh')
 # hfx_dim_zoomed = hv.Dimension('HFX_zoomed', label='sensible heat flux', unit='W m-2')
 # def two_panel_energy_flux_plot(ds, obs, t_str=""):
