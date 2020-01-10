@@ -76,6 +76,7 @@ def combine_yatir_obs_WRF(df_obs, ds_WRF, varname):
     WRF_with_obs = WRF_with_obs.rename(varname)
     return(WRF_with_obs)
 
+
 def merge_yatir_fluxes_landuse(fname_ctl='ctl_run_d03_diag_latest.nc',
                                fname_yatir='yatir_run_d03_diag_latest.nc'):
     """merge WRF fluxes and landuse into single xarray dataset
@@ -194,7 +195,7 @@ def yatir_WRF_to_xarray(fname):
     """
     ds = xr.open_dataset(fname)
     for dim in ['XLAT', 'XLONG']:
-        ds[dim] = ds[dim].sel(Time=0)
+        ds[dim] = ds[dim].isel(Time=0)
     return(ds)
 
 
@@ -391,11 +392,12 @@ def yatir_landuse_to_xarray():
 
 
 if __name__ == '__main__':
-    test_get_landuse_to_xarray = True
+    test_get_landuse_to_xarray = False
     test_get_data_file = False
     test_get_xarray = False
     test_get_xarray_daily = False
-    test_merge = True
+    test_merge = False
+    test_postprocessed = True
 
     if test_get_landuse_to_xarray:
         dict_runs = yatir_landuse_to_xarray()
@@ -445,3 +447,10 @@ if __name__ == '__main__':
              fname_ctl='ctl_run_d03_diag_TP.nc',
              fname_yatir='yatir_run_d03_diag_TP.nc')
         ctlall = xr.merge((ctlday, ctlday_TP))
+
+    if test_postprocessed:
+        (ctlday_TP,
+         ytrday_TP,
+         ctl_minus_ytr_TP) = merge_yatir_fluxes_landuse(
+             fname_ctl='ctl_d03_postprocessed.nc',
+             fname_yatir='ytr_d03_postprocessed.nc')
