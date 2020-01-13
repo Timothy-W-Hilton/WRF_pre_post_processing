@@ -1,0 +1,48 @@
+---
+jupyter:
+  jupytext:
+    text_representation:
+      extension: .Rmd
+      format_name: rmarkdown
+      format_version: '1.2'
+      jupytext_version: 1.3.1
+  kernelspec:
+    display_name: wrfhv
+    language: python
+    name: wrfhv
+---
+
+```{python}
+import numpy as np
+import xarray as xr
+import hvplot.xarray
+```
+
+```{python}
+temp = 15 + 8 * np.random.randn(2, 2, 4, 3)
+precip = 10 * np.random.rand(2, 2, 4, 3)
+lon = [[-99.83, -99.32], [-99.79, -99.23]]
+lat = [[42.25, 42.21], [42.63, 42.59]]
+
+# for real use cases, its good practice to supply array attributes such as
+# units, but we won't bother here for the sake of brevity
+ds = xr.Dataset({'temperature': (['x', 'y', 'z', 'time'],  temp),
+                 'precipitation': (['x', 'y', 'z', 'time'], precip)},
+                coords={'lon': (['x', 'y'], lon),
+                        'lat': (['x', 'y'], lat),
+                        'z': np.arange(4),
+                        'time': pd.date_range('2014-09-06', periods=3),
+                        'reference_time': pd.Timestamp('2014-09-05')})
+```
+
+```{python}
+ds['temperature'].sel(z=1).hvplot.quadmesh('lon', 'lat', groupby='time')
+```
+
+```{python}
+ds['temperature'].hvplot.quadmesh('lon', 'lat', groupby=['time', 'z'])
+```
+
+```{python}
+
+```
