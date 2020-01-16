@@ -5,11 +5,11 @@ jupyter:
       extension: .Rmd
       format_name: rmarkdown
       format_version: '1.2'
-      jupytext_version: 1.3.1
+      jupytext_version: 1.3.2
   kernelspec:
-    display_name: wrfhv
+    display_name: wrfhv_github
     language: python
-    name: wrfhv
+    name: wrfhv_github
 ---
 
 ```{python ein.hycell=FALSE, ein.tags="worksheet-0", slideshow={'slide_type': '-'}}
@@ -100,7 +100,8 @@ def get_cmaps():
                 'FIRA': 'YlOrRd',
                 'W': 'PuOr',
                 'T': 'coolwarm',
-                'theta': 'coolwarm'}
+                'theta': 'coolwarm',
+                'height_agl': 'terrain'}
     cmaps = {}
     for k, v in var_cmaps.items():
         for run in ['control', 'yatir', 'control - Yatir']:
@@ -192,6 +193,15 @@ make_var_layout(ds, 'LH')
 ```
 
 ```{python}
+# finally get a quadmesh with two dimensions that can vary!  needs kernel wrfhv_github because
+# that kernel has latest hvplot from github (not from conda), which includes the fix for the 
+# bug that was causing problems (https://github.com/holoviz/holoviews/pull/4188).
+d = ds['control', 'W'].data
+d2 = d.assign_coords({'bottom_top_stag': np.arange(d.dims['bottom_top_stag'])})
+d2.hvplot.quadmesh(x=dims['lon'], y=dims['lat'], groupby=['hour', 'bottom_top_stag'])
+```
+
+```{python}
 make_var_layout(ds, 'W')
 ```
 
@@ -202,6 +212,10 @@ make_var_layout(ds, 'T')
 
 ```{python}
 make_var_layout(ds, 'theta')
+```
+
+```{python}
+make_var_layout(ds, 'height_agl')
 ```
 
 # WRF domain setup
