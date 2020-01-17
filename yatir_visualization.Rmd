@@ -63,6 +63,8 @@ dims['WRFrun'] = hv.Dimension('WRFrun',
 ```{python}
 ds_diff = xr.concat([ctlday, ytrday, ctl_minus_ytr], 
                     dim=pd.Index(['control', 'yatir', 'control - Yatir'], name='WRFrun'))
+ds_diff = ds_diff.assign_coords({'bottom_top_stag': np.arange(ds_diff.dims['bottom_top_stag'])})
+ds_diff = ds_diff.assign_coords({'bottom_top': np.arange(ds_diff.dims['bottom_top'])})
 ```
 
 ```{python}
@@ -196,26 +198,33 @@ make_var_layout(ds, 'LH')
 # finally get a quadmesh with two dimensions that can vary!  needs kernel wrfhv_github because
 # that kernel has latest hvplot from github (not from conda), which includes the fix for the 
 # bug that was causing problems (https://github.com/holoviz/holoviews/pull/4188).
-d = ds['control', 'W'].data
-d2 = d.assign_coords({'bottom_top_stag': np.arange(d.dims['bottom_top_stag'])})
-d2.hvplot.quadmesh(x=dims['lon'], y=dims['lat'], groupby=['hour', 'bottom_top_stag'])
+def quadmesh_multidim(ds, varname):
+    """temporary wrapper function to display a quadmesh with more than one slider
+    ds: concatenated xarray dataset from above
+    """
+    vertical_dim = [d for d in ds[varname].dims if 'bottom_top' in d]
+    if any(vertical_dim):
+        if len(vertical_dim) > 1:
+            raise(ValueError('{} has more than one '
+                             'vertical dimension'.format(this_var)))
+        else:
+            vertical_dim = vertical_dim[0]
+    qm = ds_diff[varname].hvplot.quadmesh(x=dims['lon'], 
+                                          y=dims['lat'], 
+                                          groupby=['WRFrun', 'hour', vertical_dim])
+    return(qm)
 ```
 
 ```{python}
-make_var_layout(ds, 'W')
+quadmesh_multidim(ds_diff, 'W')
 ```
 
 ```{python}
-gv.extension('matplotlib')
-make_var_layout(ds, 'T')
+quadmesh_multidim(ds_diff, 'theta')
 ```
 
 ```{python}
-make_var_layout(ds, 'theta')
-```
-
-```{python}
-make_var_layout(ds, 'height_agl')
+quadmesh_multidim(ds_diff, 'height_agl')
 ```
 
 # WRF domain setup
