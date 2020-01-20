@@ -195,6 +195,10 @@ make_var_layout(ds, 'LH')
 ```
 
 ```{python}
+ds_diff['WRFrun'].values
+```
+
+```{python}
 # finally get a quadmesh with two dimensions that can vary!  needs kernel wrfhv_github because
 # that kernel has latest hvplot from github (not from conda), which includes the fix for the 
 # bug that was causing problems (https://github.com/holoviz/holoviews/pull/4188).
@@ -209,10 +213,18 @@ def quadmesh_multidim(ds, varname):
                              'vertical dimension'.format(this_var)))
         else:
             vertical_dim = vertical_dim[0]
-    qm = ds_diff[varname].hvplot.quadmesh(x=dims['lon'], 
-                                          y=dims['lat'], 
-                                          groupby=['WRFrun', 'hour', vertical_dim])
+    qm = [ds_diff[varname].sel(WRFrun=WRFrun).hvplot.quadmesh(x=dims['lon'], 
+                                                              y=dims['lat'], 
+                                                              groupby=['hour', vertical_dim])
+          for WRFrun in ds_diff['WRFrun']]
     return(qm)
+```
+
+```{python}
+import panel as pn
+foo = quadmesh_multidim(ds_diff, 'W')
+p = pn.Row(*foo)
+p
 ```
 
 ```{python}
