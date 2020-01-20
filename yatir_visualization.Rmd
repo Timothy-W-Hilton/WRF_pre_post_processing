@@ -246,19 +246,20 @@ qm1
 ```
 
 ```{python}
-hour_select = pn.widgets.IntSlider(start=0, end=10)
-@pn.depends(hour_select)
-def get_quadmesh_slider(hour_select):
+hour_select = pn.widgets.IntSlider(start=0, end=24, value=9)
+z_select = pn.widgets.IntSlider(start=0, end=25, value=2)
+@pn.depends(hour_select, z_select)
+def get_quadmesh_slider(hour_select, z_select):
     """
     """
     qm = ds_diff['W'].sel(WRFrun='control',
-                     hour=hour_select, 
-                     bottom_top_stag=3).hvplot.quadmesh()
+                     hour=hour_select,                         
+                     bottom_top_stag=z_select).hvplot.quadmesh()
     return(qm)
 ```
 
 ```{python}
-pn.Row(pn.Column(hour_select, get_quadmesh_slider))
+pn.Row(pn.Column(hour_select, z_select, get_quadmesh_slider), get_quadmesh_slider)
 ```
 
 ```{python}
