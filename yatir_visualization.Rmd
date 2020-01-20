@@ -231,13 +231,41 @@ def quadmesh_multidim(ds, varname, WRFrun_arg, widgets=None):
 
 ```{python}
 def get_quadmesh(ds, varname, WRFrun_arg, hour, z_level):
+    """
+    """
+    vertical_dim = get_vdim(ds, varname)
+    qm = ds[varname].sel(WRFrun=WRFrun_arg, 
+                         hour=hour, 
+                         bottom_top_stag=z_level).hvplot.quadmesh()
+    return(qm)
+```
+
+```{python}
+qm1 = get_quadmesh(ds_diff, 'W', 'control', 9, 5)
+qm1
+```
+
+```{python}
+hour_select = pn.widgets.IntSlider(start=0, end=10)
+@pn.depends(hour_select)
+def get_quadmesh_slider(hour_select):
+    """
+    """
+    qm = ds_diff['W'].sel(WRFrun='control',
+                     hour=hour_select, 
+                     bottom_top_stag=3).hvplot.quadmesh()
+    return(qm)
+```
+
+```{python}
+pn.Row(pn.Column(hour_select, get_quadmesh_slider))
 ```
 
 ```{python}
 import panel as pn
 pn.extension()
-qm1 = quadmesh_multidim(ds_diff, 'W', 'control')
-qm2 = quadmesh_multidim(ds_diff, 'W', 'yatir')
+qm1 = get_quadmesh(ds_diff, 'W', 'control', 9, 5)
+qm2 = get_quadmesh(ds_diff, 'W', 'yatir', 9, 5)
 pn.Row(qm1, qm2)
 ```
 
