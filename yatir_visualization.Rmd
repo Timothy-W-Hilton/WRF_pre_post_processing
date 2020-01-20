@@ -199,12 +199,8 @@ ds_diff['WRFrun'].values
 ```
 
 ```{python}
-# finally get a quadmesh with two dimensions that can vary!  needs kernel wrfhv_github because
-# that kernel has latest hvplot from github (not from conda), which includes the fix for the 
-# bug that was causing problems (https://github.com/holoviz/holoviews/pull/4188).
-def quadmesh_multidim(ds, varname):
-    """temporary wrapper function to display a quadmesh with more than one slider
-    ds: concatenated xarray dataset from above
+def get_vdim(ds, varname):
+    """find the name of the vertical dimension for an xarray variable 
     """
     vertical_dim = [d for d in ds[varname].dims if 'bottom_top' in d]
     if any(vertical_dim):
@@ -213,18 +209,36 @@ def quadmesh_multidim(ds, varname):
                              'vertical dimension'.format(this_var)))
         else:
             vertical_dim = vertical_dim[0]
-    qm = [ds_diff[varname].sel(WRFrun=WRFrun).hvplot.quadmesh(x=dims['lon'], 
-                                                              y=dims['lat'], 
-                                                              groupby=['hour', vertical_dim])
-          for WRFrun in ds_diff['WRFrun']]
+    return(vertical_dim)
+```
+
+```{python}
+# finally get a quadmesh with two dimensions that can vary!  needs kernel wrfhv_github because
+# that kernel has latest hvplot from github (not from conda), which includes the fix for the 
+# bug that was causing problems (https://github.com/holoviz/holoviews/pull/4188).
+# TODO: create one set of widgets that all plots respond to.
+def quadmesh_multidim(ds, varname, WRFrun_arg, widgets=None):
+    """temporary wrapper function to display a quadmesh with more than one slider
+    ds: concatenated xarray dataset from above
+    """
+    vertical_dim = get_vdim(ds, varname)
+    qm = ds[varname].sel(WRFrun=WRFrun_arg).hvplot.quadmesh(
+        x=dims['lon'], 
+        y=dims['lat'], 
+        groupby=['hour', vertical_dim])
     return(qm)
 ```
 
 ```{python}
+def get_quadmesh(ds, varname, WRFrun_arg, hour, z_level):
+```
+
+```{python}
 import panel as pn
-foo = quadmesh_multidim(ds_diff, 'W')
-p = pn.Row(*foo)
-p
+pn.extension()
+qm1 = quadmesh_multidim(ds_diff, 'W', 'control')
+qm2 = quadmesh_multidim(ds_diff, 'W', 'yatir')
+pn.Row(qm1, qm2)
 ```
 
 ```{python}
