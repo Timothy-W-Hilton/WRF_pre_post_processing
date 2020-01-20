@@ -19,6 +19,8 @@ import xarray as xr
 import pandas as pd
 import seaborn as sns
 import holoviews as hv
+import panel as pn
+import param
 import hvplot.xarray
 from holoviews import opts
 import geoviews as gv
@@ -34,6 +36,7 @@ from timutils.git_tools import print_cwd_git_version
 print('git: ', end='')
 print_cwd_git_version()
 gv.extension('matplotlib')
+pn.extension() # enable panel to connect to jupyter notebook
 ```
 
 # Yatir Parameterizaton WRF results
@@ -245,21 +248,49 @@ qm1 = get_quadmesh(ds_diff, 'W', 'control', 9, 5)
 qm1
 ```
 
-```{python}
+```{python active="", eval=FALSE}
 hour_select = pn.widgets.IntSlider(start=0, end=24, value=9)
 z_select = pn.widgets.IntSlider(start=0, end=25, value=2)
-@pn.depends(hour_select, z_select)
-def get_quadmesh_slider(hour_select, z_select):
+WRFrun_arg = 'control'
+@pn.depends(hour_select.param.value, z_select.param.value, WRFrun_arg)
+def get_quadmesh_slider(hour_select, z_select, WRFrun_arg):
     """
     """
-    qm = ds_diff['W'].sel(WRFrun='control',
+    qm = ds_diff['W'].sel(WRFrun=WRFrun_arg,
                      hour=hour_select,                         
                      bottom_top_stag=z_select).hvplot.quadmesh()
     return(qm)
 ```
 
+```{python active="", eval=FALSE}
+pn.Row(pn.Column(hour_select, z_select, get_quadmesh_slider(hour_select, 
+                                                            z_select,
+                                                           'control')),
+       get_quadmesh_slider(hour_select, 
+                           z_select,
+                          'yatir'))
+```
+
 ```{python}
-pn.Row(pn.Column(hour_select, z_select, get_quadmesh_slider), get_quadmesh_slider)
+class YatirCompareQuadmesh(param.Parameterized):
+    hour_select = param.Integer(9, bounds=(1, 24))
+    z_select = param.Integer(3, bounds=(0, 30))
+    
+    @param.depends('hour_select', 'z_select')
+    def get_quadmesh(self, WRFrun_arg):
+        """
+        """
+        qm = ds_diff['W'].sel(WRFrun=WRFrun_arg,
+                         hour=self.hour_select,                         
+                         bottom_top_stag=self.z_select).hvplot.quadmesh()
+        return(qm)
+    
+```
+
+```{python}
+qm_W = YatirCompareQuadmesh()
+pn.Column(pn.Row(qm_W.get_quadmesh('control'), qm_W.get_quadmesh('yatir')),
+          qm_W.param)
 ```
 
 ```{python}
