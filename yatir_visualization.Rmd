@@ -19,14 +19,14 @@ import xarray as xr
 import pandas as pd
 import seaborn as sns
 import holoviews as hv
-import panel as pn
-import param
 import hvplot.xarray
 from holoviews import opts
 import geoviews as gv
 import geoviews.feature as gf
 import matplotlib.pyplot as plt
 import cartopy.crs as ccrs
+
+import panel as pn
 
 import geoviews_tools as gt
 from timutils.git_tools import print_cwd_git_version
@@ -66,6 +66,9 @@ dims['WRFrun'] = hv.Dimension('WRFrun',
 ```{python}
 ds_diff = xr.concat([ctlday, ytrday, ctl_minus_ytr], 
                     dim=pd.Index(['control', 'yatir', 'control - Yatir'], name='WRFrun'))
+```
+
+```{python}
 ds_diff = ds_diff.assign_coords({'bottom_top_stag': np.arange(ds_diff.dims['bottom_top_stag'])})
 ds_diff = ds_diff.assign_coords({'bottom_top': np.arange(ds_diff.dims['bottom_top'])})
 ```
@@ -198,10 +201,6 @@ make_var_layout(ds, 'LH')
 ```
 
 ```{python}
-ds_diff['WRFrun'].values
-```
-
-```{python}
 def get_vdim(ds, varname):
     """find the name of the vertical dimension for an xarray variable 
     """
@@ -216,94 +215,7 @@ def get_vdim(ds, varname):
 ```
 
 ```{python}
-# finally get a quadmesh with two dimensions that can vary!  needs kernel wrfhv_github because
-# that kernel has latest hvplot from github (not from conda), which includes the fix for the 
-# bug that was causing problems (https://github.com/holoviz/holoviews/pull/4188).
-# TODO: create one set of widgets that all plots respond to.
-def quadmesh_multidim(ds, varname, WRFrun_arg, widgets=None):
-    """temporary wrapper function to display a quadmesh with more than one slider
-    ds: concatenated xarray dataset from above
-    """
-    vertical_dim = get_vdim(ds, varname)
-    qm = ds[varname].sel(WRFrun=WRFrun_arg).hvplot.quadmesh(
-        x=dims['lon'], 
-        y=dims['lat'], 
-        groupby=['hour', vertical_dim])
-    return(qm)
-```
-
-```{python}
-def get_quadmesh(ds, varname, WRFrun_arg, hour, z_level):
-    """
-    """
-    vertical_dim = get_vdim(ds, varname)
-    qm = ds[varname].sel(WRFrun=WRFrun_arg, 
-                         hour=hour, 
-                         bottom_top_stag=z_level).hvplot.quadmesh()
-    return(qm)
-```
-
-```{python}
-import panel as pn
-qm1 = get_quadmesh(ds_diff, 'W', 'control', 9, 5)
-qm1
-```
-
-```{python}
-hour_select = pn.widgets.IntSlider(start=0, end=24, value=9, name='Hour')
-z_select = pn.widgets.IntSlider(start=0, end=25, value=2, name='vertical level')
-@pn.depends(hour_select, z_select)
-def get_quadmesh_control(hour_select, z_select):
-    """
-    """
-    qm = ds_diff['W'].sel(WRFrun='control',
-                     hour=hour_select,                         
-                     bottom_top_stag=z_select).hvplot.quadmesh(title='Control')
-    return(qm)
-@pn.depends(hour_select, z_select)
-def get_quadmesh_yatir(hour_select, z_select):
-    """
-    """
-    qm = ds_diff['W'].sel(WRFrun='yatir',
-                          hour=hour_select,                         
-                          bottom_top_stag=z_select).hvplot.quadmesh(title='Yatir')
-    return(qm)
-@pn.depends(hour_select, z_select)
-def get_quadmesh_diff(hour_select, z_select):
-    """
-    """
-    qm = ds_diff['W'].sel(WRFrun='yatir',
-                          hour=hour_select,                         
-                          bottom_top_stag=z_select).hvplot.quadmesh(title='Control - Yatir')
-    return(qm)
-```
-
-```{python}
-pn.pane.Markdown("""W vertical wind component
-""")
-pn.Row(pn.Column(get_quadmesh_control, hour_select, z_select), 
-       get_quadmesh_yatir,
-       get_quadmesh_diff)
-```
-
-```{python}
-import panel as pn
-pn.extension()
-qm1 = get_quadmesh(ds_diff, 'W', 'control', 9, 5)
-qm2 = get_quadmesh(ds_diff, 'W', 'yatir', 9, 5)
-pn.Row(qm1, qm2)
-```
-
-```{python}
-quadmesh_multidim(ds_diff, 'W')
-```
-
-```{python}
-quadmesh_multidim(ds_diff, 'theta')
-```
-
-```{python}
-quadmesh_multidim(ds_diff, 'height_agl')
+gt.three_panel_quadmesh_compare(ds_diff)
 ```
 
 # WRF domain setup

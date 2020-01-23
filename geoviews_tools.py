@@ -11,8 +11,59 @@ import geoviews as gv
 import geoviews.feature as gf
 import pandas as pd
 
+import panel as pn
+
 from map_tools_twh.map_tools_twh import get_IGBP_modMODIS_21Category_PFTs_table
 from adjust_WRF_inputs import km_to_yatir
+
+
+def three_panel_quadmesh_compare(ds):
+    """three-panel WRF variable comparison with sliders for z, time
+
+    Create a three-panel plot showing values for W vertical wind
+    velocity (W) with sliders to select vertical level and time stamp.
+    The three panels show values for the control run, Yatir run, and
+    control - yatir difference.
+
+    """
+    hour_select = pn.widgets.IntSlider(start=0, end=24, value=9, name='Hour')
+    z_select = pn.widgets.IntSlider(start=0, end=25, value=2,
+                                    name='vertical level')
+
+    @pn.depends(hour_select, z_select)
+    def get_quadmesh_control(hour_select, z_select):
+        """
+        """
+        qm = ds['W'].sel(
+            WRFrun='control',
+            hour=hour_select,
+            bottom_top_stag=z_select).hvplot.quadmesh(title='Control')
+        return(qm)
+
+    @pn.depends(hour_select, z_select)
+    def get_quadmesh_yatir(hour_select, z_select):
+        """
+        """
+        qm = ds['W'].sel(
+            WRFrun='yatir',
+            hour=hour_select,
+            bottom_top_stag=z_select).hvplot.quadmesh(title='Yatir')
+        return(qm)
+
+    @pn.depends(hour_select, z_select)
+    def get_quadmesh_diff(hour_select, z_select):
+        """
+        """
+        qm = ds['W'].sel(
+            WRFrun='yatir',
+            hour=hour_select,
+            bottom_top_stag=z_select).hvplot.quadmesh(title='Control - Yatir')
+        return(qm)
+
+    the_plot = pn.Row(pn.Column(get_quadmesh_control, hour_select, z_select),
+                      get_quadmesh_yatir,
+                      get_quadmesh_diff)
+    return(the_plot)
 
 
 def daily_cycle_mean_overlay_layout(df_obs, ds_WRF, varname, dims=None):
