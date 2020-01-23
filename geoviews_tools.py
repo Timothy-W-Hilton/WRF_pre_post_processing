@@ -37,7 +37,7 @@ def three_panel_quadmesh_compare(ds):
         qm = ds['W'].sel(
             WRFrun='control',
             hour=hour_select,
-            bottom_top_stag=z_select).hvplot.quadmesh(title='Control')
+            bottom_top_stag=z_select).hvplot.quadmesh(title='control')
         return(qm)
 
     @pn.depends(hour_select, z_select)
@@ -47,7 +47,7 @@ def three_panel_quadmesh_compare(ds):
         qm = ds['W'].sel(
             WRFrun='yatir',
             hour=hour_select,
-            bottom_top_stag=z_select).hvplot.quadmesh(title='Yatir')
+            bottom_top_stag=z_select).hvplot.quadmesh(title='yatir')
         return(qm)
 
     @pn.depends(hour_select, z_select)
@@ -55,9 +55,9 @@ def three_panel_quadmesh_compare(ds):
         """
         """
         qm = ds['W'].sel(
-            WRFrun='yatir',
+            WRFrun='control - Yatir',
             hour=hour_select,
-            bottom_top_stag=z_select).hvplot.quadmesh(title='Control - Yatir')
+            bottom_top_stag=z_select).hvplot.quadmesh(title='control - Yatir')
         return(qm)
 
     the_plot = pn.Row(pn.Column(get_quadmesh_control, hour_select, z_select),
@@ -282,8 +282,10 @@ def WRF_daily_daylight_avg(fname):
 
 
 def define_dims(ds):
-    dims = {k: hv.Dimension(k, label=v.attrs['description'], unit=v.attrs['units'])
-        for k, v in ds.data_vars.items()}
+    dims = {k: hv.Dimension(k,
+                            label=v.attrs['description'],
+                            unit=v.attrs['units'])
+            for k, v in ds.data_vars.items()}
     dims['date'] = hv.Dimension('XTIME', label='date', unit='UTC')
     dims['hour'] = hv.Dimension('hour', label='hour of day', unit='UTC')
     dims['lon'] = hv.Dimension('XLONG', label='longitude', unit='deg E')
