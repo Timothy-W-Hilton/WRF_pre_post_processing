@@ -224,8 +224,8 @@ def WRF_daily_daylight_avg(fname):
             else:
                 vertical_dim = vertical_dim[0]
             # keep only the surface value
-            bottom_level_only = ds[this_var].sel({vertical_dim: 0})
-            ds[this_var] = bottom_level_only
+            # bottom_level_only = ds[this_var].sel({vertical_dim: 0})
+            # ds[this_var] = bottom_level_only
     ds_day_mean = ds.groupby('XTIME.hour').mean(keep_attrs=True)
     return(ds_day_mean)
 
