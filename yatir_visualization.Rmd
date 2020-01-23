@@ -244,53 +244,46 @@ def get_quadmesh(ds, varname, WRFrun_arg, hour, z_level):
 ```
 
 ```{python}
+import panel as pn
 qm1 = get_quadmesh(ds_diff, 'W', 'control', 9, 5)
 qm1
 ```
 
-```{python active="", eval=FALSE}
-hour_select = pn.widgets.IntSlider(start=0, end=24, value=9)
-z_select = pn.widgets.IntSlider(start=0, end=25, value=2)
-WRFrun_arg = 'control'
-@pn.depends(hour_select.param.value, z_select.param.value, WRFrun_arg)
-def get_quadmesh_slider(hour_select, z_select, WRFrun_arg):
+```{python}
+hour_select = pn.widgets.IntSlider(start=0, end=24, value=9, name='Hour')
+z_select = pn.widgets.IntSlider(start=0, end=25, value=2, name='vertical level')
+@pn.depends(hour_select, z_select)
+def get_quadmesh_control(hour_select, z_select):
     """
     """
-    qm = ds_diff['W'].sel(WRFrun=WRFrun_arg,
+    qm = ds_diff['W'].sel(WRFrun='control',
                      hour=hour_select,                         
-                     bottom_top_stag=z_select).hvplot.quadmesh()
+                     bottom_top_stag=z_select).hvplot.quadmesh(title='Control')
+    return(qm)
+@pn.depends(hour_select, z_select)
+def get_quadmesh_yatir(hour_select, z_select):
+    """
+    """
+    qm = ds_diff['W'].sel(WRFrun='yatir',
+                          hour=hour_select,                         
+                          bottom_top_stag=z_select).hvplot.quadmesh(title='Yatir')
+    return(qm)
+@pn.depends(hour_select, z_select)
+def get_quadmesh_diff(hour_select, z_select):
+    """
+    """
+    qm = ds_diff['W'].sel(WRFrun='yatir',
+                          hour=hour_select,                         
+                          bottom_top_stag=z_select).hvplot.quadmesh(title='Control - Yatir')
     return(qm)
 ```
 
-```{python active="", eval=FALSE}
-pn.Row(pn.Column(hour_select, z_select, get_quadmesh_slider(hour_select, 
-                                                            z_select,
-                                                           'control')),
-       get_quadmesh_slider(hour_select, 
-                           z_select,
-                          'yatir'))
-```
-
 ```{python}
-class YatirCompareQuadmesh(param.Parameterized):
-    hour_select = param.Integer(9, bounds=(1, 24))
-    z_select = param.Integer(3, bounds=(0, 30))
-    
-    @param.depends('hour_select', 'z_select')
-    def get_quadmesh(self, WRFrun_arg):
-        """
-        """
-        qm = ds_diff['W'].sel(WRFrun=WRFrun_arg,
-                         hour=self.hour_select,                         
-                         bottom_top_stag=self.z_select).hvplot.quadmesh()
-        return(qm)
-    
-```
-
-```{python}
-qm_W = YatirCompareQuadmesh()
-pn.Column(pn.Row(qm_W.get_quadmesh('control'), qm_W.get_quadmesh('yatir')),
-          qm_W.param)
+pn.pane.Markdown("""W vertical wind component
+""")
+pn.Row(pn.Column(get_quadmesh_control, hour_select, z_select), 
+       get_quadmesh_yatir,
+       get_quadmesh_diff)
 ```
 
 ```{python}
