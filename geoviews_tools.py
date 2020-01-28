@@ -31,6 +31,18 @@ def three_panel_quadmesh_compare(ds):
                                     name='vertical level')
 
     @pn.depends(hour_select, z_select)
+    def get_contour_agl(hour_select, z_select):
+        """create contours of height above ground level
+        """
+        ds['agl'] = (ds['zstag'].sel(WRFrun='control',
+                                     hour=hour_select,
+                                     bottom_top_stag=z_select) -
+                     ds['ter'].sel(WRFrun='control',
+                                   hour=hour_select))
+        agl_contour = ds['agl'].hvplot.contour()
+        return(agl_contour)
+
+    @pn.depends(hour_select, z_select)
     def get_quadmesh_control(hour_select, z_select):
         """
         """
@@ -38,11 +50,8 @@ def three_panel_quadmesh_compare(ds):
             WRFrun='control',
             hour=hour_select,
             bottom_top_stag=z_select).hvplot.quadmesh(title='control')
-        agl_contour = ds['zstag'].sel(
-            WRFrun='control',
-            hour=hour_select,
-            bottom_top_stag=z_select).hvplot.contour()
-        return((qm + agl_contour))
+        return(qm)
+        # return((qm + agl_contour))
 
     @pn.depends(hour_select, z_select)
     def get_quadmesh_yatir(hour_select, z_select):
@@ -65,7 +74,7 @@ def three_panel_quadmesh_compare(ds):
         return(qm)
 
     the_plot = pn.Row(pn.Column(get_quadmesh_control, hour_select, z_select),
-                      get_quadmesh_yatir,
+                      pn.Column(get_quadmesh_yatir, get_contour_agl),
                       get_quadmesh_diff)
     return(the_plot)
 
@@ -138,6 +147,7 @@ def merge_yatir_fluxes_landuse(fname_ctl='ctl_run_d03_diag_latest.nc',
     """
     cscratch_path = os.path.join('/', 'global', 'cscratch1', 'sd',
                                  'twhilton', 'yatir_output_collected')
+    cscratch_path = os.path.join('/Users/tim/work/Data/SummenWRF/yatir/')
     ctlday = WRF_daily_daylight_avg(os.path.join(cscratch_path, fname_ctl))
     ytrday = WRF_daily_daylight_avg(os.path.join(cscratch_path, fname_yatir))
     landuse_data = yatir_landuse_to_xarray()
