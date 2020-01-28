@@ -38,6 +38,7 @@ if __name__ == "__main__":
                         dest='ndom',
                         action='store',
                         default=2,
+                        type=int,
                         help=(("number of nested domains in "
                               " the WRF run (default 2)")))
     args = parser.parse_args()
