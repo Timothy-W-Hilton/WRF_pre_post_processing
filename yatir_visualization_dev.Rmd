@@ -1,0 +1,193 @@
+---
+jupyter:
+  jupytext:
+    text_representation:
+      extension: .Rmd
+      format_name: rmarkdown
+      format_version: '1.2'
+      jupytext_version: 1.3.2
+  kernelspec:
+    display_name: wrfhv_github
+    language: python
+    name: wrfhv_github
+---
+
+```{python}
+import sys
+print(sys.executable)
+print(sys.path)
+```
+
+```{python ein.hycell=FALSE, ein.tags="worksheet-0", slideshow={'slide_type': '-'}}
+import os
+import numpy as np
+import xarray as xr
+import pandas as pd
+import seaborn as sns
+import holoviews as hv
+import hvplot.xarray
+from holoviews import opts
+import geoviews as gv
+import geoviews.feature as gf
+import matplotlib.pyplot as plt
+import cartopy.crs as ccrs
+
+import panel as pn
+
+import geoviews_tools as gt
+from timutils.git_tools import print_cwd_git_version
+from importlib import reload
+```
+
+```{python}
+reload(gt)  # get the most recently edited version of geoviews_tools
+```
+
+```{python ein.hycell=FALSE, ein.tags="worksheet-0", slideshow={'slide_type': '-'}}
+print('git: ', end='')
+print_cwd_git_version()
+gv.extension('matplotlib')
+pn.extension() # enable panel to connect to jupyter notebook
+```
+
+# Yatir Parameterizaton WRF results
+
+A collection of plots showing WRF-simulated surface energy and carbon fluxes for two different simulations of Yatir Forest in Israel.  The first WRF run is a control run using 'out of the box' NOAH-MP land surface parameterizations derived from MODIS land cover types.  The second WRF run is an experimental run that set a 15-km radius surrounding Yatir Forest to a lower albedo and higher surface roughness length relative to both the open shrubland PFT that occupies the area in the control run as well as the desert surrounding the forest.
+
+```{python}
+ctlday, ytrday, ctl_minus_ytr = gt.merge_yatir_fluxes_landuse(
+    fname_ctl='ctl_d03_postprocessed.nc',
+    fname_yatir='ytr_d03_postprocessed.nc')
+```
+
+```{python}
+ctlday.to_netcdf('./Control_data.nc')
+```
+
+```{python active="", eval=FALSE}
+ctlday = xr.open_dataset('./Control_data.nc')
+ds_diff = xr.open_dataset('./Yatir_Control_diff.nc')
+```
+
+```{python}
+#define some holoviews dimensions
+dims = gt.define_dims(ctlday)
+# provide a default value for time dimension; this determines initial slider position
+dims['hour'] = hv.Dimension('hour', label='hour of day', unit='UTC', default=9)
+dims['time'] = hv.Dimension('time', label='date', unit='y/m/d')
+dims['area'] =  hv.Dimension('area', 
+                             label='parameterization', 
+                             values=['Yatir cells', 'Desert cells'])
+dims['WRFrun'] = hv.Dimension('WRFrun', 
+                              label='WRF run',
+                              values=['Yatir WRF run', 'Control WRF run'])
+```
+
+```{python}
+ds_diff = xr.concat([ctlday, ytrday, ctl_minus_ytr], 
+                    dim=pd.Index(['control', 'yatir', 'control - Yatir'], name='WRFrun'))
+```
+
+```{python}
+ds_diff = ds_diff.assign_coords({'bottom_top_stag': np.arange(ds_diff.dims['bottom_top_stag'])})
+ds_diff = ds_diff.assign_coords({'bottom_top': np.arange(ds_diff.dims['bottom_top'])})
+```
+
+```{python}
+yatir_idx = 21  # list(ds_diff['PFT'].values).index('Yatir')  
+ds_diff = ds_diff.assign(yatir_mask=ds_diff.sel(WRFrun='yatir')['LU_INDEX'] == yatir_idx)
+```
+
+```{python}
+dim_WRFrun = hv.Dimension('WRFrun', label='WRF run')
+ds = {(WRFrun, var): gv.Dataset(ds_diff.sel(WRFrun=WRFrun)[var], 
+                                kdims=[dims['hour'], dims['lon'], dims['lat']], 
+                                vdims=[dims[var]])
+       for WRFrun in list(ds_diff.WRFrun.values)
+       for var in ['theta', 'height', 'height_agl', 'W', 'T', 'SWDOWN', 'HFX', 'LH', 'GPP', 'FVEG', 'FSA', 'FIRA', 'RSSUN', 'RSSHA']}
+# need to skip the two landuse variables in creating the dict because they do not have an 'hours' dimension
+```
+
+```{python}
+def get_vdim(ds, varname):
+    """find the name of the vertical dimension for an xarray variable 
+    """
+    vertical_dim = [d for d in ds[varname].dims if 'bottom_top' in d]
+    if any(vertical_dim):
+        if len(vertical_dim) > 1:
+            raise(ValueError('{} has more than one '
+                             'vertical dimension'.format(this_var)))
+        else:
+            vertical_dim = vertical_dim[0]
+    return(vertical_dim)
+```
+
+```{python active="", eval=FALSE}
+gt.three_panel_quadmesh_compare(ds_diff)
+```
+
+```{python}
+foo = ds_diff['zstag'].sel(WRFrun='control', bottom_top_stag=0, hour=0)
+foo.attrs = {}
+foo['west_east'].data
+```
+
+```{python}
+ctr = foo.hvplot.contour(x='west_east', 
+                         y='south_north').opts(
+    colorbar=False,
+    cmap=['#000000'])
+qm = foo.hvplot.quadmesh(x='west_east', y='south_north').opts(
+    colorbar=False)
+```
+
+```{python}
+ctr
+```
+
+```{python}
+qm  # here
+```
+
+```{python}
+ctr * qm
+```
+
+```{python}
+hv.help(hv.Contours)
+```
+
+```{python}
+ds_diff.to_netcdf('Yatir_Control_diff.nc')
+```
+
+```{python}
+def f(x, y):
+    return np.sin(x) ** 10 + np.cos(10 + y * x) * np.cos(x)
+x = np.linspace(0, 5, 50)
+y = np.linspace(0, 5, 40)
+
+X, Y = np.meshgrid(x, y)
+Z = f(X, Y)
+
+contours = plt.contour(X, Y, Z, 3, colors='black')
+plt.clabel(contours, inline=True, fontsize=8)
+print(contours)
+```
+
+```{python}
+plt.clabel
+```
+
+```{python}
+from matplotlib.colors import ListedColormap
+ds_dummy = xr.Dataset({'elevation': (['x', 'y'],  Z)},
+                coords={'lon': (['x', 'y'], X),
+                         'lat': (['x', 'y'], Y)})
+black = np.zeros((1, 4))
+cmap_black = ListedColormap(black)
+dummy_contours = ds_dummy.hvplot.contour('lon', 'lat', 'elevation').opts(cmap='RdBu',
+                                                                     colorbar=False)
+dummy_qm = ds_dummy.hvplot.quadmesh('lon', 'lat', 'elevation').opts(colorbar=False)
+dummy_qm * dummy_contours
+```
