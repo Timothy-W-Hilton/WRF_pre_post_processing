@@ -38,7 +38,11 @@ def three_panel_quadmesh_compare(ds):
             WRFrun='control',
             hour=hour_select,
             bottom_top_stag=z_select).hvplot.quadmesh(title='control')
-        return(qm)
+        agl_contour = ds['zstag'].sel(
+            WRFrun='control',
+            hour=hour_select,
+            bottom_top_stag=z_select).hvplot.contour()
+        return((qm + agl_contour))
 
     @pn.depends(hour_select, z_select)
     def get_quadmesh_yatir(hour_select, z_select):
