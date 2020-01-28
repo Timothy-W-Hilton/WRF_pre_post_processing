@@ -11,8 +11,63 @@ import geoviews as gv
 import geoviews.feature as gf
 import pandas as pd
 
+import panel as pn
+
 from map_tools_twh.map_tools_twh import get_IGBP_modMODIS_21Category_PFTs_table
 from adjust_WRF_inputs import km_to_yatir
+
+
+def three_panel_quadmesh_compare(ds):
+    """three-panel WRF variable comparison with sliders for z, time
+
+    Create a three-panel plot showing values for W vertical wind
+    velocity (W) with sliders to select vertical level and time stamp.
+    The three panels show values for the control run, Yatir run, and
+    control - yatir difference.
+
+    """
+    hour_select = pn.widgets.IntSlider(start=0, end=24, value=9, name='Hour')
+    z_select = pn.widgets.IntSlider(start=0, end=25, value=2,
+                                    name='vertical level')
+
+    @pn.depends(hour_select, z_select)
+    def get_quadmesh_control(hour_select, z_select):
+        """
+        """
+        qm = ds['W'].sel(
+            WRFrun='control',
+            hour=hour_select,
+            bottom_top_stag=z_select).hvplot.quadmesh(title='control')
+        agl_contour = ds['zstag'].sel(
+            WRFrun='control',
+            hour=hour_select,
+            bottom_top_stag=z_select).hvplot.contour()
+        return((qm + agl_contour))
+
+    @pn.depends(hour_select, z_select)
+    def get_quadmesh_yatir(hour_select, z_select):
+        """
+        """
+        qm = ds['W'].sel(
+            WRFrun='yatir',
+            hour=hour_select,
+            bottom_top_stag=z_select).hvplot.quadmesh(title='yatir')
+        return(qm)
+
+    @pn.depends(hour_select, z_select)
+    def get_quadmesh_diff(hour_select, z_select):
+        """
+        """
+        qm = ds['W'].sel(
+            WRFrun='control - Yatir',
+            hour=hour_select,
+            bottom_top_stag=z_select).hvplot.quadmesh(title='control - Yatir')
+        return(qm)
+
+    the_plot = pn.Row(pn.Column(get_quadmesh_control, hour_select, z_select),
+                      get_quadmesh_yatir,
+                      get_quadmesh_diff)
+    return(the_plot)
 
 
 def daily_cycle_mean_overlay_layout(df_obs, ds_WRF, varname, dims=None):
@@ -224,15 +279,17 @@ def WRF_daily_daylight_avg(fname):
             else:
                 vertical_dim = vertical_dim[0]
             # keep only the surface value
-            bottom_level_only = ds[this_var].sel({vertical_dim: 0})
-            ds[this_var] = bottom_level_only
+            # bottom_level_only = ds[this_var].sel({vertical_dim: 0})
+            # ds[this_var] = bottom_level_only
     ds_day_mean = ds.groupby('XTIME.hour').mean(keep_attrs=True)
     return(ds_day_mean)
 
 
 def define_dims(ds):
-    dims = {k: hv.Dimension(k, label=v.attrs['description'], unit=v.attrs['units'])
-        for k, v in ds.data_vars.items()}
+    dims = {k: hv.Dimension(k,
+                            label=v.attrs['description'],
+                            unit=v.attrs['units'])
+            for k, v in ds.data_vars.items()}
     dims['date'] = hv.Dimension('XTIME', label='date', unit='UTC')
     dims['hour'] = hv.Dimension('hour', label='hour of day', unit='UTC')
     dims['lon'] = hv.Dimension('XLONG', label='longitude', unit='deg E')

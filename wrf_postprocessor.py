@@ -55,7 +55,7 @@ if __name__ == "__main__":
     allvars_fname = {'ytr': 'ytr_d03_allvars.nc',
                      'ctl': 'ctl_d03_allvars.nc'}
 
-    vars_derived = ['height', 'height_agl', 'uvmet_wspd_wdir',
+    vars_derived = ['height', 'height_agl', 'ter', 'zstag', 'uvmet_wspd_wdir',
                     'uvmet10_wspd_wdir', 'theta']
     vars_raw = ['Times', 'XLONG', 'XLAT', 'HFX', 'LH', 'FIRA', 'FSA',
                 'GPP', 'SWDOWN', 'FVEG', 'RSSUN', 'RSSHA', 'W', 'T', 'P']
