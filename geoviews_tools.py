@@ -17,6 +17,19 @@ from map_tools_twh.map_tools_twh import get_IGBP_modMODIS_21Category_PFTs_table
 from adjust_WRF_inputs import km_to_yatir
 
 
+def get_vdim(ds, varname):
+    """find the name of the vertical dimension for an xarray variable
+    """
+    vertical_dim = [d for d in ds[varname].dims if 'bottom_top' in d]
+    if any(vertical_dim):
+        if len(vertical_dim) > 1:
+            raise(ValueError('{} has more than one '
+                             'vertical dimension'.format(this_var)))
+        else:
+            vertical_dim = vertical_dim[0]
+    return(vertical_dim)
+
+
 def three_panel_quadmesh_compare(ds, varname):
     """three-panel WRF variable comparison with sliders for z, time
 
@@ -43,11 +56,12 @@ def three_panel_quadmesh_compare(ds, varname):
         # zstag: height of staggered Z levels, calucated by wrf-python
         # ter: height of terrain (meters above sea level)
         # calculate staggered Z level height above ground level (agl)
-        ds['agl'] = (ds['zstag'].sel(WRFrun='control',
-                                     hour=hour_select,
-                                     bottom_top_stag=z_select) -
-                     ds['ter'].sel(WRFrun='control',
-                                   hour=hour_select))
+        vdim = get_vdim(ds, varname)
+        ds['agl'] = (ds['zstag'].sel({'WRFrun': 'control',
+                                      'hour': hour_select,
+                                      vdim: z_select}) -
+                     ds['ter'].sel({'WRFrun': 'control',
+                                    'hour': hour_select}))
         ds['agl'].attrs = {'long_name': 'height above ground',
                            'units': 'm'}
         agl_contour = ds['agl'].hvplot.contour(x='XLONG',
@@ -61,40 +75,42 @@ def three_panel_quadmesh_compare(ds, varname):
     def get_quadmesh_control(hour_select, z_select):
         """
         """
+        vdim = get_vdim(ds, varname)
         qm = ds[varname].sel(
-            WRFrun='control',
-            hour=hour_select,
-            bottom_top_stag=z_select).hvplot.quadmesh(x='XLONG',
-                                                      y='XLAT',
-                                                      z=varname,
-                                                      title='control')
+            {'WRFrun': 'control',
+             'hour': hour_select,
+             vdim: z_select}).hvplot.quadmesh(x='XLONG',
+                                                           y='XLAT',
+                                                           z=varname,
+                                                           title='control')
         return(qm)
-    # return((qm + agl_contour))
 
     @pn.depends(hour_select, z_select)
     def get_quadmesh_yatir(hour_select, z_select):
         """
         """
+        vdim = get_vdim(ds, varname)
         qm = ds[varname].sel(
-            WRFrun='yatir',
-            hour=hour_select,
-            bottom_top_stag=z_select).hvplot.quadmesh(x='XLONG',
-                                                      y='XLAT',
-                                                      z=varname,
-                                                      title='yatir')
+            {'WRFrun': 'yatir',
+             'hour': hour_select,
+             vdim: z_select}).hvplot.quadmesh(x='XLONG',
+                                              y='XLAT',
+                                              z=varname,
+                                              title='yatir')
         return(qm)
 
     @pn.depends(hour_select, z_select)
     def get_quadmesh_diff(hour_select, z_select):
         """
         """
+        vdim = get_vdim(ds, varname)
         qm = ds[varname].sel(
-            WRFrun='control - Yatir',
-            hour=hour_select,
-            bottom_top_stag=z_select).hvplot.quadmesh(x='XLONG',
-                                                      y='XLAT',
-                                                      z=varname,
-                                                      title='control - Yatir')
+            {'WRFrun': 'control - Yatir',
+             'hour': hour_select,
+             vdim: z_select}).hvplot.quadmesh(x='XLONG',
+                                              y='XLAT',
+                                              z=varname,
+                                              title='control - Yatir')
         return(qm)
 
     the_plot = pn.Row(pn.Column(get_quadmesh_control, hour_select, z_select),
