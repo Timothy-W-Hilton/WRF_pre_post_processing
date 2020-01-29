@@ -56,7 +56,7 @@ def three_panel_quadmesh_compare(ds, varname):
         # zstag: height of staggered Z levels, calucated by wrf-python
         # ter: height of terrain (meters above sea level)
         # calculate staggered Z level height above ground level (agl)
-        vdim = get_vdim(ds, varname)
+        vdim = get_vdim(ds, 'zstag')
         ds['agl'] = (ds['zstag'].sel({'WRFrun': 'control',
                                       'hour': hour_select,
                                       vdim: z_select}) -
