@@ -12,12 +12,6 @@ jupyter:
     name: wrfhv_github
 ---
 
-```{python}
-import sys
-print(sys.executable)
-print(sys.path)
-```
-
 ```{python ein.hycell=FALSE, ein.tags="worksheet-0", slideshow={'slide_type': '-'}}
 import os
 import numpy as np
@@ -89,8 +83,11 @@ ds_diff = xr.concat([ctlday, ytrday, ctl_minus_ytr],
 ```
 
 ```{python}
+# make bottom_top_stag, bottom_top into coordinate variables
 ds_diff = ds_diff.assign_coords({'bottom_top_stag': np.arange(ds_diff.dims['bottom_top_stag'])})
 ds_diff = ds_diff.assign_coords({'bottom_top': np.arange(ds_diff.dims['bottom_top'])})
+# set 'long_name' attribute to match description
+ds_diff = gt.set_attributes_for_plotting(ds_diff)
 ```
 
 ```{python}
@@ -123,7 +120,13 @@ def get_vdim(ds, varname):
 ```
 
 ```{python}
-gt.three_panel_quadmesh_compare(ds_diff)
+reload(gt)
+gt.three_panel_quadmesh_compare(ds_diff, 'W')
+```
+
+```{python}
+#hv.help(hv.QuadMesh)
+#hvplot.help('quadmesh')
 ```
 
 #### Try to plot labeled contours overlaid on quadmesh
@@ -141,22 +144,6 @@ ctr = foo.hvplot.contour(x='west_east',
     cmap=['#000000'])
 qm = foo.hvplot.quadmesh(x='west_east', y='south_north').opts(
     colorbar=False)
-```
-
-```{python}
-ctr
-```
-
-```{python}
-qm  # here
-```
-
-```{python}
-ctr * qm
-```
-
-```{python}
-hv.help(hv.Contours)
 ```
 
 ```{python}

@@ -17,7 +17,7 @@ from map_tools_twh.map_tools_twh import get_IGBP_modMODIS_21Category_PFTs_table
 from adjust_WRF_inputs import km_to_yatir
 
 
-def three_panel_quadmesh_compare(ds):
+def three_panel_quadmesh_compare(ds, varname):
     """three-panel WRF variable comparison with sliders for z, time
 
     Create a three-panel plot showing values for W vertical wind
@@ -30,47 +30,71 @@ def three_panel_quadmesh_compare(ds):
     z_select = pn.widgets.IntSlider(start=0, end=25, value=2,
                                     name='vertical level')
 
+    # vmin = ds[varname].sel(hour=hour_select,
+    #                        bottom_top_stag=z_select).min().values.tolist()
+    # vmax = ds[varname].sel(hour=hour_select,
+    #                        bottom_top_stag=z_select).min().values.tolist()
+    vmin = ds[varname].min()
+    vmax = ds[varname].max()
     @pn.depends(hour_select, z_select)
     def get_contour_agl(hour_select, z_select):
         """create contours of height above ground level
         """
+        # zstag: height of staggered Z levels, calucated by wrf-python
+        # ter: height of terrain (meters above sea level)
+        # calculate staggered Z level height above ground level (agl)
         ds['agl'] = (ds['zstag'].sel(WRFrun='control',
                                      hour=hour_select,
                                      bottom_top_stag=z_select) -
                      ds['ter'].sel(WRFrun='control',
                                    hour=hour_select))
-        agl_contour = ds['agl'].hvplot.contour()
+        ds['agl'].attrs = {'long_name': 'height above ground',
+                           'units': 'm'}
+        agl_contour = ds['agl'].hvplot.contour(x='XLONG',
+                                               y='XLAT',
+                                               z='agl',
+                                               title='WRF height AGL')
         return(agl_contour)
+
 
     @pn.depends(hour_select, z_select)
     def get_quadmesh_control(hour_select, z_select):
         """
         """
-        qm = ds['W'].sel(
+        qm = ds[varname].sel(
             WRFrun='control',
             hour=hour_select,
-            bottom_top_stag=z_select).hvplot.quadmesh(title='control')
+            bottom_top_stag=z_select).hvplot.quadmesh(x='XLONG',
+                                                      y='XLAT',
+                                                      z=varname,
+                                                      title='control')
         return(qm)
-        # return((qm + agl_contour))
+    # return((qm + agl_contour))
 
     @pn.depends(hour_select, z_select)
     def get_quadmesh_yatir(hour_select, z_select):
         """
         """
-        qm = ds['W'].sel(
+        qm = ds[varname].sel(
             WRFrun='yatir',
             hour=hour_select,
-            bottom_top_stag=z_select).hvplot.quadmesh(title='yatir')
+            bottom_top_stag=z_select).hvplot.quadmesh(x='XLONG',
+                                                      y='XLAT',
+                                                      z=varname,
+                                                      title='yatir')
         return(qm)
 
     @pn.depends(hour_select, z_select)
     def get_quadmesh_diff(hour_select, z_select):
         """
         """
-        qm = ds['W'].sel(
+        qm = ds[varname].sel(
             WRFrun='control - Yatir',
             hour=hour_select,
-            bottom_top_stag=z_select).hvplot.quadmesh(title='control - Yatir')
+            bottom_top_stag=z_select).hvplot.quadmesh(x='XLONG',
+                                                      y='XLAT',
+                                                      z=varname,
+                                                      title='control - Yatir')
         return(qm)
 
     the_plot = pn.Row(pn.Column(get_quadmesh_control, hour_select, z_select),
@@ -165,6 +189,23 @@ def merge_yatir_fluxes_landuse(fname_ctl='ctl_run_d03_diag_latest.nc',
     ds_diff =  (ctlday - ytrday).assign_coords({'WRFrun': 'control - Yatir'})
     return(ctlday, ytrday, ds_diff)
 
+def set_attributes_for_plotting(ds):
+    """set attrs of xarray dataset for plotting
+    """
+    ds['XLONG'].attrs['long_name'] = 'Longitude'
+    ds['XLONG'].attrs['units'] = 'deg E'
+    ds['XLAT'].attrs['long_name'] = 'Latitude'
+    ds['XLAT'].attrs['units'] = 'deg N'
+
+    try:
+        for k, v in ds.data_vars.items():
+            ds[k].attrs['long_name'] = v.attrs['description']
+    except KeyError:
+        ds[k].attrs['long_name'] = k
+        print(('variable {} has no attribute \'description\','
+               ' setting long_name to {}'.format(k, k)))
+
+    return(ds)
 
 def yatir_mask(xarr, d_threshold=5,
                lonvar='lon', latvar='lat',
@@ -302,8 +343,8 @@ def define_dims(ds):
             for k, v in ds.data_vars.items()}
     dims['date'] = hv.Dimension('XTIME', label='date', unit='UTC')
     dims['hour'] = hv.Dimension('hour', label='hour of day', unit='UTC')
-    dims['lon'] = hv.Dimension('XLONG', label='longitude', unit='deg E')
-    dims['lat'] = hv.Dimension('XLAT', label='latitude', unit='deg N')
+    dims['lon'] = hv.Dimension('west_east', label='longitude', unit='deg E')
+    dims['lat'] = hv.Dimension('south_north', label='latitude', unit='deg N')
     return(dims)
 
 # def yatir_WRF_diff(ds1, ds2, varname):
