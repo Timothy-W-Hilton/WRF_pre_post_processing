@@ -80,17 +80,13 @@ dims['WRFrun'] = hv.Dimension('WRFrun',
 ```{python}
 ds_diff = xr.concat([ctlday, ytrday, ctl_minus_ytr], 
                     dim=pd.Index(['control', 'yatir', 'control - Yatir'], name='WRFrun'))
-```
 
-```{python}
 # make bottom_top_stag, bottom_top into coordinate variables
 ds_diff = ds_diff.assign_coords({'bottom_top_stag': np.arange(ds_diff.dims['bottom_top_stag'])})
 ds_diff = ds_diff.assign_coords({'bottom_top': np.arange(ds_diff.dims['bottom_top'])})
 # set 'long_name' attribute to match description
 ds_diff = gt.set_attributes_for_plotting(ds_diff)
-```
 
-```{python}
 yatir_idx = 21  # list(ds_diff['PFT'].values).index('Yatir')  
 ds_diff = ds_diff.assign(yatir_mask=ds_diff.sel(WRFrun='yatir')['LU_INDEX'] == yatir_idx)
 ```
@@ -106,22 +102,12 @@ ds = {(WRFrun, var): gv.Dataset(ds_diff.sel(WRFrun=WRFrun)[var],
 ```
 
 ```{python}
-def get_vdim(ds, varname):
-    """find the name of the vertical dimension for an xarray variable 
-    """
-    vertical_dim = [d for d in ds[varname].dims if 'bottom_top' in d]
-    if any(vertical_dim):
-        if len(vertical_dim) > 1:
-            raise(ValueError('{} has more than one '
-                             'vertical dimension'.format(this_var)))
-        else:
-            vertical_dim = vertical_dim[0]
-    return(vertical_dim)
+reload(gt)
+gt.three_panel_quadmesh_compare(ds_diff, 'W')
 ```
 
 ```{python}
-reload(gt)
-gt.three_panel_quadmesh_compare(ds_diff, 'W')
+gt.three_panel_quadmesh_compare(ds_diff, 'theta')
 ```
 
 ```{python}
