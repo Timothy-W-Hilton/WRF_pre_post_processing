@@ -53,11 +53,15 @@ def three_panel_quadmesh_compare(ds, varname):
     control - yatir difference.
 
     """
-    hour_select = pn.widgets.IntSlider(start=0, end=24, value=9, name='Hour')
+    hour_select = pn.widgets.IntSlider(start=0, end=24, value=9, name='Hour',
+                                       orientation='vertical',
+                                       direction='rtl')
     vdim = get_vdim(ds, 'zstag')
     zmax = ds[vdim].size
     z_select = pn.widgets.IntSlider(start=0, end=zmax, value=1,
-                                    name='vertical level')
+                                    name='vertical level',
+                                    orientation='vertical',
+                                    direction='rtl')
     # bounds for the figures in fraction of the panel,
     fig_bounds = (0.2, 0.2, 0.8, 0.8)
 
@@ -114,7 +118,7 @@ def three_panel_quadmesh_compare(ds, varname):
              vdim: z_select}).hvplot.quadmesh(x='XLONG',
                                               y='XLAT',
                                               z=varname,
-                                              title='yatir',
+                                              title='Yatir',
                                               cmap='RdBu',
                                               clim=(vmin, vmax)).opts(
                                                   fig_bounds=fig_bounds)
@@ -139,9 +143,9 @@ def three_panel_quadmesh_compare(ds, varname):
                                                   fig_bounds=fig_bounds)
         return(qm)
 
-    the_plot = pn.Row(pn.Column(get_quadmesh_control, hour_select, z_select),
-                      pn.Column(get_quadmesh_yatir, get_contour_agl),
-                      get_quadmesh_diff)
+    the_plot = pn.Column(pn.Row(get_quadmesh_control, get_quadmesh_yatir,
+                                hour_select, z_select),
+                         pn.Row(get_quadmesh_diff, get_contour_agl))
     return(the_plot)
 
 
