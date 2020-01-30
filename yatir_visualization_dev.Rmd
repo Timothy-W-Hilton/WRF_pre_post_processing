@@ -92,27 +92,13 @@ ds_diff = ds_diff.assign(yatir_mask=ds_diff.sel(WRFrun='yatir')['LU_INDEX'] == y
 ```
 
 ```{python}
-dim_WRFrun = hv.Dimension('WRFrun', label='WRF run')
-ds = {(WRFrun, var): gv.Dataset(ds_diff.sel(WRFrun=WRFrun)[var], 
-                                kdims=[dims['hour'], dims['lon'], dims['lat']], 
-                                vdims=[dims[var]])
-       for WRFrun in list(ds_diff.WRFrun.values)
-       for var in ['theta', 'height', 'height_agl', 'W', 'T', 'SWDOWN', 'HFX', 'LH', 'GPP', 'FVEG', 'FSA', 'FIRA', 'RSSUN', 'RSSHA']}
-# need to skip the two landuse variables in creating the dict because they do not have an 'hours' dimension
-```
-
-```{python}
 reload(gt)
 gt.three_panel_quadmesh_compare(ds_diff, 'W')
 ```
 
 ```{python}
+reload(gt)
 gt.three_panel_quadmesh_compare(ds_diff, 'theta')
-```
-
-```{python}
-#hv.help(hv.QuadMesh)
-#hvplot.help('quadmesh')
 ```
 
 #### Try to plot labeled contours overlaid on quadmesh

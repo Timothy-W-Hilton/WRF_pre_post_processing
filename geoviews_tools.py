@@ -30,6 +30,20 @@ def get_vdim(ds, varname):
     return(vertical_dim)
 
 
+def get_min_max(ds, varname, hour, zlev):
+    vdim = get_vdim(ds, varname)
+    idx_run = xr.DataArray(['control', 'yatir'], dims=['WRFrun'])
+    vmin = ds[varname].sel({'WRFrun': idx_run,
+                            'hour': hour,
+                            vdim: zlev}).min().values.tolist()
+    vmax = ds[varname].sel({'WRFrun': idx_run,
+                            'hour': hour,
+                            vdim: zlev}).max().values.tolist()
+    # vmin = ds[varname].min()
+    # vmax = ds[varname].max()
+    # print('min, max:', vmin, vmax)
+    return((vmin, vmax))
+
 def three_panel_quadmesh_compare(ds, varname):
     """three-panel WRF variable comparison with sliders for z, time
 
@@ -40,15 +54,13 @@ def three_panel_quadmesh_compare(ds, varname):
 
     """
     hour_select = pn.widgets.IntSlider(start=0, end=24, value=9, name='Hour')
-    z_select = pn.widgets.IntSlider(start=0, end=25, value=2,
+    vdim = get_vdim(ds, 'zstag')
+    zmax = ds[vdim].size
+    z_select = pn.widgets.IntSlider(start=0, end=zmax, value=1,
                                     name='vertical level')
+    # bounds for the figures in fraction of the panel,
+    fig_bounds = (0.2, 0.2, 0.8, 0.8)
 
-    # vmin = ds[varname].sel(hour=hour_select,
-    #                        bottom_top_stag=z_select).min().values.tolist()
-    # vmax = ds[varname].sel(hour=hour_select,
-    #                        bottom_top_stag=z_select).min().values.tolist()
-    vmin = ds[varname].min()
-    vmax = ds[varname].max()
     @pn.depends(hour_select, z_select)
     def get_contour_agl(hour_select, z_select):
         """create contours of height above ground level
@@ -67,7 +79,8 @@ def three_panel_quadmesh_compare(ds, varname):
         agl_contour = ds['agl'].hvplot.contour(x='XLONG',
                                                y='XLAT',
                                                z='agl',
-                                               title='WRF height AGL')
+                                               title='WRF height AGL').opts(
+                                                   fig_bounds=fig_bounds)
         return(agl_contour)
 
 
@@ -76,13 +89,17 @@ def three_panel_quadmesh_compare(ds, varname):
         """
         """
         vdim = get_vdim(ds, varname)
+        vmin, vmax = get_min_max(ds, varname, hour_select, z_select)
         qm = ds[varname].sel(
             {'WRFrun': 'control',
              'hour': hour_select,
              vdim: z_select}).hvplot.quadmesh(x='XLONG',
-                                                           y='XLAT',
-                                                           z=varname,
-                                                           title='control')
+                                              y='XLAT',
+                                              z=varname,
+                                              title='control',
+                                              clim=(vmin, vmax),
+                                              cmap='RdBu').opts(
+                                                  fig_bounds=fig_bounds)
         return(qm)
 
     @pn.depends(hour_select, z_select)
@@ -90,13 +107,17 @@ def three_panel_quadmesh_compare(ds, varname):
         """
         """
         vdim = get_vdim(ds, varname)
+        vmin, vmax = get_min_max(ds, varname, hour_select, z_select)
         qm = ds[varname].sel(
             {'WRFrun': 'yatir',
              'hour': hour_select,
              vdim: z_select}).hvplot.quadmesh(x='XLONG',
                                               y='XLAT',
                                               z=varname,
-                                              title='yatir')
+                                              title='yatir',
+                                              cmap='RdBu',
+                                              clim=(vmin, vmax)).opts(
+                                                  fig_bounds=fig_bounds)
         return(qm)
 
     @pn.depends(hour_select, z_select)
@@ -104,13 +125,18 @@ def three_panel_quadmesh_compare(ds, varname):
         """
         """
         vdim = get_vdim(ds, varname)
+        vmin, vmax = get_min_max(ds, varname, hour_select, z_select)
         qm = ds[varname].sel(
             {'WRFrun': 'control - Yatir',
              'hour': hour_select,
              vdim: z_select}).hvplot.quadmesh(x='XLONG',
                                               y='XLAT',
                                               z=varname,
-                                              title='control - Yatir')
+                                              #clim=(vmin, vmax),
+                                              symmetric=True,
+                                              cmap='RdBu',
+                                              title='control - Yatir').opts(
+                                                  fig_bounds=fig_bounds)
         return(qm)
 
     the_plot = pn.Row(pn.Column(get_quadmesh_control, hour_select, z_select),
