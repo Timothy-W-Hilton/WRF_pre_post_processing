@@ -53,15 +53,30 @@ def three_panel_quadmesh_compare(ds, varname):
     control - yatir difference.
 
     """
+
     hour_select = pn.widgets.IntSlider(start=0, end=24, value=9, name='Hour',
                                        orientation='vertical',
                                        direction='rtl')
-    vdim = get_vdim(ds, 'zstag')
-    zmax = ds[vdim].size
+    var_varies_vertically = len(get_vdim(ds, varname)) > 0
+    print('var varies vertically: ', var_varies_vertically)
+
+    vdim = get_vdim(ds, varname)
+
+    if 'stag' in vdim:
+        agl_var = 'height_agl_stag'
+        zmax = ds[vdim].size
+    elif vdim == []:   # this variable does not vary vertically
+        zmax = 0
+    else:
+        agl_var = 'height_agl'
+        zmax = ds[vdim].size
+
     z_select = pn.widgets.IntSlider(start=0, end=zmax, value=1,
                                     name='vertical level',
                                     orientation='vertical',
-                                    direction='rtl')
+                                    direction='rtl',
+                                    disabled=(var_varies_vertically is False))
+
     # bounds for the figures in fraction of the panel,
     fig_bounds = (0.2, 0.2, 0.8, 0.8)
 
@@ -72,38 +87,40 @@ def three_panel_quadmesh_compare(ds, varname):
         # zstag: height of staggered Z levels, calucated by wrf-python
         # ter: height of terrain (meters above sea level)
         # calculate staggered Z level height above ground level (agl)
-        vdim = get_vdim(ds, 'zstag')
-        ds['agl'] = (ds['zstag'].sel({'WRFrun': 'control',
-                                      'hour': hour_select,
-                                      vdim: z_select}) -
-                     ds['ter'].sel({'WRFrun': 'control',
-                                    'hour': hour_select}))
-        ds['agl'].attrs = {'long_name': 'height above ground',
-                           'units': 'm'}
-        agl_contour = ds['agl'].hvplot.contour(x='XLONG',
-                                               y='XLAT',
-                                               z='agl',
-                                               title='WRF height AGL').opts(
-                                                   fig_bounds=fig_bounds)
+        agl_contour = ds[agl_var].sel({'WRFrun': 'control',
+                                       'hour': hour_select,
+                                       vdim: z_select}). hvplot.contour(
+                                           x='XLONG',
+                                           y='XLAT',
+                                           z=agl_var,
+                                           title='WRF height AGL').opts(
+                                               fig_bounds=fig_bounds)
         return(agl_contour)
-
 
     @pn.depends(hour_select, z_select)
     def get_quadmesh_control(hour_select, z_select):
         """
         """
+        # if var_varies_vertically:
+        #     idx = {'WRFrun': 'control',
+        #            'hour': hour_select,
+        #            vdim: z_select}
+        # else:
+        #     idx = {'WRFrun': 'control',
+        #            'hour': hour_select}
         vdim = get_vdim(ds, varname)
         vmin, vmax = get_min_max(ds, varname, hour_select, z_select)
-        qm = ds[varname].sel(
-            {'WRFrun': 'control',
-             'hour': hour_select,
-             vdim: z_select}).hvplot.quadmesh(x='XLONG',
-                                              y='XLAT',
-                                              z=varname,
-                                              title='control',
-                                              clim=(vmin, vmax),
-                                              cmap='RdBu').opts(
-                                                  fig_bounds=fig_bounds)
+        print('in control')
+        qm = ds[varname].sel({'WRFrun': 'control',
+                              'hour': hour_select,
+                              vdim: z_select}).hvplot.quadmesh(
+                                  x='XLONG',
+                                  y='XLAT',
+                                  z=varname,
+                                  title='control',
+                                  clim=(vmin, vmax),
+                                  cmap='RdBu').opts(
+                                      fig_bounds=fig_bounds)
         return(qm)
 
     @pn.depends(hour_select, z_select)
@@ -112,16 +129,17 @@ def three_panel_quadmesh_compare(ds, varname):
         """
         vdim = get_vdim(ds, varname)
         vmin, vmax = get_min_max(ds, varname, hour_select, z_select)
-        qm = ds[varname].sel(
-            {'WRFrun': 'yatir',
-             'hour': hour_select,
-             vdim: z_select}).hvplot.quadmesh(x='XLONG',
-                                              y='XLAT',
-                                              z=varname,
-                                              title='Yatir',
-                                              cmap='RdBu',
-                                              clim=(vmin, vmax)).opts(
-                                                  fig_bounds=fig_bounds)
+        print('in yatir')
+        qm = ds[varname].sel({'WRFrun': 'yatir',
+                              'hour': hour_select,
+                              vdim: z_select}).hvplot.quadmesh(
+                                  x='XLONG',
+                                  y='XLAT',
+                                  z=varname,
+                                  title='Yatir',
+                                  cmap='RdBu',
+                                  clim=(vmin, vmax)).opts(
+                                      fig_bounds=fig_bounds)
         return(qm)
 
     @pn.depends(hour_select, z_select)
@@ -130,17 +148,17 @@ def three_panel_quadmesh_compare(ds, varname):
         """
         vdim = get_vdim(ds, varname)
         vmin, vmax = get_min_max(ds, varname, hour_select, z_select)
-        qm = ds[varname].sel(
-            {'WRFrun': 'control - Yatir',
-             'hour': hour_select,
-             vdim: z_select}).hvplot.quadmesh(x='XLONG',
-                                              y='XLAT',
-                                              z=varname,
-                                              #clim=(vmin, vmax),
-                                              symmetric=True,
-                                              cmap='RdBu',
-                                              title='control - Yatir').opts(
-                                                  fig_bounds=fig_bounds)
+        qm = ds[varname].sel({'WRFrun': 'control - Yatir',
+                              'hour': hour_select,
+                              vdim: z_select}).hvplot.quadmesh(
+                                  x='XLONG',
+                                  y='XLAT',
+                                  z=varname,
+                                  #clim=(vmin, vmax),
+                                  symmetric=True,
+                                  cmap='RdBu',
+                                  title='control - Yatir').opts(
+                                      fig_bounds=fig_bounds)
         return(qm)
 
     the_plot = pn.Column(pn.Row(get_quadmesh_control, get_quadmesh_yatir,
@@ -210,7 +228,6 @@ def combine_yatir_obs_WRF(df_obs, ds_WRF, varname):
     WRF_with_obs = WRF_with_obs.rename(varname)
     return(WRF_with_obs)
 
-
 def merge_yatir_fluxes_landuse(fname_ctl='ctl_run_d03_diag_latest.nc',
                                fname_yatir='yatir_run_d03_diag_latest.nc'):
     """merge WRF fluxes and landuse into single xarray dataset
@@ -229,10 +246,14 @@ def merge_yatir_fluxes_landuse(fname_ctl='ctl_run_d03_diag_latest.nc',
         {'LU_INDEX':
          landuse_data['d03'].sel(WRFrun=this_key)['LU_INDEX'],
          'LANDUSEF':
-         landuse_data['d03'].sel(WRFrun=this_key)['LANDUSEF']})
+         landuse_data['d03'].sel(WRFrun=this_key)['LANDUSEF'],
+         'height_agl_stag':
+         this_dataset['zstag'] - this_dataset['ter']
+        })
                       for (this_dataset, this_key) in
                       zip((ctlday, ytrday), ('ctl', 'ytr')))
     ds_diff =  (ctlday - ytrday).assign_coords({'WRFrun': 'control - Yatir'})
+
     return(ctlday, ytrday, ds_diff)
 
 def set_attributes_for_plotting(ds):
@@ -242,6 +263,9 @@ def set_attributes_for_plotting(ds):
     ds['XLONG'].attrs['units'] = 'deg E'
     ds['XLAT'].attrs['long_name'] = 'Latitude'
     ds['XLAT'].attrs['units'] = 'deg N'
+    ds['height_agl_stag'].attrs['long_name'] = 'height above ground level'
+    ds['XLAT'].attrs['units'] = 'm'
+
 
     try:
         for k, v in ds.data_vars.items():
