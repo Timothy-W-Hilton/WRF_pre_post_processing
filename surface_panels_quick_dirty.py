@@ -129,7 +129,9 @@ def three_panel_quadmesh_compare_vertical_var(ds, varname):
                                       fig_bounds=fig_bounds)
         return(qm)
 
-    the_plot = pn.Column(pn.Row(get_quadmesh_control, get_quadmesh_yatir,
+    main_title = '## ' + ds[varname].long_name
+    the_plot = pn.Column(pn.Row(pn.pane.Markdown(main_title)),
+                         pn.Row(get_quadmesh_control, get_quadmesh_yatir,
                                 hour_select, z_select),
                          pn.Row(get_quadmesh_diff, get_contour_agl))
     return(the_plot)
@@ -201,7 +203,9 @@ def three_panel_quadmesh_compare_surface_var(ds, varname):
                                       fig_bounds=fig_bounds)
         return(qm)
 
-    the_plot = pn.Column(pn.Row(get_quadmesh_control, get_quadmesh_yatir,
+    main_title = '## ' + ds[varname].long_name
+    the_plot = pn.Column(pn.Row(pn.pane.Markdown(main_title)),
+                         pn.Row(get_quadmesh_control, get_quadmesh_yatir,
                                 hour_select),
                          pn.Row(get_quadmesh_diff))
     return(the_plot)
