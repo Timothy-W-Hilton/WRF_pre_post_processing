@@ -29,6 +29,7 @@ import cartopy.crs as ccrs
 import panel as pn
 
 import geoviews_tools as gt
+import surface_panels_quick_dirty as spqd
 from timutils.git_tools import print_cwd_git_version
 from importlib import reload
 ```
@@ -64,20 +65,6 @@ ds_diff = xr.open_dataset('./Yatir_Control_diff.nc')
 ```
 
 ```{python}
-#define some holoviews dimensions
-dims = gt.define_dims(ctlday)
-# provide a default value for time dimension; this determines initial slider position
-dims['hour'] = hv.Dimension('hour', label='hour of day', unit='UTC', default=9)
-dims['time'] = hv.Dimension('time', label='date', unit='y/m/d')
-dims['area'] =  hv.Dimension('area', 
-                             label='parameterization', 
-                             values=['Yatir cells', 'Desert cells'])
-dims['WRFrun'] = hv.Dimension('WRFrun', 
-                              label='WRF run',
-                              values=['Yatir WRF run', 'Control WRF run'])
-```
-
-```{python}
 ds_diff = xr.concat([ctlday, ytrday, ctl_minus_ytr], 
                     dim=pd.Index(['control', 'yatir', 'control - Yatir'], name='WRFrun'))
 
@@ -92,63 +79,28 @@ ds_diff = ds_diff.assign(yatir_mask=ds_diff.sel(WRFrun='yatir')['LU_INDEX'] == y
 ```
 
 ```{python}
-reload(gt)
-gt.three_panel_quadmesh_compare(ds_diff, 'W')
+reload(spqd)
+spqd.three_panel_quadmesh_compare_vertical_var(ds_diff, 'W')
 ```
 
 ```{python}
-reload(gt)
-gt.three_panel_quadmesh_compare(ds_diff, 'theta')
-```
-
-#### Try to plot labeled contours overlaid on quadmesh
-
-```{python}
-foo = ds_diff['zstag'].sel(WRFrun='control', bottom_top_stag=0, hour=0)
-foo.attrs = {}
-foo['west_east'].data
+reload(spqd)
+spqd.three_panel_quadmesh_compare_vertical_var(ds_diff, 'theta')
 ```
 
 ```{python}
-ctr = foo.hvplot.contour(x='west_east', 
-                         y='south_north').opts(
-    colorbar=False,
-    cmap=['#000000'])
-qm = foo.hvplot.quadmesh(x='west_east', y='south_north').opts(
-    colorbar=False)
+reload(spqd)
+spqd.three_panel_quadmesh_compare_surface_var(ds_diff, 'FSA')
 ```
 
 ```{python}
-ds_diff.to_netcdf('Yatir_Control_diff.nc')
+spqd.three_panel_quadmesh_compare_surface_var(ds_diff, 'FIRA')
 ```
 
 ```{python}
-def f(x, y):
-    return np.sin(x) ** 10 + np.cos(10 + y * x) * np.cos(x)
-x = np.linspace(0, 5, 50)
-y = np.linspace(0, 5, 40)
-
-X, Y = np.meshgrid(x, y)
-Z = f(X, Y)
-
-contours = plt.contour(X, Y, Z, 3, colors='black')
-plt.clabel(contours, inline=True, fontsize=8)
-print(contours)
+spqd.three_panel_quadmesh_compare_surface_var(ds_diff, 'HFX')
 ```
 
 ```{python}
-plt.clabel
-```
-
-```{python}
-from matplotlib.colors import ListedColormap
-ds_dummy = xr.Dataset({'elevation': (['x', 'y'],  Z)},
-                coords={'lon': (['x', 'y'], X),
-                         'lat': (['x', 'y'], Y)})
-black = np.zeros((1, 4))
-cmap_black = ListedColormap(black)
-dummy_contours = ds_dummy.hvplot.contour('lon', 'lat', 'elevation').opts(cmap='RdBu',
-                                                                     colorbar=False)
-dummy_qm = ds_dummy.hvplot.quadmesh('lon', 'lat', 'elevation').opts(colorbar=False)
-dummy_qm * dummy_contours
+spqd.three_panel_quadmesh_compare_surface_var(ds_diff, 'LH')
 ```
