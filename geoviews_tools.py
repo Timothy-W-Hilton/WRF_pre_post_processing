@@ -31,141 +31,20 @@ def get_vdim(ds, varname):
 
 
 def get_min_max(ds, varname, hour, zlev):
+
     vdim = get_vdim(ds, varname)
     idx_run = xr.DataArray(['control', 'yatir'], dims=['WRFrun'])
-    vmin = ds[varname].sel({'WRFrun': idx_run,
-                            'hour': hour,
-                            vdim: zlev}).min().values.tolist()
-    vmax = ds[varname].sel({'WRFrun': idx_run,
-                            'hour': hour,
-                            vdim: zlev}).max().values.tolist()
+    idx_dict = {'WRFrun': idx_run,
+                'hour': hour}
+    if vdim != []:
+        idx_dict[vdim] = zlev
+
+    vmin = ds[varname].sel(idx_dict).min().values.tolist()
+    vmax = ds[varname].sel(idx_dict).max().values.tolist()
     # vmin = ds[varname].min()
     # vmax = ds[varname].max()
     # print('min, max:', vmin, vmax)
     return((vmin, vmax))
-
-def three_panel_quadmesh_compare(ds, varname):
-    """three-panel WRF variable comparison with sliders for z, time
-
-    Create a three-panel plot showing values for W vertical wind
-    velocity (W) with sliders to select vertical level and time stamp.
-    The three panels show values for the control run, Yatir run, and
-    control - yatir difference.
-
-    """
-
-    hour_select = pn.widgets.IntSlider(start=0, end=24, value=9, name='Hour',
-                                       orientation='vertical',
-                                       direction='rtl')
-    var_varies_vertically = len(get_vdim(ds, varname)) > 0
-    print('var varies vertically: ', var_varies_vertically)
-
-    vdim = get_vdim(ds, varname)
-
-    if 'stag' in vdim:
-        agl_var = 'height_agl_stag'
-        zmax = ds[vdim].size
-    elif vdim == []:   # this variable does not vary vertically
-        zmax = 0
-    else:
-        agl_var = 'height_agl'
-        zmax = ds[vdim].size
-
-    z_select = pn.widgets.IntSlider(start=0, end=zmax, value=1,
-                                    name='vertical level',
-                                    orientation='vertical',
-                                    direction='rtl',
-                                    disabled=(var_varies_vertically is False))
-
-    # bounds for the figures in fraction of the panel,
-    fig_bounds = (0.2, 0.2, 0.8, 0.8)
-
-    @pn.depends(hour_select, z_select)
-    def get_contour_agl(hour_select, z_select):
-        """create contours of height above ground level
-        """
-        # zstag: height of staggered Z levels, calucated by wrf-python
-        # ter: height of terrain (meters above sea level)
-        # calculate staggered Z level height above ground level (agl)
-        agl_contour = ds[agl_var].sel({'WRFrun': 'control',
-                                       'hour': hour_select,
-                                       vdim: z_select}). hvplot.contour(
-                                           x='XLONG',
-                                           y='XLAT',
-                                           z=agl_var,
-                                           title='WRF height AGL').opts(
-                                               fig_bounds=fig_bounds)
-        return(agl_contour)
-
-    @pn.depends(hour_select, z_select)
-    def get_quadmesh_control(hour_select, z_select):
-        """
-        """
-        # if var_varies_vertically:
-        #     idx = {'WRFrun': 'control',
-        #            'hour': hour_select,
-        #            vdim: z_select}
-        # else:
-        #     idx = {'WRFrun': 'control',
-        #            'hour': hour_select}
-        vdim = get_vdim(ds, varname)
-        vmin, vmax = get_min_max(ds, varname, hour_select, z_select)
-        print('in control')
-        qm = ds[varname].sel({'WRFrun': 'control',
-                              'hour': hour_select,
-                              vdim: z_select}).hvplot.quadmesh(
-                                  x='XLONG',
-                                  y='XLAT',
-                                  z=varname,
-                                  title='control',
-                                  clim=(vmin, vmax),
-                                  cmap='RdBu').opts(
-                                      fig_bounds=fig_bounds)
-        return(qm)
-
-    @pn.depends(hour_select, z_select)
-    def get_quadmesh_yatir(hour_select, z_select):
-        """
-        """
-        vdim = get_vdim(ds, varname)
-        vmin, vmax = get_min_max(ds, varname, hour_select, z_select)
-        print('in yatir')
-        qm = ds[varname].sel({'WRFrun': 'yatir',
-                              'hour': hour_select,
-                              vdim: z_select}).hvplot.quadmesh(
-                                  x='XLONG',
-                                  y='XLAT',
-                                  z=varname,
-                                  title='Yatir',
-                                  cmap='RdBu',
-                                  clim=(vmin, vmax)).opts(
-                                      fig_bounds=fig_bounds)
-        return(qm)
-
-    @pn.depends(hour_select, z_select)
-    def get_quadmesh_diff(hour_select, z_select):
-        """
-        """
-        vdim = get_vdim(ds, varname)
-        vmin, vmax = get_min_max(ds, varname, hour_select, z_select)
-        qm = ds[varname].sel({'WRFrun': 'control - Yatir',
-                              'hour': hour_select,
-                              vdim: z_select}).hvplot.quadmesh(
-                                  x='XLONG',
-                                  y='XLAT',
-                                  z=varname,
-                                  #clim=(vmin, vmax),
-                                  symmetric=True,
-                                  cmap='RdBu',
-                                  title='control - Yatir').opts(
-                                      fig_bounds=fig_bounds)
-        return(qm)
-
-    the_plot = pn.Column(pn.Row(get_quadmesh_control, get_quadmesh_yatir,
-                                hour_select, z_select),
-                         pn.Row(get_quadmesh_diff, get_contour_agl))
-    return(the_plot)
-
 
 def daily_cycle_mean_overlay_layout(df_obs, ds_WRF, varname, dims=None):
     """plot daily cycles for Yatir obs and WRF in two panels
