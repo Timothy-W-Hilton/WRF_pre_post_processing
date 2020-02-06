@@ -11,7 +11,7 @@ import panel as pn
 import geoviews_tools as gt
 
 
-def three_panel_quadmesh_compare_vertical_var(ds, varname):
+def three_panel_quadmesh_compare_vertical_var(ds, varname, cmap='RdBu'):
     """three-panel WRF variable comparison with sliders for z, time
 
     Create a three-panel plot showing values for W vertical wind
@@ -88,7 +88,7 @@ def three_panel_quadmesh_compare_vertical_var(ds, varname):
                                   z=varname,
                                   title='control',
                                   clim=(vmin, vmax),
-                                  cmap='RdBu').opts(
+                                  cmap=cmap).opts(
                                       fig_bounds=fig_bounds)
         return(qm)
 
@@ -105,7 +105,7 @@ def three_panel_quadmesh_compare_vertical_var(ds, varname):
                                   y='XLAT',
                                   z=varname,
                                   title='Yatir',
-                                  cmap='RdBu',
+                                  cmap=cmap,
                                   clim=(vmin, vmax)).opts(
                                       fig_bounds=fig_bounds)
         return(qm)
@@ -137,7 +137,7 @@ def three_panel_quadmesh_compare_vertical_var(ds, varname):
     return(the_plot)
 
 
-def three_panel_quadmesh_compare_surface_var(ds, varname):
+def three_panel_quadmesh_compare_surface_var(ds, varname, cmap='RdBu'):
     """three-panel WRF variable comparison with slider for time
 
     Create a three-panel plot showing values for a WRF variable) with
@@ -166,7 +166,7 @@ def three_panel_quadmesh_compare_surface_var(ds, varname):
                                   z=varname,
                                   title='control',
                                   clim=(vmin, vmax),
-                                  cmap='RdBu').opts(
+                                  cmap=cmap).opts(
                                       fig_bounds=fig_bounds)
         return(qm)
 
@@ -181,7 +181,7 @@ def three_panel_quadmesh_compare_surface_var(ds, varname):
                                   y='XLAT',
                                   z=varname,
                                   title='Yatir',
-                                  cmap='RdBu',
+                                  cmap=cmap,
                                   clim=(vmin, vmax)).opts(
                                       fig_bounds=fig_bounds)
         return(qm)
