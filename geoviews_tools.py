@@ -111,9 +111,13 @@ def merge_yatir_fluxes_landuse(fname_ctl='ctl_run_d03_diag_latest.nc',
                                fname_yatir='yatir_run_d03_diag_latest.nc'):
     """merge WRF fluxes and landuse into single xarray dataset
     """
-    cscratch_path = os.path.join('/', 'global', 'cscratch1', 'sd',
-                                 'twhilton', 'yatir_output_collected')
-    cscratch_path = os.path.join('/Users/tim/work/Data/SummenWRF/yatir/')
+    if 'MacBook' in socket.gethostname():
+        cscratch_path = os.path.join(os.path.join('/', 'Users', 'tim',
+                                                  'work', 'Data',
+                                                  'SummenWRF', 'yatir'))
+    elif 'cori' in socket.gethostname():
+        cscratch_path = os.path.join('/', 'global', 'cscratch1', 'sd',
+                                     'twhilton', 'yatir_output_collected')
     ctlday = WRF_daily_daylight_avg(os.path.join(cscratch_path, fname_ctl))
     ytrday = WRF_daily_daylight_avg(os.path.join(cscratch_path, fname_yatir))
     landuse_data = yatir_landuse_to_xarray()
