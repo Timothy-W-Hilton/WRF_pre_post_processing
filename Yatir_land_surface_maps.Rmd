@@ -1,0 +1,142 @@
+---
+jupyter:
+  jupytext:
+    text_representation:
+      extension: .Rmd
+      format_name: rmarkdown
+      format_version: '1.2'
+      jupytext_version: 1.3.2
+  kernelspec:
+    display_name: wrfhv
+    language: python
+    name: wrfhv
+---
+
+# Yatir land surface parameterization
+
+```{python}
+import numpy as np
+import geoviews as gv
+import geoviews.feature as gf
+import holoviews as hv
+from holoviews import opts
+import os
+from cartopy import crs as ccrs
+
+from geoviews_tools import yatir_landuse_to_xarray
+from map_tools_twh.map_tools_twh import get_IGBP_modMODIS_21Category_PFTs_cmap, get_IGBP_modMODIS_21Category_PFTs_table
+```
+
+#### Credits
+plotting powered by [holoviews](http://holoviews.org/), [geoviews](http://geoviews.org) and [bokeh](https://bokeh.pydata.org)
+
+```{python results='hide'}
+gv.extension('bokeh')
+#allow multiple plots in one cell
+# from IPython.core.interactiveshell import InteractiveShell
+# InteractiveShell.ast_node_interactivity = "all"
+```
+
+```{python}
+landuse = yatir_landuse_to_xarray()
+```
+
+```{python}
+lat_dim = gv.Dimension('south_north', label='Latitude', unit='deg N')
+lon_dim = gv.Dimension('west_east', label='Longitude', unit='deg E')
+domain_dim = gv.Dimension(('WRFdomain', 'WRF domain'), default='d03'),
+wrfrun_dim = gv.Dimension(('WRFrun', 'WRF run'), default='ctl')
+```
+
+```{python}
+def make_one_map(landuse, domain, WRF_run, scale='50m', varname='LANDUSEF', vardim=None):
+    """make a single map of specified variable for specified WRF run and domain"""
+    if vardim is None:
+        vardim=gv.Dimension(varname)
+    this_var_kdims = ['lon', 'lat']
+    if 'PFT' in landuse[domain][varname].coords.keys():
+        this_var_kdims = this_var_kdims + ['PFT']
+    this_map = gv.Dataset(landuse[domain].sel(WRFrun=WRF_run), 
+                          kdims=this_var_kdims).to(
+        gv.QuadMesh, 
+        kdims=['lon', 'lat'], 
+        vdims=vardim).opts(colorbar=True, cmap='Blues', projection=ccrs.PlateCarree())
+                 
+    # draw a box around domain 03
+    corner_indices = ([0, 0, -1, -1], [0, -1, -1, -0])
+    d03_corners = list(zip(landuse['d03']['lon'].values[corner_indices], 
+                           landuse['d03']['lat'].values[corner_indices]))
+    d03_box = gv.Polygons(d03_corners).opts(style={'line_color': '#d95f02', 'color': None}) 
+    return(this_map * d03_box * gf.coastline(scale=scale) * gf.borders(scale=scale))
+```
+
+### Land use fraction ###
+
+0.0 to 1.0 for each land cover type
+
+```{python}
+vardim = gv.Dimension('LANDUSEF',
+                      label='Land Use Fraction', 
+                      range=(0.0, 1.0))
+landusef_dict = {(WRFdomain, WRFrun): make_one_map(landuse, WRFdomain, WRFrun, vardim=vardim) 
+                for WRFdomain in ['d02', 'd03'] 
+                for WRFrun in ['ctl', 'ytr']}
+kdims = [gv.Dimension(('WRFdomain', 'WRF domain'), default='d03'),
+         gv.Dimension(('WRFrun', 'WRF run'), default='ctl')]
+holomap = gv.HoloMap(landusef_dict, kdims=kdims)
+gv.GridSpace(holomap).opts(opts.GridSpace(plot_size=200, title='Land Use Fraction'))
+```
+
+#### Dominant Land Use
+
+```{python}
+cmap = get_IGBP_modMODIS_21Category_PFTs_cmap()
+color_table = get_IGBP_modMODIS_21Category_PFTs_table()
+#color_table.replace('BareGroundTundra', 'Yatir', inplace=True)
+min_PFT = color_table['PFTnum'].min()
+max_PFT = color_table['PFTnum'].max()
+vardim = gv.Dimension('LU_INDEX', 
+                      label='Dominant Land Use',
+                      values=list(color_table['long_name']))
+lu_idx_dict = {(WRFdomain, WRFrun): make_one_map(landuse, 
+                                                 WRFdomain, 
+                                                 WRFrun, 
+                                                 varname="LU_INDEX", 
+                                                 vardim=vardim) 
+                for WRFdomain in ['d02', 'd03'] 
+                for WRFrun in ['ctl', 'ytr']}
+holomap = gv.HoloMap(lu_idx_dict, kdims=kdims)
+grid = gv.GridSpace(holomap).opts(opts.QuadMesh(cmap=cmap,
+                                                colorbar=False,
+                                                color_levels=list(np.arange(22) - 0.5),
+                                                frame_width=200,
+                                                frame_height=200)
+                                 ).redim.range(LU_INDEX=(min_PFT, max_PFT + 1))
+```
+
+```{python}
+color_table['idx'] = 1  # dummy index for HeatMap horizontal axis
+legend = hv.HeatMap(color_table[['idx', 'long_name', 'PFTnum']]).opts(opts.HeatMap(cmap=cmap, 
+                                                                                   clim=(0, 22), 
+                                                                                   xaxis='bare', 
+                                                                                   ylabel='',
+                                                                                   frame_width=50))
+grid + legend
+```
+
+#### PFT histograms
+
+```{python}
+WRF_runs = landuse['d02'].coords['WRFrun'].values
+labels = {'ytr': 'Yatir', 'ctl': 'Control'}
+gv.Layout([hv.Histogram(np.histogram(landuse['d02'].sel(WRFrun=this_run)['LU_INDEX'].values.flatten(), 
+                                     bins=np.arange(22) + 0.5),
+                       label=labels[this_run])
+           for this_run in WRF_runs]).opts(title="Dominant Land Use, d02")
+```
+
+```{python}
+from timutils.git_tools import print_cwd_git_version
+print('git: ', end='')
+print_cwd_git_version()
+```
