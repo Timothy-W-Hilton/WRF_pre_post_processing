@@ -344,7 +344,11 @@ def make_all_land_urban(fname_wrf):
     nc.close()
 
 
-def reduce_soil_moisture(fname_wrf, f, soil_moist_vars=None,
+def adjust_soil_moisture(fname_wrf,
+                         f,
+                         sm_ceil=1.0,
+                         sm_floor=0.0,
+                         soil_moist_vars=None,
                          land_sea_var='LANDMASK'):
     """multiply WPS soil moisture values in a netcdf file by a constant factor
 
@@ -354,6 +358,8 @@ def reduce_soil_moisture(fname_wrf, f, soil_moist_vars=None,
     ARGS
     fname_wrf (character): full path to a met_em* file produced by the WPS.
     f (real): the constant factor to multiply into soil moisture values
+    sm_ceil (real): maximum soil moisture to allow
+    sm_floor (real): minimum soil moisture to allow
     soil_moist_vars (list of strings): names of the soil moisture
        variables to multiply.  Default is ['SM100200', 'SM040100',
        'SM010040', 'SM000010']
@@ -375,15 +381,18 @@ def reduce_soil_moisture(fname_wrf, f, soil_moist_vars=None,
     is_water = ma.masked_values(land_sea, 0.0).mask
     for this_var in soil_moist_vars:
         sm_adjusted = nc.variables[this_var][...] * f
+        sm_adjusted[sm_adjusted > sm_ceil] = sm_ceil
+        sm_adjusted[sm_adjusted < sm_floor] = sm_floor
+        # set water cells back to 1.0
         if sm_adjusted.ndim == 4:
             is_water = np.tile(is_water[:, np.newaxis, :, :], (1, 4, 1, 1))
-        # set water cells back to 1.0
         sm_adjusted[is_water] = 1.0
+
         nc.variables[this_var][...] = sm_adjusted
         print("modified {this_var} in {fname_wrf}").format(this_var=this_var,
                                                            fname_wrf=fname_wrf)
     nc.history = ("created by metgrid_exe.  Soil moisture adjusted by"
-                  " a factor of {f} by reduce_soil_moisture python"
+                  " a factor of {f} by adjust_soil_moisture python"
                   " module.".format(f=f))
     nc.close()
 
