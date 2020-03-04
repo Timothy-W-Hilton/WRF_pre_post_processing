@@ -13,6 +13,7 @@ Timothy W. Hilton <twhilton@ucsc.edu>
 """
 
 import netCDF4
+import xarray as xr
 import numpy as np
 import numpy.ma as ma
 import glob
@@ -127,6 +128,30 @@ def km_to_yatir(lon, lat):
         d_km[i] = geopy.distance.geodesic((yatir_lat, yatir_lon),
                                           (lat.flatten()[i], lon.flatten()[i])).km
     return(d_km.reshape(arr_shape))
+
+
+def get_yatir_idx(fname, varname, dist_cutoff=16):
+
+    ds = xr.open_dataset(fname)
+
+    try:
+        WRF_lon = ds['XLONG_M']
+        WRF_lat = ds['XLAT_M']
+    except KeyError:
+        print("XLONG_M, XLAT_M not found; trying XLONG, XLAT")
+        WRF_lon = ds['XLONG']
+        WRF_lat = ds['XLAT']
+
+    ds['d_yatir'] = xr.DataArray(data=km_to_yatir(WRF_lon.values,
+                                                  WRF_lat.values),
+                                 dims=WRF_lon.dims)
+
+    is_within_cutoff = ds['d_yatir'].values < dist_cutoff
+    ds['idx_yatir'] = xr.DataArray(data=is_within_cutoff,
+                                   dims=WRF_lon.dims)
+    # YATIR_X = idx_yatir[:, 0]
+    # YATIR_Y = idx_yatir[:, 1]
+    return(ds)
 
 
 def use_yatir_parameterization(fname_wrf, dist_cutoff=16):
@@ -348,6 +373,7 @@ def adjust_soil_moisture(fname_wrf,
                          f,
                          sm_ceil=1.0,
                          sm_floor=0.0,
+                         yatir_only=False,
                          soil_moist_vars=None,
                          land_sea_var='LANDMASK'):
     """multiply WPS soil moisture values in a netcdf file by a constant factor
