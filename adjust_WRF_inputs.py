@@ -149,9 +149,11 @@ def get_yatir_idx(fname, varname, dist_cutoff=16):
     is_within_cutoff = ds['d_yatir'].values < dist_cutoff
     ds['idx_yatir'] = xr.DataArray(data=is_within_cutoff,
                                    dims=WRF_lon.dims)
-    # YATIR_X = idx_yatir[:, 0]
-    # YATIR_Y = idx_yatir[:, 1]
-    return(ds)
+    # make sure the index array has same dimensions as varname
+    idxb, discard = xr.broadcast(ds['idx_yatir'], ds[varname])
+    # make sure the index array dimensions are in the same order as varname
+    idx = idxb.transpose(*ds[varname].dims)
+    return(idx)
 
 
 def use_yatir_parameterization(fname_wrf, dist_cutoff=16):

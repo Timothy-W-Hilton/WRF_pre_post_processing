@@ -1,8 +1,11 @@
 import panel as pn
-import geoviews_tools as gt
+import numpy as np
 
 
-def quadmesh_compare_vertical_var(ds, varname, cmap='RdBu'):
+def quadmesh_compare_vertical_var(ds,
+                                  varname,
+                                  cmap='RdBu',
+                                  vdim='num_metgrid_levels'):
     """WRF variable comparison with sliders for z, time
 
     Create a plot showing values for a WRF variable with sliders to
@@ -16,12 +19,17 @@ def quadmesh_compare_vertical_var(ds, varname, cmap='RdBu'):
                                        name='Time',
                                        orientation='vertical',
                                        direction='rtl')
-    vdim = 'num_metgrid_levels'
-    zmax = ds[vdim].size
-    z_select = pn.widgets.IntSlider(start=0, end=zmax, value=1,
+    if vdim is None:
+        zmax = 1
+    else:
+        zmax = ds[vdim].size
+    z_select = pn.widgets.IntSlider(start=0,
+                                    end=zmax,
+                                    value=1,
                                     name='vertical level',
                                     orientation='vertical',
-                                    direction='rtl')
+                                    direction='rtl',
+                                    disabled=(vdim is None))
 
     # bounds for the figures in fraction of the panel,
     # fig_bounds = (0.2, 0.2, 0.8, 0.8)
@@ -37,12 +45,19 @@ def quadmesh_compare_vertical_var(ds, varname, cmap='RdBu'):
         # else:
         #     idx = {'WRFrun': 'control',
         #            'hour': hour_select}
-        qm = ds[varname].sel({'Time': hour_select,
-                              vdim: z_select}).hvplot.quadmesh(
-                                  x='west_east',
-                                  y='south_north',
-                                  z=varname,
-                                  cmap=cmap)
+        if vdim is None:
+            qm = ds[varname].sel({'Time': hour_select}).hvplot.quadmesh(
+                x='west_east',
+                y='south_north',
+                z=varname,
+                cmap=cmap)
+        else:
+            qm = ds[varname].sel({'Time': hour_select,
+                                  vdim: z_select}).hvplot.quadmesh(
+                                      x='west_east',
+                                      y='south_north',
+                                      z=varname,
+                                      cmap=cmap)
         return(qm)
 
     main_title = '## ' + varname
