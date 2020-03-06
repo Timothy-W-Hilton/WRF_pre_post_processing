@@ -180,19 +180,9 @@ def use_yatir_parameterization(fname_wrf, dist_cutoff=16):
         return()
 
     LU_YATIR = 21
-    try:
-        WRF_lon = nc.variables['XLONG_M'][...].squeeze()
-        WRF_lat = nc.variables['XLAT_M'][...].squeeze()
-    except KeyError:
-        print("XLONG_M, XLAT_M not found; trying XLONG, XLAT")
-        WRF_lon = nc.variables['XLONG'][...].squeeze()
-        WRF_lat = nc.variables['XLAT'][...].squeeze()
-    d_yatir = km_to_yatir(WRF_lon, WRF_lat)
-    idx_yatir = np.argwhere(d_yatir < dist_cutoff)
-    YATIR_X = idx_yatir[:, 0]
-    YATIR_Y = idx_yatir[:, 1]
+    idx = get_yatir_idx(fname_wrf, 'LU_INDEX')
     landuse = nc.variables['LU_INDEX'][...]
-    landuse[:, YATIR_X, YATIR_Y] = LU_YATIR
+    landuse[idx.values] = LU_YATIR
     nc.variables['LU_INDEX'][...] = landuse
     print("modified LU_INDEX for"
           "Yatir in {fname_wrf}".format(fname_wrf=fname_wrf))
@@ -202,11 +192,13 @@ def use_yatir_parameterization(fname_wrf, dist_cutoff=16):
     # LANDUSEF[LU_water]) and all other non-water fractions to 0.0.
     # need to subtract 1 from land use codes to translate them to
     # zero-based array indices
+    idx = get_yatir_idx(fname_wrf, 'LANDUSEF')
     landusef = nc.variables['LANDUSEF'][...]
     # set all LU fractions to 0.0 in Yatir pixel
-    landusef[:, :, YATIR_X, YATIR_Y] = 0.0
+    landusef[idx.values] = 0.0
     # set Yatir LU fraction to 1.0 in Yatir pixel
-    landusef[:, LU_YATIR - 1, YATIR_X, YATIR_Y] = 1.0
+    t_idx, pft_idx, YATIR_X, YATIR_Y = np.nonzero(idx.values)
+    landusef[t_idx, LU_YATIR - 1, YATIR_X, YATIR_Y] = 1.0
     nc.variables['LANDUSEF'][...] = landusef
 
     # set vegetation fraction to the maximum fraction present in Yatir
