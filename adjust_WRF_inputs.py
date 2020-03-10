@@ -253,19 +253,21 @@ def replace_landusef_luindex(fname_toreplace, fname_correct_values):
             raise(ValueError('{} must contain a Time dimension').format(
                 os.path.basename(this_f)))
 
+    ds_wrong.close()
+    # xarray seems to get hung up on writing the corrected dataset
+    # back out to the same netCDF file it was read in from, even if
+    # the file is explicitly closed first.  netCDF4 does not seem to
+    # have this behavior.
+    nc = netCDF4.Dataset(fname_toreplace, mode='a')
     for this_var in ('LU_INDEX', 'LANDUSEF'):
         var_correct = ds_correct[this_var].sel(Time=0)
         var_incorrect = ds_wrong[this_var]
         var_correct, discard = xr.broadcast(var_correct, var_incorrect)
         ds_wrong[this_var] = ds_correct[this_var]
-    ds_wrong.close()
-    fname_out = fname_toreplace.replace('wrfinput', 'newwrfinput')
-    try:
-        os.remove(fname_out)
-    except FileNotFoundError:
-        pass
-    print('writing {}'.format(fname_out))
-    ds_wrong.to_netcdf(fname_out, mode='w')
+        # nc.variables[this_var][...] = var_correct.values
+    nc.close()
+    print('wrote {}'.format(fname_toreplace))
+    #ds_wrong.to_netcdf(fname_out, mode='w')
     # os.path.join('/', 'global', 'cscratch1', 'sd',
     #              'twhilton',
     #              'test_wrfinput_corrected.nc'),
