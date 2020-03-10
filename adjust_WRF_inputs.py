@@ -20,6 +20,7 @@ import glob
 import os
 import geopy.distance
 
+
 def deal_with_100pct_urban(landusef, f_urban):
     """replace urban land use in cells that are 100% urban
 
@@ -92,7 +93,7 @@ def remove_urban(fname_wrf):
     # make sure LANDUSEF sums to 1.0 for all pixels
     try:
         assert(np.allclose(np.nansum(landusef, axis=lu_axis), 1.0))
-    except AssertionError as e:
+    except AssertionError:
         print('LANDUSEF does not sum to 1.0 for all pixels')
         return()
     nc.variables['LANDUSEF'][...] = landusef
@@ -220,6 +221,54 @@ def use_yatir_parameterization(fname_wrf, dist_cutoff=16):
                   " of Yatir Forest").format(dist_cutoff)
     nc.close()
 
+
+def replace_landusef_luindex(fname_toreplace, fname_correct_values):
+    """replace landusef, lu_index in WRF file with from another file
+
+    real.exe does not fully respect either the LU_INDEX values or
+    LANDUSEF values from the met_em* files produced by WPS.  For
+    LU_INDEX real.exe changed the Yatir forest code from 21 to 17 in
+    wrfinput* (while preserving its spatial pattern).  For LANDUSEF
+    real.exe changed all LANDUSEF values outside of Yatir to 0.0 in
+    wrfinput*. This function replaces the incorrect values with
+    corrected ones from a different WRF file (usually the
+    aforementioned met_em* files).
+
+    Assumes that both variables are time-invariant.  Therefore uses
+    the first timestamp's values from fname_values.  This gets around
+    the problem of different time periods for the two files.
+
+    fname_toreplace (str): full path to the file whose LANDUSEF,
+       LU_INDEX values should be replaced
+    fname_correct_values (str): full path to the file whose LANDUSEF,
+       LU_INDEX values should be replaced
+    """
+
+    ds_wrong = xr.open_dataset(fname_toreplace)
+    ds_correct = xr.open_dataset(fname_correct_values)
+
+    for this_ds, file_f in zip((ds_correct, ds_wrong),
+                               (fname_correct_values, fname_toreplace)):
+        if 'Time' not in ds_correct.dims:
+            raise(ValueError('{} must contain a Time dimension').format(
+                os.path.basename(this_f)))
+
+    for this_var in ('LU_INDEX', 'LANDUSEF'):
+        var_correct = ds_correct[this_var].sel(Time=0)
+        var_incorrect = ds_wrong[this_var]
+        var_correct, discard = xr.broadcast(var_correct, var_incorrect)
+        ds_wrong[this_var] = ds_correct[this_var]
+    ds_wrong.close()
+    fname_out = fname_toreplace.replace('wrfinput', 'newwrfinput')
+    try:
+        os.remove(fname_out)
+    except FileNotFoundError:
+        pass
+    print('writing {}'.format(fname_out))
+    ds_wrong.to_netcdf(fname_out, mode='w')
+    # os.path.join('/', 'global', 'cscratch1', 'sd',
+    #              'twhilton',
+    #              'test_wrfinput_corrected.nc'),
 
 def make_redwood_range_urban(redwoods_mask, fname_wrf):
     """make redwood range urban using digital redwoods data
