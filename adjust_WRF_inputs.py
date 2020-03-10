@@ -262,15 +262,24 @@ def replace_landusef_luindex(fname_toreplace, fname_correct_values):
     for this_var in ('LU_INDEX', 'LANDUSEF'):
         var_correct = ds_correct[this_var].sel(Time=0)
         var_incorrect = ds_wrong[this_var]
+        if 'z-dimension0021' in var_correct.dims:
+            var_correct = var_correct.rename({'z-dimension0021':
+                                              'land_cat_stag'})
+            var_correct = var_correct.assign_coords(
+                {'land_cat_stag': range(var_correct.sizes['land_cat_stag'])})
+            var_incorrect = var_incorrect.assign_coords(
+                {'land_cat_stag': range(var_incorrect.sizes['land_cat_stag'])})
+        var_correct, discard = xr.align(var_correct,
+                                        var_incorrect,
+                                        join='outer',
+                                        fill_value=0.0)
         var_correct, discard = xr.broadcast(var_correct, var_incorrect)
-        ds_wrong[this_var] = ds_correct[this_var]
-        # nc.variables[this_var][...] = var_correct.values
+        # make sure the dimensions are in the same order
+        var_correct = var_correct.transpose(*var_incorrect.dims)
+        nc.variables[this_var][...] = var_correct.values
     nc.close()
     print('wrote {}'.format(fname_toreplace))
-    #ds_wrong.to_netcdf(fname_out, mode='w')
-    # os.path.join('/', 'global', 'cscratch1', 'sd',
-    #              'twhilton',
-    #              'test_wrfinput_corrected.nc'),
+
 
 def make_redwood_range_urban(redwoods_mask, fname_wrf):
     """make redwood range urban using digital redwoods data
