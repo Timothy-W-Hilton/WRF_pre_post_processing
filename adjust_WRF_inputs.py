@@ -132,7 +132,8 @@ def km_to_yatir(lon, lat):
 
 
 def get_yatir_idx(fname, varname, dist_cutoff=16):
-
+    """TODO docstring
+    """
     ds = xr.open_dataset(fname)
 
     try:
@@ -153,7 +154,7 @@ def get_yatir_idx(fname, varname, dist_cutoff=16):
     # make sure the index array has same dimensions as varname
     idxb, discard = xr.broadcast(ds['idx_yatir'], ds[varname])
     # make sure the index array dimensions are in the same order as varname
-    idx = idxb.transpose(*ds[varname].dims)
+    idx = idxb.transpose(*ds[varname].dims, transpose_coords=True)
     return(idx)
 
 
@@ -458,22 +459,36 @@ def adjust_soil_moisture(fname_wrf,
     # WRF land/sea mask is a float variable; water cells are 0.0, land
     # cells are 1.0.  Create a mask that is TRUE for water cells,
     # FALSE for land cells
-    is_water = ma.masked_values(land_sea, 0.0).mask
+    is_water = ma.masked_values(land_sea, 0.0, shrink=False).mask
     for this_var in soil_moist_vars:
-        sm_adjusted = nc.variables[this_var][...] * f
+        sm_adjusted = nc.variables[this_var][...]
+        if yatir_only:
+            # only change Yatir soil moisture
+            idx = get_yatir_idx(fname_wrf, this_var).values
+        else:
+            # change soil moisture throughout the domain
+            idx = np.ones(sm_adjusted.shape, dtype='bool')
+
+        sm_adjusted[idx] = sm_adjusted[idx] * f
         sm_adjusted[sm_adjusted > sm_ceil] = sm_ceil
         sm_adjusted[sm_adjusted < sm_floor] = sm_floor
         # set water cells back to 1.0
         if sm_adjusted.ndim == 4:
+            # some WRF files (e.g. met_em*) specify soil moisture as N
+            # different netCDF variables, one for each of N soil
+            # layers -- these variables have three dimensions.  Others
+            # (e.g. wrfinput_d*) specify soil moisture in a single
+            # netCDF variable with a depth dimension of size N.  These
+            # have four dimensions.  In the 4-D case tile the water
+            # mask to match the soil moisture dimensions.
             is_water = np.tile(is_water[:, np.newaxis, :, :], (1, 4, 1, 1))
         sm_adjusted[is_water] = 1.0
-
         nc.variables[this_var][...] = sm_adjusted
-        print("modified {this_var} in {fname_wrf}").format(this_var=this_var,
-                                                           fname_wrf=fname_wrf)
-    nc.history = ("created by metgrid_exe.  Soil moisture adjusted by"
-                  " a factor of {f} by adjust_soil_moisture python"
-                  " module.".format(f=f))
+        print("modified {this_var} in {fname_wrf}".format(this_var=this_var,
+                                                          fname_wrf=fname_wrf))
+        nc.history = ("created by metgrid_exe.  Soil moisture adjusted by "
+                      "a factor of {f} by adjust_soil_moisture() from the "
+                      "adjust_WRF_inputs python module".format(f=f))
     nc.close()
 
 
