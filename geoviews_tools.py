@@ -1,5 +1,9 @@
+# 22,Yatir Forest,DarkSeaGreen1,#C1FFC1
+# 23,Redwood Forest,Maroon,#800000
+
 import numpy as np
 import os
+import socket
 import xarray as xr
 import holoviews as hv
 from holoviews import opts
@@ -8,9 +12,151 @@ import geoviews.feature as gf
 import pandas as pd
 
 from map_tools_twh.map_tools_twh import get_IGBP_modMODIS_21Category_PFTs_table
-
 from adjust_WRF_inputs import km_to_yatir
 
+
+def get_vdim(ds, varname):
+    """find the name of the vertical dimension for an xarray variable
+    """
+    vertical_dim = [d for d in ds[varname].dims if 'bottom_top' in d]
+    if any(vertical_dim):
+        if len(vertical_dim) > 1:
+            raise(ValueError('{} has more than one '
+                             'vertical dimension'.format(this_var)))
+        else:
+            vertical_dim = vertical_dim[0]
+    return(vertical_dim)
+
+
+def get_min_max(ds, varname, hour, zlev):
+
+    vdim = get_vdim(ds, varname)
+    idx_run = xr.DataArray(['control', 'yatir'], dims=['WRFrun'])
+    idx_dict = {'WRFrun': idx_run,
+                'hour': hour}
+    if vdim != []:
+        idx_dict[vdim] = zlev
+
+    vmin = ds[varname].sel(idx_dict).min().values.tolist()
+    vmax = ds[varname].sel(idx_dict).max().values.tolist()
+    # vmin = ds[varname].min()
+    # vmax = ds[varname].max()
+    # print('min, max:', vmin, vmax)
+    return((vmin, vmax))
+
+def daily_cycle_mean_overlay_layout(df_obs, ds_WRF, varname, dims=None):
+    """plot daily cycles for Yatir obs and WRF in two panels
+
+    Left panel shows WRF desert cells, right panel shows WRF Yatir cells.
+
+    ARGS:
+    ds_dc (xarray.Dataset): xarray dataset ("ds") containing mean
+       daily cycles ("dc".  Must have dimensions [area, hour, WRFrun].
+
+    RETURNS:
+    holoviews.HoloMap containing the plots
+    """
+
+    if dims is None:
+        hour_dim = 'hour'
+        var_dim = varname
+    else:
+        hour_dim = dims['hour']
+        var_dim = dims[varname]
+
+    # place curves for the requested variable in a holomap indexed by
+    # area (desert, Yatir), "WRFrun" (control, Yatir, observations)
+    ds_dc = combine_yatir_obs_WRF(df_obs, ds_WRF, varname)
+    hm_cv = hv.Dataset(ds_dc).to(hv.Curve,
+                                 kdims=[hour_dim],
+                                 vdims=[var_dim])
+    # hm_cv = hv.Curve(hv.Dataset(ds_dc),
+    #                  kdims=hour_dim,
+    #                  vdims=var_dim)
+    opts_curve = opts.Curve(width=400)
+    opts_ovly = opts.Overlay(legend_position='right')
+    # place the holomap of curves into a holomap containing an
+    # NdOverlay, indexed by WRFrun
+    hm_ndovly = hm_cv.opts(opts_curve).overlay('WRFrun')
+    # rearrange the holomap into an NdLayout
+    ndovly = hm_ndovly.opts(opts_ovly).layout('area')
+
+    hm_ndovly = hm_cv.overlay('WRFrun')
+    # rearrange the holomap into an NdLayout
+    ndovly = hm_ndovly.layout('area').cols(2)
+
+    return(ndovly)
+
+
+def combine_yatir_obs_WRF(df_obs, ds_WRF, varname):
+    """combine WRF output and Yatir observations into an xarray dataset
+    """
+    # create xarray DataArray from pandas dataframe column for varname and time
+    da_obs = xr.DataArray(
+        data=df_obs[varname].values[np.newaxis, np.newaxis, :],
+        coords={'hour': (['hour'], df_obs.reset_index()['hour']),
+                'area': (['area'], ['yatir']),
+                'WRFrun': (['WRFrun'], ['Yatir obs'])},
+        dims=('area', 'WRFrun', 'hour')
+    )
+    WRF_with_obs = xr.concat((da_obs, ds_WRF[varname]), dim='WRFrun')
+    # not sure why I need this, but seems to be necessary to give the
+    # DataArray a name
+    WRF_with_obs = WRF_with_obs.rename(varname)
+    return(WRF_with_obs)
+
+def merge_yatir_fluxes_landuse(fname_ctl='ctl_run_d03_diag_latest.nc',
+                               fname_yatir='yatir_run_d03_diag_latest.nc'):
+    """merge WRF fluxes and landuse into single xarray dataset
+    """
+    if 'MacBook' in socket.gethostname():
+        cscratch_path = os.path.join(os.path.join('/', 'Users', 'tim',
+                                                  'work', 'Data',
+                                                  'SummenWRF', 'yatir'))
+    elif 'cori' in socket.gethostname():
+        cscratch_path = os.path.join('/', 'global', 'cscratch1', 'sd',
+                                     'twhilton', 'yatir_output_collected')
+    ctlday = WRF_daily_daylight_avg(os.path.join(cscratch_path, fname_ctl))
+    ytrday = WRF_daily_daylight_avg(os.path.join(cscratch_path, fname_yatir))
+    landuse_data = yatir_landuse_to_xarray()
+
+    ytrday = ytrday.assign(
+        {'LU_INDEX':
+         landuse_data['d03'].sel(WRFrun='ytr')['LU_INDEX']})
+    ctlday, ytrday = (this_dataset.assign(
+        {'LU_INDEX':
+         landuse_data['d03'].sel(WRFrun=this_key)['LU_INDEX'],
+         'LANDUSEF':
+         landuse_data['d03'].sel(WRFrun=this_key)['LANDUSEF'],
+         'height_agl_stag':
+         this_dataset['zstag'] - this_dataset['ter']
+        })
+                      for (this_dataset, this_key) in
+                      zip((ctlday, ytrday), ('ctl', 'ytr')))
+    ds_diff =  (ctlday - ytrday).assign_coords({'WRFrun': 'control - Yatir'})
+
+    return(ctlday, ytrday, ds_diff)
+
+def set_attributes_for_plotting(ds):
+    """set attrs of xarray dataset for plotting
+    """
+    ds['XLONG'].attrs['long_name'] = 'Longitude'
+    ds['XLONG'].attrs['units'] = 'deg E'
+    ds['XLAT'].attrs['long_name'] = 'Latitude'
+    ds['XLAT'].attrs['units'] = 'deg N'
+    ds['height_agl_stag'].attrs['long_name'] = 'height above ground level'
+    ds['XLAT'].attrs['units'] = 'm'
+
+
+    try:
+        for k, v in ds.data_vars.items():
+            ds[k].attrs['long_name'] = v.attrs['description']
+    except KeyError:
+        ds[k].attrs['long_name'] = k
+        print(('variable {} has no attribute \'description\','
+               ' setting long_name to {}'.format(k, k)))
+
+    return(ds)
 
 def yatir_mask(xarr, d_threshold=5,
                lonvar='lon', latvar='lat',
@@ -106,8 +252,16 @@ def yatir_WRF_to_xarray(fname):
     """
     ds = xr.open_dataset(fname)
     for dim in ['XLAT', 'XLONG']:
-        ds[dim] = ds[dim].sel(Time=0)
+        ds[dim] = ds[dim].isel(Time=0)
     return(ds)
+
+
+def WRF_yatir_desert_timeseries(fname):
+    """calculate mean time series for Yatir, desert WRF cells
+
+    TODO: implement )
+    """
+
 
 def WRF_daily_daylight_avg(fname):
     """read Yatir forest WRF output to xarray containing daily means
@@ -116,18 +270,32 @@ def WRF_daily_daylight_avg(fname):
     [GeoViews](http://geoviews.org/user_guide/)
     """
     ds = yatir_WRF_to_xarray(fname)
-    is_daytime = ds['SWDOWN'] > 0.1
-    ds_day_mean = ds.where(is_daytime, drop=True).groupby('XTIME.hour').mean(keep_attrs=True)
+    # is_daytime = ds['SWDOWN'] > 0.1
+    # ds_day_mean = ds.where(is_daytime, drop=True).groupby('XTIME.hour').mean(keep_attrs=True)
+    for this_var in ds.data_vars:
+        vertical_dim = [d for d in ds[this_var].dims if 'bottom_top' in d]
+        if any(vertical_dim):
+            if len(vertical_dim) > 1:
+                raise(ValueError('{} has more than one '
+                                 'vertical dimension'.format(this_var)))
+            else:
+                vertical_dim = vertical_dim[0]
+            # keep only the surface value
+            # bottom_level_only = ds[this_var].sel({vertical_dim: 0})
+            # ds[this_var] = bottom_level_only
+    ds_day_mean = ds.groupby('XTIME.hour').mean(keep_attrs=True)
     return(ds_day_mean)
 
 
 def define_dims(ds):
-    dims = {k: hv.Dimension(k, label=v.attrs['description'], unit=v.attrs['units'])
-        for k, v in ds.data_vars.items()}
+    dims = {k: hv.Dimension(k,
+                            label=v.attrs['description'],
+                            unit=v.attrs['units'])
+            for k, v in ds.data_vars.items()}
     dims['date'] = hv.Dimension('XTIME', label='date', unit='UTC')
     dims['hour'] = hv.Dimension('hour', label='hour of day', unit='UTC')
-    dims['lon'] = hv.Dimension('XLONG', label='longitude', unit='deg E')
-    dims['lat'] = hv.Dimension('XLAT', label='latitude', unit='deg N')
+    dims['lon'] = hv.Dimension('west_east', label='longitude', unit='deg E')
+    dims['lat'] = hv.Dimension('south_north', label='latitude', unit='deg N')
     return(dims)
 
 # def yatir_WRF_diff(ds1, ds2, varname):
@@ -215,6 +383,27 @@ def overlay_roughness_realization_timeseries(dsxr, varname, mask=None):
     return(hvol)
 
 
+def parse_yatir_EC_observations():
+    """parse Yatir forest eddy covariance observations to a pandas data frame
+    """
+    if 'MacBook' in socket.gethostname():
+        dir_path = os.path.join('/', 'Users', 'tim', 'work', 'Data',
+                                'Yatir_Forest_Data')
+    elif 'cori' in socket.gethostname():
+        dir_path = os.path.join('/', 'project', 'projectdirs',
+                                'm2319', 'Data', 'Yatir_Forest_Data')
+    df_ytr = pd.read_csv(os.path.join(dir_path,
+                                      'EFDC_L2_Flx_ILYat_2015_v03_30m.txt'),
+                         na_values=[-9999])
+    df_ytr['time'] = pd.to_datetime(df_ytr['TIMESTAMP_START'],
+                                    format='%Y%m%d%H%M')
+    # convert Yatir obversation timestamps from local time to UTC
+    df_ytr['time'] = df_ytr['time'] - pd.Timedelta('2 hours')
+    df_ytr['hour'] = pd.DatetimeIndex(df_ytr['time']).hour
+    return(df_ytr)
+
+
+
 def yatir_landuse_to_xarray():
     """parse land use data for Yatir, Control runs for domains d02 and d03
 
@@ -222,8 +411,12 @@ def yatir_landuse_to_xarray():
       dict keyed by ['d02', 'd03']; values are xarray.DataSet objects
       containing land use data concatenated on new dimension WRFrun
     """
-    dir_path = os.path.join('/', 'Users', 'tim', 'work',
-                            'Data', 'SummenWRF', 'yatir')
+    if 'MacBook' in socket.gethostname():
+        dir_path = os.path.join('/', 'Users', 'tim', 'work',
+                                'Data', 'SummenWRF', 'yatir')
+    elif 'cori' in socket.gethostname():
+        dir_path = os.path.join('/', 'global', 'cscratch1', 'sd',
+                                'twhilton', 'yatir_land_use')
     ctable = get_IGBP_modMODIS_21Category_PFTs_table()
     land_cat_names = list(ctable['long_name'])
     land_cat_names = [x if x != 'BareGroundTundra' else 'Yatir'
@@ -261,7 +454,9 @@ if __name__ == '__main__':
     test_get_landuse_to_xarray = False
     test_get_data_file = False
     test_get_xarray = False
-    test_get_xarray_daily = True
+    test_get_xarray_daily = False
+    test_merge = False
+    test_postprocessed = True
 
     if test_get_landuse_to_xarray:
         dict_runs = yatir_landuse_to_xarray()
@@ -302,3 +497,19 @@ if __name__ == '__main__':
         ctlday = WRF_daily_daylight_avg('/Users/tim/work/Data/SummenWRF/yatir/fluxes_ctl_run_d03.nc')
         ytrday = WRF_daily_daylight_avg('/Users/tim/work/Data/SummenWRF/yatir/fluxes_yatir_run_d03.nc')
         dims = define_dims(ctl)
+
+    if test_merge:
+        ctlday, ytrday, ctl_minus_ytr = merge_yatir_fluxes_landuse()
+        (ctlday_TP,
+         ytrday_TP,
+         ctl_minus_ytr_TP) = merge_yatir_fluxes_landuse(
+             fname_ctl='ctl_run_d03_diag_TP.nc',
+             fname_yatir='yatir_run_d03_diag_TP.nc')
+        ctlall = xr.merge((ctlday, ctlday_TP))
+
+    if test_postprocessed:
+        (ctlday_TP,
+         ytrday_TP,
+         ctl_minus_ytr_TP) = merge_yatir_fluxes_landuse(
+             fname_ctl='ctl_d03_postprocessed.nc',
+             fname_yatir='ytr_d03_postprocessed.nc')
