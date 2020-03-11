@@ -16,7 +16,8 @@ jupyter:
 # %autosave 0
 ```
 
-WRF Deurbanization experiment plots
+#### WRF Deurbanization experiment plots
+1 to 9 June 2009 temporal averages.  _**Note these plots show the first nine days of the WRF runs.**_
 
 ```{python}
 import xarray as xr
@@ -26,7 +27,14 @@ import holoviews as hv
 import geoviews as gv
 import geoviews.feature as gf
 from cartopy import crs as ccrs
+import cartopy.feature as cf
 from timutils.git_tools import print_cwd_git_version
+```
+
+```{python}
+us_states = cf.NaturalEarthFeature(category='cultural', 
+                                   name='admin_1_states_provinces_lines',
+                                   scale='10m')
 ```
 
 ```{python}
@@ -36,8 +44,10 @@ gv.extension('bokeh')
 ```
 
 ```{python}
-ctl = xr.open_dataset('/Users/tim/work/Data/SummenWRF/deurbanized/d02_ctl_mean_vals.nc')
-deurb = xr.open_dataset('/Users/tim/work/Data/SummenWRF/deurbanized/d02_deurb_mean_vals.nc')
+# ctl = xr.open_dataset('/Users/tim/work/Data/SummenWRF/deurbanized/d02_ctl_mean_vals.nc')
+# deurb = xr.open_dataset('/Users/tim/work/Data/SummenWRF/deurbanized/d02_deurb_mean_vals.nc')
+ctl = xr.open_dataset('/Users/tim/work/Data/SummenWRF/deurbanized/d02_ctl_10day_mean_vals.nc')
+deurb = xr.open_dataset('/Users/tim/work/Data/SummenWRF/deurbanized/d02_deurb_10day_mean_vals.nc')
 d = ctl - deurb
 dsgv = {k: gv.Dataset(this_data, kdims=['latitude', 'longitude'], vdims=list(ctl.data_vars))
         for k, this_data in zip(('urban', 'd'), (ctl, d))}
@@ -46,10 +56,6 @@ dsgv = {k: gv.Dataset(this_data, kdims=['latitude', 'longitude'], vdims=list(ctl
 ```{python}
 dim_lon = hv.Dimension('longitude', label='lon', unit='deg E')
 dim_lat = hv.Dimension('latitude', label='lat', unit='deg N')
-```
-
-```{python}
-
 ```
 
 ```{python}
@@ -62,8 +68,10 @@ def make_layout(urban, d, varname):
                                                    title='URBAN', 
                                                    colorbar=True,
                                                    colorbar_opts={'title':varname},
-                                                   width=400)
-                      * gf.coastline * gf.borders,
+                                                   width=400) * 
+                      gf.coastline.options(scale='50m') * 
+                      gf.borders.options(scale='50m') *
+                      gv.Feature(us_states, group='Lines').opts(color=None),
                       d.to(gv.QuadMesh, 
                            kdims=[dim_lon, dim_lat], 
                            vdims=varname).opts(cmap='RdBu', 
@@ -71,18 +79,44 @@ def make_layout(urban, d, varname):
                                                colorbar=True,
                                                colorbar_opts={'title':'d{}'.format(varname)},
                                                clim=(-1.0 * dmax, dmax),
-                                               width=400)
-                     * gf.coastline * gf.borders]))
+                                               width=400) *
+                      gf.coastline.options(scale='50m') * 
+                      gf.borders.options(scale='50m') *
+                      gv.Feature(us_states, group='Lines').opts(color=None)]))
 ```
 
 ```{python}
-make_layout(dsgv['urban'], dsgv['d'], 'PBLH')
+all_plots = {}
+for this_var in ctl.data_vars:
+    try:
+        all_plots[this_var] = make_layout(dsgv['urban'], dsgv['d'], this_var)
+    except ValueError:
+        print('unable to plot {}'.format(this_var))
 ```
 
 ```{python}
-make_layout(dsgv['urban'], dsgv['d'], 'HFX')
+#TODO units on colobars
+#TODO better labels on colorbars (or somewhere)
+#TODO [x] higher resolution coastlines
+#TODO [x] US state outlines
 ```
 
 ```{python}
-make_layout(dsgv['urban'], dsgv['d'], 'LH')
+all_plots['TSK']
+```
+
+```{python}
+all_plots['PBLH']
+```
+
+```{python}
+all_plots['HFX']
+```
+
+```{python}
+all_plots['LH']
+```
+
+```{python}
+all_plots['SWDNB']
 ```
