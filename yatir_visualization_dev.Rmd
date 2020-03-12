@@ -35,6 +35,10 @@ from importlib import reload
 ```
 
 ```{python}
+spqd
+```
+
+```{python}
 reload(gt)  # get the most recently edited version of geoviews_tools
 ```
 
@@ -51,22 +55,22 @@ A collection of plots showing WRF-simulated surface energy and carbon fluxes for
 
 ```{python}
 ctlday, ytrday, ctl_minus_ytr = gt.merge_yatir_fluxes_landuse(
-    fname_ctl='ctl_d03_postprocessed.nc',
-    fname_yatir='ytr_d03_postprocessed.nc')
+    fname_ctl='/global/cscratch1/sd/twhilton/yatir_output_collected/wetsoil/ctl_d03_VWCx2_postprocessed.nc',
+    fname_yatir='/global/cscratch1/sd/twhilton/yatir_output_collected/wetsoil/ytr_d03_VWCx2_postprocessed.nc')
 ```
 
 ```{python}
-ctlday.to_netcdf('./Control_data.nc')
+#ctlday.to_netcdf('./Control_data.nc')
 ```
 
-```{python active="", eval=FALSE}
-ctlday = xr.open_dataset('./Control_data.nc')
-ds_diff = xr.open_dataset('./Yatir_Control_diff.nc')
+```{python}
+#ctlday = xr.open_dataset('./Control_data.nc')
+#ds_diff = xr.open_dataset('./Yatir_Control_diff.nc')
 ```
 
 ```{python}
 ds_diff = xr.concat([ctlday, ytrday, ctl_minus_ytr], 
-                    dim=pd.Index(['control', 'yatir', 'control - Yatir'], name='WRFrun'))
+                    dim=pd.Index(['yatir dry', 'yatir wet', 'Yatir dry - Yatir wet'], name='WRFrun'))
 
 # make bottom_top_stag, bottom_top into coordinate variables
 ds_diff = ds_diff.assign_coords({'bottom_top_stag': np.arange(ds_diff.dims['bottom_top_stag'])})
@@ -75,11 +79,10 @@ ds_diff = ds_diff.assign_coords({'bottom_top': np.arange(ds_diff.dims['bottom_to
 ds_diff = gt.set_attributes_for_plotting(ds_diff)
 
 yatir_idx = 21  # list(ds_diff['PFT'].values).index('Yatir')  
-ds_diff = ds_diff.assign(yatir_mask=ds_diff.sel(WRFrun='yatir')['LU_INDEX'] == yatir_idx)
+ds_diff = ds_diff.assign(yatir_mask=ds_diff.sel(WRFrun='yatir dry')['LU_INDEX'] == yatir_idx)
 ```
 
 ```{python}
-reload(spqd)
 spqd.three_panel_quadmesh_compare_vertical_var(ds_diff, 'W', cmap='PRGn')
 ```
 

@@ -25,7 +25,7 @@ def three_panel_quadmesh_compare_vertical_var(ds, varname, cmap='RdBu'):
 
     """
 
-    hour_select = pn.widgets.IntSlider(start=0, end=24, value=9, name='Hour',
+    hour_select = pn.widgets.IntSlider(start=0, end=2, value=0, name='Hour',
                                        orientation='vertical',
                                        direction='rtl')
     var_varies_vertically = len(gt.get_vdim(ds, varname)) > 0
@@ -57,7 +57,7 @@ def three_panel_quadmesh_compare_vertical_var(ds, varname, cmap='RdBu'):
         # zstag: height of staggered Z levels, calucated by wrf-python
         # ter: height of terrain (meters above sea level)
         # calculate staggered Z level height above ground level (agl)
-        agl_contour = ds[agl_var].sel({'WRFrun': 'control',
+        agl_contour = ds[agl_var].sel({'WRFrun': 'yatir dry',
                                        'hour': hour_select,
                                        vdim: z_select}). hvplot.contour(
                                            x='XLONG',
@@ -80,13 +80,13 @@ def three_panel_quadmesh_compare_vertical_var(ds, varname, cmap='RdBu'):
         #            'hour': hour_select}
         vdim = gt.get_vdim(ds, varname)
         vmin, vmax = gt.get_min_max(ds, varname, hour_select, z_select)
-        qm = ds[varname].sel({'WRFrun': 'control',
+        qm = ds[varname].sel({'WRFrun': 'yatir dry',
                               'hour': hour_select,
                               vdim: z_select}).hvplot.quadmesh(
                                   x='XLONG',
                                   y='XLAT',
                                   z=varname,
-                                  title='control',
+                                  title='Yatir dry',
                                   clim=(vmin, vmax),
                                   cmap=cmap).opts(
                                       fig_bounds=fig_bounds)
@@ -98,13 +98,13 @@ def three_panel_quadmesh_compare_vertical_var(ds, varname, cmap='RdBu'):
         """
         vdim = gt.get_vdim(ds, varname)
         vmin, vmax = gt.get_min_max(ds, varname, hour_select, z_select)
-        qm = ds[varname].sel({'WRFrun': 'yatir',
+        qm = ds[varname].sel({'WRFrun': 'yatir wet',
                               'hour': hour_select,
                               vdim: z_select}).hvplot.quadmesh(
                                   x='XLONG',
                                   y='XLAT',
                                   z=varname,
-                                  title='Yatir',
+                                  title='Yatir wet',
                                   cmap=cmap,
                                   clim=(vmin, vmax)).opts(
                                       fig_bounds=fig_bounds)
@@ -116,7 +116,7 @@ def three_panel_quadmesh_compare_vertical_var(ds, varname, cmap='RdBu'):
         """
         vdim = gt.get_vdim(ds, varname)
         vmin, vmax = gt.get_min_max(ds, varname, hour_select, z_select)
-        qm = ds[varname].sel({'WRFrun': 'control - Yatir',
+        qm = ds[varname].sel({'WRFrun': 'Yatir dry - Yatir wet',
                               'hour': hour_select,
                               vdim: z_select}).hvplot.quadmesh(
                                   x='XLONG',
@@ -125,11 +125,13 @@ def three_panel_quadmesh_compare_vertical_var(ds, varname, cmap='RdBu'):
                                   #clim=(vmin, vmax),
                                   symmetric=True,
                                   cmap='RdBu',
-                                  title='control - Yatir').opts(
+                                  title='Yatir dry - Yatir wet').opts(
                                       fig_bounds=fig_bounds)
         return(qm)
 
-    main_title = '## ' + ds[varname].long_name
+    #main_title = '## ' + ds[varname].long_name
+    main_title = '## ' + varname
+
     the_plot = pn.Column(pn.Row(pn.pane.Markdown(main_title)),
                          pn.Row(get_quadmesh_control, get_quadmesh_yatir,
                                 hour_select, z_select),
@@ -147,7 +149,7 @@ def three_panel_quadmesh_compare_surface_var(ds, varname, cmap='RdBu'):
 
     """
 
-    hour_select = pn.widgets.IntSlider(start=0, end=24, value=9, name='Hour',
+    hour_select = pn.widgets.IntSlider(start=0, end=2, value=0, name='Hour',
                                        orientation='vertical',
                                        direction='rtl')
     z_select = None  # this is a surface variable
@@ -159,12 +161,12 @@ def three_panel_quadmesh_compare_surface_var(ds, varname, cmap='RdBu'):
         """
         """
         vmin, vmax = gt.get_min_max(ds, varname, hour_select, z_select)
-        qm = ds[varname].sel({'WRFrun': 'control',
+        qm = ds[varname].sel({'WRFrun': 'yatir dry',
                               'hour': hour_select}).hvplot.quadmesh(
                                   x='XLONG',
                                   y='XLAT',
                                   z=varname,
-                                  title='control',
+                                  title='Yatir Dry',
                                   clim=(vmin, vmax),
                                   cmap=cmap).opts(
                                       fig_bounds=fig_bounds)
@@ -175,12 +177,12 @@ def three_panel_quadmesh_compare_surface_var(ds, varname, cmap='RdBu'):
         """
         """
         vmin, vmax = gt.get_min_max(ds, varname, hour_select, z_select)
-        qm = ds[varname].sel({'WRFrun': 'yatir',
+        qm = ds[varname].sel({'WRFrun': 'yatir wet',
                               'hour': hour_select}).hvplot.quadmesh(
                                   x='XLONG',
                                   y='XLAT',
                                   z=varname,
-                                  title='Yatir',
+                                  title='Yatir wet',
                                   cmap=cmap,
                                   clim=(vmin, vmax)).opts(
                                       fig_bounds=fig_bounds)
@@ -191,7 +193,7 @@ def three_panel_quadmesh_compare_surface_var(ds, varname, cmap='RdBu'):
         """
         """
         vmin, vmax = gt.get_min_max(ds, varname, hour_select, z_select)
-        qm = ds[varname].sel({'WRFrun': 'control - Yatir',
+        qm = ds[varname].sel({'WRFrun': 'Yatir dry - Yatir wet',
                               'hour': hour_select}).hvplot.quadmesh(
                                   x='XLONG',
                                   y='XLAT',
@@ -199,7 +201,7 @@ def three_panel_quadmesh_compare_surface_var(ds, varname, cmap='RdBu'):
                                   #clim=(vmin, vmax),
                                   symmetric=True,
                                   cmap='RdBu',
-                                  title='control - Yatir').opts(
+                                  title='Yatir dry - Yatir wet').opts(
                                       fig_bounds=fig_bounds)
         return(qm)
 

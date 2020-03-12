@@ -33,7 +33,7 @@ def get_vdim(ds, varname):
 def get_min_max(ds, varname, hour, zlev):
 
     vdim = get_vdim(ds, varname)
-    idx_run = xr.DataArray(['control', 'yatir'], dims=['WRFrun'])
+    idx_run = xr.DataArray(['yatir wet', 'yatir dry'], dims=['WRFrun'])
     idx_dict = {'WRFrun': idx_run,
                 'hour': hour}
     if vdim != []:
@@ -513,5 +513,7 @@ if __name__ == '__main__':
         (ctlday_TP,
          ytrday_TP,
          ctl_minus_ytr_TP) = merge_yatir_fluxes_landuse(
-             fname_ctl='ctl_d03_postprocessed.nc',
-             fname_yatir='ytr_d03_postprocessed.nc')
+             fname_ctl='/global/cscratch1/sd/twhilton/yatir_output_collected/wetsoil/ctl_run_d03_diag_TP_VWCx2.nc',
+             fname_yatir='/global/cscratch1/sd/twhilton/yatir_output_collected/wetsoil/yatir_run_d03_diag_TP_VWCx2.nc')
+             # fname_ctl='ctl_d03_postprocessed.nc',
+             # fname_yatir='ytr_d03_postprocessed.nc')

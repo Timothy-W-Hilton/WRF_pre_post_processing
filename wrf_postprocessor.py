@@ -13,10 +13,22 @@ def create_merged_postprocessed_netcdf(collected_data_directory,
     fname = os.path.join(collected_data_directory,
                          allvars_fname[run_key])
     nc = netCDF4.Dataset(filename=fname, mode='r')
+
+    for k in vars_derived:
+        try:
+            print('calculating {}'.format(k))
+            wrf.getvar(wrfin=nc,
+                       varname=k,
+                       timeidx=wrf.ALL_TIMES)
+        except ValueError as e:
+            print('error calculating {}'.format(k))
+            raise(e)
+
     ds_derived = xr.Dataset({k: wrf.getvar(wrfin=nc,
                                            varname=k,
                                            timeidx=wrf.ALL_TIMES)
                              for k in vars_derived})
+
     nc.close()
 
     # format variable metadata for compatibility with
@@ -44,16 +56,19 @@ def create_merged_postprocessed_netcdf(collected_data_directory,
     ds_combined = xr.merge([ds_raw[vars_raw], ds_derived], compat='override')
     ds_combined.to_netcdf(path=os.path.join(
         os.path.dirname(fname),
-        '{}_d03_postprocessed.nc'.format(run_key)))
+        '{}_d03_VWCx2_postprocessed.nc'.format(run_key)))
 
 
 if __name__ == "__main__":
 
     collected_data_directory = os.path.join('/', 'global',
                                             'cscratch1', 'sd', 'twhilton',
-                                            'yatir_output_collected')
+                                            'yatir_output_collected',
+                                            'wetsoil')
     allvars_fname = {'ytr': 'ytr_d03_allvars.nc',
                      'ctl': 'ctl_d03_allvars.nc'}
+    allvars_fname = {'ytr': 'yatir_run_d03_diag_TP_VWCx2.nc',
+                     'ctl': 'yatir_run_d03_diag_TP_VWCx1.nc'}
 
     vars_derived = ['height', 'height_agl', 'ter', 'zstag', 'uvmet_wspd_wdir',
                     'uvmet10_wspd_wdir', 'theta']
