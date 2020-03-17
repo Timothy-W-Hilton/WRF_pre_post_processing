@@ -10,6 +10,19 @@ ctldir = "/global/cscratch1/sd/twhilton/WRFv4.0_Sensitivity/restored/control/"
 outdir = "/global/cscratch1/sd/twhilton/deurbanization_output_collected"
 
 
+def get_Tmin_Tmax(ds):
+    """calculate Tmin and Tmax from a dataset's T2 variable
+
+    ARGS:
+        ds: xarray dataset of WRF output; must contain dataarray T2
+    """
+    T2_daily = ds['T2'].groupby(group='doy')
+    daily_Tmin = T2_daily.min(skipna=True)
+    daily_Tmax = T2_daily.max(skipna=True)
+    avg_Tmin = daily_Tmin.mean('doy')
+    avg_Tmax = daily_Tmax.mean('doy')
+    return(avg_Tmin, avg_Tmax)
+
 
 def get_time_means(fname, run):
     ds = xr.open_dataset(fname, decode_times=False)
@@ -29,8 +42,12 @@ def get_time_means(fname, run):
                                 format='%Y-%m-%d_%H:%M:%S')
     ds = ds.assign_coords(month=xr.DataArray(timestamps.month.values,
                                              coords=[ds.Time],
-                                             dims=['Time']))
+                                             dims=['Time']),
+                          doy=xr.DataArray(timestamps.dayofyear.values,
+                                           coords=[ds.Time],
+                                           dims=['Time']))
     print('starting groupby and mean: ', datetime.now())
+    Tmin, Tmax = get_Tmin_Tmax(ds)
     month_grp = ds.groupby(group='month')
     month_means = month_grp.mean('Time', skipna=True)
     means = month_means.mean('month')
@@ -38,8 +55,10 @@ def get_time_means(fname, run):
     means = means.assign_coords(latitude=ds['XLAT'][0, ...])
     means.to_netcdf(path=os.path.join(outdir,
                                       'd02_{}_month_mean_vals_dbg.nc'.format(run)))
+    means['Tmin'] = Tmin
+    means['Tmax'] = Tmax
     print('done: ', datetime.now())
-    return(means, month_grp, month_means, ds)
+    return(means, ds)
 
 
 if __name__ == "__main__":
