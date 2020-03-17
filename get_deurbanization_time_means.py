@@ -20,7 +20,7 @@ def get_time_means(fname, run):
         try:
             print('replacing {}'.format(this_var))
             if this_var != "Times":
-                ds['this_var'] = ds[this_var].where(ds[this_var] < 1e33)
+                ds[this_var] = ds[this_var].where(ds[this_var] < 1e33)
         except TypeError as e:
             print("error replacing missing values in " + this_var)
             raise e
