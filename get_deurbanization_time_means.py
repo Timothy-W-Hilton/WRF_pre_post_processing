@@ -13,6 +13,17 @@ outdir = "/global/cscratch1/sd/twhilton/deurbanization_output_collected"
 
 def get_time_means(fname, run):
     ds = xr.open_dataset(fname, decode_times=False)
+    for this_var in ds.data_vars:
+        # WRF used varous values in the neighborgood of 9e36 for
+        # missing values, but did not set the _FillValue attribute.
+        # Replace these values with NaN now.
+        try:
+            print('replacing {}'.format(this_var))
+            if this_var != "Times":
+                ds['this_var'] = ds[this_var].where(ds[this_var] < 1e33)
+        except TypeError as e:
+            print("error replacing missing values in " + this_var)
+            raise e
     print('data read: ', datetime.now())
     timestamps = pd.to_datetime(ds.Times.astype(str).values.tolist(),
                                 format='%Y-%m-%d_%H:%M:%S')
@@ -26,22 +37,14 @@ def get_time_means(fname, run):
     means = means.assign_coords(longitude=ds['XLONG'][0, ...])
     means = means.assign_coords(latitude=ds['XLAT'][0, ...])
     means.to_netcdf(path=os.path.join(outdir,
-                                      'd02_{}_month_mean_vals.nc'.format(run)))
+                                      'd02_{}_month_mean_vals_dbg.nc'.format(run)))
     print('done: ', datetime.now())
-    return(means)
+    return(means, month_grp, month_means, ds)
 
 
 if __name__ == "__main__":
     paths = {'ctl':os.path.join(outdir, 'ctl_d02.nc'),
              'deurb':os.path.join(outdir, 'deurb_d02.nc')}
-    # paths_10day = {'ctl': os.path.join('/', 'global', 'cscratch1',
-    #                                    'sd', 'twhilton',
-    #                                    'deurbanization_output_collected',
-    #                                    'ctl_d02_10day.nc'),
-    #                'deurb':os.path.join('/', 'global', 'cscratch1',
-    #                                     'sd', 'twhilton',
-    #                                     'deurbanization_output_collected',
-    #                                     'deurb_d02_10day.nc')}
     print('start: ', datetime.now())
     means = {run: get_time_means(fname, run)
              for run, fname in paths.items()}
