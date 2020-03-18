@@ -17,7 +17,8 @@ jupyter:
 ```
 
 #### WRF Deurbanization experiment plots
-1 to 9 June 2009 temporal averages.  _**Note these plots show the first nine days of the WRF runs.**_
+
+Mean values for 1 June 2005 to 17 July 2005 except for Tmin and Tmax, which are means of the daily minima and maxima.
 
 ```{python}
 import xarray as xr
@@ -48,8 +49,6 @@ ctl = xr.open_dataset('/Users/tim/work/Data/SummenWRF/deurbanized/d02_ctl_month_
                      mask_and_scale=True)
 deurb = xr.open_dataset('/Users/tim/work/Data/SummenWRF/deurbanized/d02_deurb_month_mean_vals.nc',
                        mask_and_scale=True)
-# ctl = xr.open_dataset('/Users/tim/work/Data/SummenWRF/deurbanized/d02_ctl_10day_mean_vals.nc')
-# deurb = xr.open_dataset('/Users/tim/work/Data/SummenWRF/deurbanized/d02_deurb_10day_mean_vals.nc')
 d = ctl - deurb
 dsgv = {k: gv.Dataset(this_data, kdims=['latitude', 'longitude'], vdims=list(ctl.data_vars))
         for k, this_data in zip(('urban', 'd'), (ctl, d))}
@@ -67,7 +66,6 @@ def make_layout(urban, d, varname):
     vmax = np.abs(urban[varname]).max()
     dmax = np.abs(d[varname]).max()
     dmin = -1.0 * dmax
-    print('{}: {} - {}'.format(varname, dmin, dmax))
     return(hv.Layout([urban.to(gv.QuadMesh, 
                                kdims=[dim_lon, dim_lat], 
                                vdims=varname).opts(cmap='Viridis', 
@@ -97,8 +95,9 @@ all_plots = {}
 for this_var in ctl.data_vars:
     try:
         all_plots[this_var] = make_layout(dsgv['urban'], dsgv['d'], this_var)
-    except ValueError:
+    except ValueError as e:
         print('unable to plot {}'.format(this_var))
+        print(e)
 ```
 
 ```{python}
@@ -109,7 +108,15 @@ for this_var in ctl.data_vars:
 ```
 
 ```{python}
-all_plots['TSK']
+all_plots['T2']
+```
+
+```{python}
+all_plots['Tmin']
+```
+
+```{python}
+all_plots['Tmax']
 ```
 
 ```{python}
