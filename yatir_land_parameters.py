@@ -1,3 +1,8 @@
+"""format Yatir Forest NOAH-MP parameters for pretty markdown
+
+This makes it easier to make them look nice in a Jupyter notebook
+"""
+
 import pandas as pd
 from io import StringIO
 from tabulate import tabulate

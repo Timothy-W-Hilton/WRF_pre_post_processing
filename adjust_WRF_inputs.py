@@ -13,11 +13,13 @@ Timothy W. Hilton <twhilton@ucsc.edu>
 """
 
 import netCDF4
+import xarray as xr
 import numpy as np
 import numpy.ma as ma
 import glob
 import os
 import geopy.distance
+
 
 def deal_with_100pct_urban(landusef, f_urban):
     """replace urban land use in cells that are 100% urban
@@ -91,7 +93,7 @@ def remove_urban(fname_wrf):
     # make sure LANDUSEF sums to 1.0 for all pixels
     try:
         assert(np.allclose(np.nansum(landusef, axis=lu_axis), 1.0))
-    except AssertionError as e:
+    except AssertionError:
         print('LANDUSEF does not sum to 1.0 for all pixels')
         return()
     nc.variables['LANDUSEF'][...] = landusef
@@ -129,6 +131,33 @@ def km_to_yatir(lon, lat):
     return(d_km.reshape(arr_shape))
 
 
+def get_yatir_idx(fname, varname, dist_cutoff=16):
+    """TODO docstring
+    """
+    ds = xr.open_dataset(fname)
+
+    try:
+        WRF_lon = ds['XLONG_M']
+        WRF_lat = ds['XLAT_M']
+    except KeyError:
+        print("XLONG_M, XLAT_M not found; trying XLONG, XLAT")
+        WRF_lon = ds['XLONG']
+        WRF_lat = ds['XLAT']
+
+    ds['d_yatir'] = xr.DataArray(data=km_to_yatir(WRF_lon.values,
+                                                  WRF_lat.values),
+                                 dims=WRF_lon.dims)
+
+    is_within_cutoff = ds['d_yatir'].values < dist_cutoff
+    ds['idx_yatir'] = xr.DataArray(data=is_within_cutoff,
+                                   dims=WRF_lon.dims)
+    # make sure the index array has same dimensions as varname
+    idxb, discard = xr.broadcast(ds['idx_yatir'], ds[varname])
+    # make sure the index array dimensions are in the same order as varname
+    idx = idxb.transpose(*ds[varname].dims, transpose_coords=True)
+    return(idx)
+
+
 def use_yatir_parameterization(fname_wrf, dist_cutoff=16):
     """change the landuse category for Yatir forest to 20
 
@@ -153,19 +182,9 @@ def use_yatir_parameterization(fname_wrf, dist_cutoff=16):
         return()
 
     LU_YATIR = 21
-    try:
-        WRF_lon = nc.variables['XLONG_M'][...].squeeze()
-        WRF_lat = nc.variables['XLAT_M'][...].squeeze()
-    except KeyError:
-        print("XLONG_M, XLAT_M not found; trying XLONG, XLAT")
-        WRF_lon = nc.variables['XLONG'][...].squeeze()
-        WRF_lat = nc.variables['XLAT'][...].squeeze()
-    d_yatir = km_to_yatir(WRF_lon, WRF_lat)
-    idx_yatir = np.argwhere(d_yatir < dist_cutoff)
-    YATIR_X = idx_yatir[:, 0]
-    YATIR_Y = idx_yatir[:, 1]
+    idx = get_yatir_idx(fname_wrf, 'LU_INDEX')
     landuse = nc.variables['LU_INDEX'][...]
-    landuse[:, YATIR_X, YATIR_Y] = LU_YATIR
+    landuse[idx.values] = LU_YATIR
     nc.variables['LU_INDEX'][...] = landuse
     print("modified LU_INDEX for"
           "Yatir in {fname_wrf}".format(fname_wrf=fname_wrf))
@@ -175,11 +194,13 @@ def use_yatir_parameterization(fname_wrf, dist_cutoff=16):
     # LANDUSEF[LU_water]) and all other non-water fractions to 0.0.
     # need to subtract 1 from land use codes to translate them to
     # zero-based array indices
+    idx = get_yatir_idx(fname_wrf, 'LANDUSEF')
     landusef = nc.variables['LANDUSEF'][...]
     # set all LU fractions to 0.0 in Yatir pixel
-    landusef[:, :, YATIR_X, YATIR_Y] = 0.0
+    landusef[idx.values] = 0.0
     # set Yatir LU fraction to 1.0 in Yatir pixel
-    landusef[:, LU_YATIR - 1, YATIR_X, YATIR_Y] = 1.0
+    t_idx, pft_idx, YATIR_X, YATIR_Y = np.nonzero(idx.values)
+    landusef[t_idx, LU_YATIR - 1, YATIR_X, YATIR_Y] = 1.0
     nc.variables['LANDUSEF'][...] = landusef
 
     # set vegetation fraction to the maximum fraction present in Yatir
@@ -200,6 +221,65 @@ def use_yatir_parameterization(fname_wrf, dist_cutoff=16):
                   "to Yatir in WRF pixels within {} km"
                   " of Yatir Forest").format(dist_cutoff)
     nc.close()
+
+
+def replace_landusef_luindex(fname_toreplace, fname_correct_values):
+    """replace landusef, lu_index in WRF file with from another file
+
+    real.exe does not fully respect either the LU_INDEX values or
+    LANDUSEF values from the met_em* files produced by WPS.  For
+    LU_INDEX real.exe changed the Yatir forest code from 21 to 17 in
+    wrfinput* (while preserving its spatial pattern).  For LANDUSEF
+    real.exe changed all LANDUSEF values outside of Yatir to 0.0 in
+    wrfinput*. This function replaces the incorrect values with
+    corrected ones from a different WRF file (usually the
+    aforementioned met_em* files).
+
+    Assumes that both variables are time-invariant.  Therefore uses
+    the first timestamp's values from fname_values.  This gets around
+    the problem of different time periods for the two files.
+
+    fname_toreplace (str): full path to the file whose LANDUSEF,
+       LU_INDEX values should be replaced
+    fname_correct_values (str): full path to the file whose LANDUSEF,
+       LU_INDEX values should be replaced
+    """
+
+    ds_wrong = xr.open_dataset(fname_toreplace)
+    ds_correct = xr.open_dataset(fname_correct_values)
+
+    for this_ds, file_f in zip((ds_correct, ds_wrong),
+                               (fname_correct_values, fname_toreplace)):
+        if 'Time' not in ds_correct.dims:
+            raise(ValueError('{} must contain a Time dimension').format(
+                os.path.basename(this_f)))
+
+    ds_wrong.close()
+    # xarray seems to get hung up on writing the corrected dataset
+    # back out to the same netCDF file it was read in from, even if
+    # the file is explicitly closed first.  netCDF4 does not seem to
+    # have this behavior.
+    nc = netCDF4.Dataset(fname_toreplace, mode='a')
+    for this_var in ('LU_INDEX', 'LANDUSEF'):
+        var_correct = ds_correct[this_var].sel(Time=0)
+        var_incorrect = ds_wrong[this_var]
+        if 'z-dimension0021' in var_correct.dims:
+            var_correct = var_correct.rename({'z-dimension0021':
+                                              'land_cat_stag'})
+            var_correct = var_correct.assign_coords(
+                {'land_cat_stag': range(var_correct.sizes['land_cat_stag'])})
+            var_incorrect = var_incorrect.assign_coords(
+                {'land_cat_stag': range(var_incorrect.sizes['land_cat_stag'])})
+        var_correct, discard = xr.align(var_correct,
+                                        var_incorrect,
+                                        join='outer',
+                                        fill_value=0.0)
+        var_correct, discard = xr.broadcast(var_correct, var_incorrect)
+        # make sure the dimensions are in the same order
+        var_correct = var_correct.transpose(*var_incorrect.dims)
+        nc.variables[this_var][...] = var_correct.values
+    nc.close()
+    print('wrote {}'.format(fname_toreplace))
 
 
 def make_redwood_range_urban(redwoods_mask, fname_wrf):
@@ -344,7 +424,12 @@ def make_all_land_urban(fname_wrf):
     nc.close()
 
 
-def reduce_soil_moisture(fname_wrf, f, soil_moist_vars=None,
+def adjust_soil_moisture(fname_wrf,
+                         f,
+                         sm_ceil=1.0,
+                         sm_floor=0.0,
+                         yatir_only=False,
+                         soil_moist_vars=None,
                          land_sea_var='LANDMASK'):
     """multiply WPS soil moisture values in a netcdf file by a constant factor
 
@@ -354,6 +439,8 @@ def reduce_soil_moisture(fname_wrf, f, soil_moist_vars=None,
     ARGS
     fname_wrf (character): full path to a met_em* file produced by the WPS.
     f (real): the constant factor to multiply into soil moisture values
+    sm_ceil (real): maximum soil moisture to allow
+    sm_floor (real): minimum soil moisture to allow
     soil_moist_vars (list of strings): names of the soil moisture
        variables to multiply.  Default is ['SM100200', 'SM040100',
        'SM010040', 'SM000010']
@@ -372,19 +459,36 @@ def reduce_soil_moisture(fname_wrf, f, soil_moist_vars=None,
     # WRF land/sea mask is a float variable; water cells are 0.0, land
     # cells are 1.0.  Create a mask that is TRUE for water cells,
     # FALSE for land cells
-    is_water = ma.masked_values(land_sea, 0.0).mask
+    is_water = ma.masked_values(land_sea, 0.0, shrink=False).mask
     for this_var in soil_moist_vars:
-        sm_adjusted = nc.variables[this_var][...] * f
-        if sm_adjusted.ndim == 4:
-            is_water = np.tile(is_water[:, np.newaxis, :, :], (1, 4, 1, 1))
+        sm_adjusted = nc.variables[this_var][...]
+        if yatir_only:
+            # only change Yatir soil moisture
+            idx = get_yatir_idx(fname_wrf, this_var).values
+        else:
+            # change soil moisture throughout the domain
+            idx = np.ones(sm_adjusted.shape, dtype='bool')
+
+        sm_adjusted[idx] = sm_adjusted[idx] * f
+        sm_adjusted[sm_adjusted > sm_ceil] = sm_ceil
+        sm_adjusted[sm_adjusted < sm_floor] = sm_floor
         # set water cells back to 1.0
+        if sm_adjusted.ndim == 4:
+            # some WRF files (e.g. met_em*) specify soil moisture as N
+            # different netCDF variables, one for each of N soil
+            # layers -- these variables have three dimensions.  Others
+            # (e.g. wrfinput_d*) specify soil moisture in a single
+            # netCDF variable with a depth dimension of size N.  These
+            # have four dimensions.  In the 4-D case tile the water
+            # mask to match the soil moisture dimensions.
+            is_water = np.tile(is_water[:, np.newaxis, :, :], (1, 4, 1, 1))
         sm_adjusted[is_water] = 1.0
         nc.variables[this_var][...] = sm_adjusted
-        print("modified {this_var} in {fname_wrf}").format(this_var=this_var,
-                                                           fname_wrf=fname_wrf)
-    nc.history = ("created by metgrid_exe.  Soil moisture adjusted by"
-                  " a factor of {f} by reduce_soil_moisture python"
-                  " module.".format(f=f))
+        print("modified {this_var} in {fname_wrf}".format(this_var=this_var,
+                                                          fname_wrf=fname_wrf))
+        nc.history = ("created by metgrid_exe.  Soil moisture adjusted by "
+                      "a factor of {f} by adjust_soil_moisture() from the "
+                      "adjust_WRF_inputs python module".format(f=f))
     nc.close()
 
 

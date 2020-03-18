@@ -1,0 +1,42 @@
+---
+jupyter:
+  jupytext:
+    text_representation:
+      extension: .Rmd
+      format_name: rmarkdown
+      format_version: '1.2'
+      jupytext_version: 1.3.2
+  kernelspec:
+    display_name: wrfhv_github
+    language: python
+    name: wrfhv_github
+---
+
+```{python}
+from adjust_WRF_inputs import get_yatir_idx
+import surface_panels as sp
+import xarray as xr
+import hvplot.xarray
+```
+
+```{python}
+datafile = os.path.join('/', 'global', 'cscratch1', 'sd', 'twhilton', 
+                        'WRFv4.1_Experiments', 
+                        'WRFv4.1_yatir_2015Aug_yatirparams_NCEPFNL_NOAHMP_ndom3_wetsoil', 
+                        'WRFV4', 'run', 'met_em.d03.2015-08-15_00:00:00.nc')
+ds = xr.open_dataset(datafile)
+```
+
+```{python}
+varname = 'SM000010'
+idx = get_yatir_idx(datafile, varname)
+ds[varname].values[idx.values] = np.nan
+sp.quadmesh_compare_vertical_var(ds=ds, varname=varname, cmap='Blues', vdim=None)
+```
+
+```{python}
+varname = 'PRES'
+idx = get_yatir_idx(datafile, varname)
+ds[varname].values[idx.values] = np.nan
+sp.quadmesh_compare_vertical_var(ds=ds, varname=varname, cmap='Blues', vdim='num_metgrid_levels')
+```
