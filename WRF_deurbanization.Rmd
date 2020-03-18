@@ -4,12 +4,12 @@ jupyter:
     text_representation:
       extension: .Rmd
       format_name: rmarkdown
-      format_version: '1.1'
-      jupytext_version: 1.2.4
+      format_version: '1.2'
+      jupytext_version: 1.3.3
   kernelspec:
-    display_name: Python 3
+    display_name: WRFhv
     language: python
-    name: python3
+    name: wrfhv
 ---
 
 ```{python}
@@ -17,7 +17,8 @@ jupyter:
 ```
 
 #### WRF Deurbanization experiment plots
-1 to 9 June 2009 temporal averages.  _**Note these plots show the first nine days of the WRF runs.**_
+
+Mean values for 1 June 2005 to 17 July 2005 except for Tmin and Tmax, which are means of the daily minima and maxima.
 
 ```{python}
 import xarray as xr
@@ -44,10 +45,10 @@ gv.extension('bokeh')
 ```
 
 ```{python}
-# ctl = xr.open_dataset('/Users/tim/work/Data/SummenWRF/deurbanized/d02_ctl_mean_vals.nc')
-# deurb = xr.open_dataset('/Users/tim/work/Data/SummenWRF/deurbanized/d02_deurb_mean_vals.nc')
-ctl = xr.open_dataset('/Users/tim/work/Data/SummenWRF/deurbanized/d02_ctl_10day_mean_vals.nc')
-deurb = xr.open_dataset('/Users/tim/work/Data/SummenWRF/deurbanized/d02_deurb_10day_mean_vals.nc')
+ctl = xr.open_dataset('/Users/tim/work/Data/SummenWRF/deurbanized/d02_ctl_month_mean_vals.nc',
+                     mask_and_scale=True)
+deurb = xr.open_dataset('/Users/tim/work/Data/SummenWRF/deurbanized/d02_deurb_month_mean_vals.nc',
+                       mask_and_scale=True)
 d = ctl - deurb
 dsgv = {k: gv.Dataset(this_data, kdims=['latitude', 'longitude'], vdims=list(ctl.data_vars))
         for k, this_data in zip(('urban', 'd'), (ctl, d))}
@@ -61,13 +62,17 @@ dim_lat = hv.Dimension('latitude', label='lat', unit='deg N')
 ```{python}
 def make_layout(urban, d, varname):
     """return a Layout object showing urban, difference next to one another"""
+    vmin = np.abs(urban[varname]).min()
+    vmax = np.abs(urban[varname]).max()
     dmax = np.abs(d[varname]).max()
+    dmin = -1.0 * dmax
     return(hv.Layout([urban.to(gv.QuadMesh, 
                                kdims=[dim_lon, dim_lat], 
                                vdims=varname).opts(cmap='Viridis', 
                                                    title='URBAN', 
                                                    colorbar=True,
                                                    colorbar_opts={'title':varname},
+                                                   clim=(vmin, vmax),
                                                    width=400) * 
                       gf.coastline.options(scale='50m') * 
                       gf.borders.options(scale='50m') *
@@ -90,8 +95,9 @@ all_plots = {}
 for this_var in ctl.data_vars:
     try:
         all_plots[this_var] = make_layout(dsgv['urban'], dsgv['d'], this_var)
-    except ValueError:
+    except ValueError as e:
         print('unable to plot {}'.format(this_var))
+        print(e)
 ```
 
 ```{python}
@@ -102,7 +108,15 @@ for this_var in ctl.data_vars:
 ```
 
 ```{python}
-all_plots['TSK']
+all_plots['T2']
+```
+
+```{python}
+all_plots['Tmin']
+```
+
+```{python}
+all_plots['Tmax']
 ```
 
 ```{python}
