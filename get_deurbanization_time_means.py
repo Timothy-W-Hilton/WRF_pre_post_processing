@@ -53,10 +53,11 @@ def get_time_means(fname, run):
     means = month_means.mean('month')
     means = means.assign_coords(longitude=ds['XLONG'][0, ...])
     means = means.assign_coords(latitude=ds['XLAT'][0, ...])
-    means.to_netcdf(path=os.path.join(outdir,
-                                      'd02_{}_month_mean_vals_dbg.nc'.format(run)))
     means['Tmin'] = Tmin
     means['Tmax'] = Tmax
+    means = means.drop(('doy', 'Time', 'month'))
+    means.to_netcdf(path=os.path.join(outdir,
+                                      'd02_{}_month_mean_vals_dbg.nc'.format(run)))
     print('done: ', datetime.now())
     return(means, ds)
 
